@@ -33,6 +33,8 @@ class Program:
         self.data: dict[int, int] = {}
         self.probes: list[dict] = []
         self.speculation: list[dict] = []
+        self.prediction: list[dict] = []
+        self.pipeline: dict = {}
         self.li(28, 0x12345678)
         self.li(31, 0x10000)
 
@@ -376,6 +378,129 @@ def jumps_branches() -> Program:
     return p
 
 
+def prediction_loop_exit() -> Program:
+    p = Program("prediction_loop_exit", "Train a taken loop branch, then recover from a predicted-taken final fallthrough")
+    p.li(1, 9)
+    p.label("loop")
+    p.i("addi", 1, 1, -1)
+    p.i("addi", 28, 28, 13)
+    p.label("predicted_branch")
+    p.branch("bne", 1, 0, "loop")
+    p.label("fallthrough")
+    p.checksum(1)
+    p.finish()
+    p.prediction.append({"site": "predicted_branch", "targets": ["loop"] * 8 + ["fallthrough"],
+                         "required_flushes": [0, 8], "minimum_correct": 4})
+    return p
+
+
+def prediction_jalr_switch() -> Program:
+    p = Program("prediction_jalr_switch", "One JALR alternates trained targets while preserving each link result")
+    p.li(1, 0)
+    p.li(2, 6)
+    p.li(3, 3)
+    p.address(6, "target_a")
+    p.label("indirect_call")
+    p.jalr(10, 6, 1)
+    p.i("addi", 1, 1, 1)
+    p.branch("blt", 1, 3, "again")
+    p.address(6, "target_b")
+    p.label("again")
+    p.branch("blt", 1, 2, "indirect_call")
+    p.checksum(10)
+    p.finish()
+    p.label("target_a")
+    p.i("addi", 28, 28, 11)
+    p.jalr(0, 10)
+    p.label("target_b")
+    p.i("addi", 28, 28, 29)
+    p.jalr(0, 10)
+    p.prediction.append({"site": "indirect_call", "targets": ["target_a"] * 3 + ["target_b"] * 3,
+                         "required_flushes": [0, 3], "minimum_correct": 2})
+    return p
+
+
+def prediction_alias() -> Program:
+    p = Program("prediction_btb_alias", "PCs separated by 256 bytes alias a 64-entry BTB without borrowing the wrong target")
+    p.li(1, 0)
+    p.li(2, 3)
+    p.jal(0, "site_a")
+    while p.pc < 0x100:
+        p.i("addi", 0, 0, 0)
+    p.label("site_a")
+    p.jal(10, "after_a")
+    while p.pc < 0x200:
+        p.i("addi", 0, 0, 0)
+    p.label("site_b")
+    p.jal(11, "after_b")
+    p.label("after_a")
+    p.i("addi", 1, 1, 1)
+    p.checksum(10)
+    p.branch("blt", 1, 2, "site_a")
+    p.branch("beq", 1, 2, "site_b")
+    p.finish()
+    p.label("after_b")
+    p.checksum(11)
+    p.jal(0, "site_a")
+    p.prediction.append({"site": "site_a", "targets": ["after_a"] * 4,
+                         "required_flushes": [0, 3], "minimum_correct": 1})
+    return p
+
+
+def pipeline_contention() -> Program:
+    p = Program("pipeline_completion", "Warm-loop load/fast-MDU completion contends with registered EX and rename wakeup")
+    p.li(1, 0x71234567)
+    p.li(2, 24)
+    p.li(6, 0x18000)
+    for lane, byte in enumerate((0x98, 0xBA, 0xDC, 0xFE)):
+        p.data[0x18000 + lane] = byte
+    p.label("loop")
+    # Division by zero returns quickly, while independent ordinary operations
+    # are already occupying the registered execution slot.
+    p.r("divu", 3, 1, 0)
+    p.i("addi", 4, 1, 11)
+    p.i("addi", 5, 1, 13)
+    p.i("addi", 7, 4, 17)
+    p.load("lw", 9, 6)
+    p.i("addi", 10, 1, 19)
+    p.i("addi", 11, 1, 23)
+    p.i("addi", 13, 10, 29)
+    p.i("addi", 14, 1, 31)
+    p.i("addi", 15, 1, 37)
+    p.i("addi", 16, 14, 41)
+    p.checksum(3)
+    p.checksum(7)
+    p.checksum(9)
+    p.checksum(13)
+    p.checksum(16)
+    p.i("addi", 2, 2, -1)
+    p.branch("bne", 2, 0, "loop")
+    p.finish()
+    p.pipeline = {"wb_stall_sources": [1, 2], "rename_bypass": True}
+    return p
+
+
+def memory_order_wrap() -> Program:
+    p = Program("memory_order_wrap", "Repeated stores and younger loads reuse circular ROB slots and clear older-store masks")
+    p.li(1, 0x1234)
+    p.li(2, 97)
+    p.label("loop")
+    p.i("addi", 1, 1, 37)
+    p.store("sw", 1, 31, 0)
+    p.load("lw", 3, 31, 0)
+    p.i("addi", 4, 3, -9)
+    p.store("sb", 4, 31, 1)
+    p.load("lbu", 5, 31, 1)
+    p.store("sw", 3, 31, 4)
+    p.load("lw", 7, 31, 4)
+    p.checksum(5)
+    p.checksum(7)
+    p.i("addi", 2, 2, -1)
+    p.branch("bne", 2, 0, "loop")
+    p.finish()
+    return p
+
+
 def random_program(seed: int, count: int) -> Program:
     rng = random.Random(seed)
     p = Program(f"random_{seed:08x}", f"Seed {seed}, {count} random arithmetic/memory/control operations")
@@ -453,6 +578,10 @@ def save(program: Program, output: Path) -> dict:
     metadata["speculation"] = [{**probe, **{key + "_pc": program.labels[probe[key]]
                               for key in ("branch", "wrong", "replacement")}}
                               for probe in program.speculation]
+    metadata["prediction"] = [{**probe, "site_pc": program.labels[probe["site"]],
+                                "target_pcs": [program.labels[target] for target in probe["targets"]]}
+                               for probe in program.prediction]
+    metadata["pipeline"] = program.pipeline
     (folder / "meta.json").write_text(json.dumps(metadata, indent=2) + "\n")
     return metadata
 
@@ -467,6 +596,8 @@ def main() -> None:
     programs = [integer_isa(), memory_lanes(), multiply_divide(), dependencies(), jumps_branches(),
                 out_of_order("mdu"), out_of_order("load")]
     programs += [wrong_path(kind) for kind in ("store", "mmio", "illegal", "bad_load", "load", "mdu")]
+    programs += [prediction_loop_exit(), prediction_jalr_switch(), prediction_alias(),
+                 pipeline_contention(), memory_order_wrap()]
     programs += [random_program(int(seed, 0), args.random_count) for seed in args.seeds.split(",") if seed]
     if args.case:
         programs = [p for p in programs if p.name == args.case]

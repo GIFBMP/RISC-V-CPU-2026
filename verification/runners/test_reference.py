@@ -6,7 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from rv32_reference import ArchitecturalFault, Commit, RV32
-from run_cpu import check_ooo, check_speculation, compare_commit, parse_trace
+from run_cpu import check_ooo, check_pipeline, check_prediction, check_speculation, compare_commit, parse_trace
 
 
 def one_instruction(word: int, a: int = 0, b: int = 0) -> tuple[RV32, Commit]:
@@ -120,6 +120,28 @@ class TraceChecks(unittest.TestCase):
     def test_physical_register_trace_fields_are_decimal(self):
         parsed = parse_trace("CPU_TRACE DISPATCH id=30 cycle=702 pc=00000064 insn=12300393 rd=7 pdst=33")
         self.assertEqual(parsed[1]["pdst"], 33)
+
+    def test_prediction_requires_recovery_and_correctly_predicted_occurrences(self):
+        probe = {"site_pc": 8, "target_pcs": [4, 4, 12], "required_flushes": [0, 2], "minimum_correct": 1}
+        events = [("COMMIT", {"pc": 8, "id": 2}), ("FLUSH", {"pc": 8, "id": 2, "target": 4}),
+                  ("COMMIT", {"pc": 8, "id": 7}), ("COMMIT", {"pc": 8, "id": 12}),
+                  ("FLUSH", {"pc": 8, "id": 12, "target": 12})]
+        self.assertIsNone(check_prediction(probe, events)[0])
+        self.assertIsNotNone(check_prediction(probe, events[:-1])[0])
+        self.assertIsNotNone(check_prediction(probe, events + [("FLUSH", {"pc": 8, "id": 7, "target": 4})])[0])
+
+    def test_pipeline_requires_stall_then_single_execution_and_live_bypass(self):
+        requirements = {"wb_stall_sources": [1, 2], "rename_bypass": True}
+        events = [("WB_STALL", {"id": 1, "cycle": 4, "source": 1}),
+                  ("ISSUE", {"id": 1, "cycle": 5}), ("COMPLETE", {"id": 1, "cycle": 5}),
+                  ("COMMIT", {"id": 1, "cycle": 6}),
+                  ("WB_STALL", {"id": 2, "cycle": 7, "source": 2}),
+                  ("ISSUE", {"id": 2, "cycle": 8}), ("COMPLETE", {"id": 2, "cycle": 8}),
+                  ("COMMIT", {"id": 2, "cycle": 9}),
+                  ("RENAME_BYPASS", {"id": 1, "cycle": 2, "source": 3})]
+        self.assertIsNone(check_pipeline(requirements, events)[0])
+        self.assertIsNotNone(check_pipeline(requirements, events + [("ISSUE", {"id": 1, "cycle": 10})])[0])
+        self.assertIsNotNone(check_pipeline(requirements, events[:-1])[0])
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
-// I/D read arbitration with one outstanding AXI read. The chosen owner/address
-// remain latched through response acceptance. Writes progress independently.
+// Pipelined I/D AXI reads. A registered AR slot reserves one of 16 credits;
+// accepted AR owners are queued until their ordered R response is consumed.
+// Fair arbitration happens at each internal request acceptance. Writes are
+// independent and still allow only one outstanding AW/W/B transaction.
 module axi_lite_bridge (
     input  wire        clock,
     input  wire        reset,
@@ -44,11 +46,12 @@ module axi_lite_bridge (
     input  wire        bvalid,
     output wire        bready
 );
-    localparam [1:0] READ_IDLE = 2'd0, READ_ADDRESS = 2'd1, READ_DATA = 2'd2;
     localparam [1:0] WRITE_IDLE = 2'd0, WRITE_SEND = 2'd1, WRITE_ACK = 2'd2;
-    reg [1:0] read_state;
     reg [1:0] write_state;
-    reg read_owner_d;
+    reg ar_pending, ar_owner_d;
+    reg [15:0] read_owners;
+    reg [3:0] read_head, read_tail;
+    reg [4:0] read_count;
     reg prefer_d;
     reg [31:0] read_address;
     reg [31:0] write_address;
@@ -59,14 +62,19 @@ module axi_lite_bridge (
 
     wire grant_i = i_rd_valid && (!d_rd_valid || !prefer_d);
     wire grant_d = d_rd_valid && (!i_rd_valid || prefer_d);
-    assign i_rd_ready = !reset && read_state == READ_IDLE && grant_i;
-    assign d_rd_ready = !reset && read_state == READ_IDLE && grant_d;
-    assign arvalid = !reset && read_state == READ_ADDRESS;
+    wire read_owner_d = read_owners[read_head];
+    wire ar_fire = arvalid && arready;
+    wire r_fire = rvalid && rready;
+    wire [5:0] reserved_reads = {1'b0, read_count} + {5'b0, ar_pending};
+    wire ar_slot_ready = (!ar_pending || arready) && (reserved_reads < 6'd16 || r_fire);
+    assign i_rd_ready = !reset && ar_slot_ready && grant_i;
+    assign d_rd_ready = !reset && ar_slot_ready && grant_d;
+    assign arvalid = !reset && ar_pending;
     assign araddr = read_address;
-    assign rready = !reset && read_state == READ_DATA &&
+    assign rready = !reset && read_count != 0 &&
         (read_owner_d ? d_rd_rsp_ready : i_rd_rsp_ready);
-    assign i_rd_rsp_valid = !reset && read_state == READ_DATA && !read_owner_d && rvalid;
-    assign d_rd_rsp_valid = !reset && read_state == READ_DATA && read_owner_d && rvalid;
+    assign i_rd_rsp_valid = !reset && read_count != 0 && !read_owner_d && rvalid;
+    assign d_rd_rsp_valid = !reset && read_count != 0 && read_owner_d && rvalid;
     assign i_rd_rsp_data = rdata;
     assign d_rd_rsp_data = rdata;
     assign i_rd_rsp_error = rresp != 2'b00;
@@ -84,9 +92,13 @@ module axi_lite_bridge (
 
     always @(posedge clock) begin
         if (reset) begin
-            read_state <= READ_IDLE;
+            ar_pending <= 1'b0;
+            ar_owner_d <= 1'b0;
+            read_owners <= 16'b0;
+            read_head <= 4'b0;
+            read_tail <= 4'b0;
+            read_count <= 5'b0;
             write_state <= WRITE_IDLE;
-            read_owner_d <= 1'b0;
             prefer_d <= 1'b0;
             read_address <= 32'b0;
             write_address <= 32'b0;
@@ -95,26 +107,29 @@ module axi_lite_bridge (
             aw_sent <= 1'b0;
             w_sent <= 1'b0;
         end else begin
-            case (read_state)
-                READ_IDLE: begin
-                    if (i_rd_valid && i_rd_ready) begin
-                        read_address <= i_rd_addr;
-                        read_owner_d <= 1'b0;
-                        prefer_d <= 1'b1;
-                        read_state <= READ_ADDRESS;
-                    end else if (d_rd_valid && d_rd_ready) begin
-                        read_address <= d_rd_addr;
-                        read_owner_d <= 1'b1;
-                        prefer_d <= 1'b0;
-                        read_state <= READ_ADDRESS;
-                    end
-                end
-                READ_ADDRESS: if (arvalid && arready)
-                    read_state <= READ_DATA;
-                READ_DATA: if (rvalid && rready)
-                    read_state <= READ_IDLE;
-                default: read_state <= READ_IDLE;
+            if (ar_fire) begin
+                read_owners[read_tail] <= ar_owner_d;
+                read_tail <= read_tail + 1'b1;
+            end
+            if (r_fire)
+                read_head <= read_head + 1'b1;
+            case ({ar_fire, r_fire})
+                2'b10: read_count <= read_count + 1'b1;
+                2'b01: read_count <= read_count - 1'b1;
+                default: begin end
             endcase
+            if (i_rd_valid && i_rd_ready) begin
+                read_address <= i_rd_addr;
+                ar_owner_d <= 1'b0;
+                ar_pending <= 1'b1;
+                prefer_d <= 1'b1;
+            end else if (d_rd_valid && d_rd_ready) begin
+                read_address <= d_rd_addr;
+                ar_owner_d <= 1'b1;
+                ar_pending <= 1'b1;
+                prefer_d <= 1'b0;
+            end else if (ar_fire)
+                ar_pending <= 1'b0;
             case (write_state)
                 WRITE_IDLE: if (d_wr_valid && d_wr_ready) begin
                     write_address <= d_wr_addr;

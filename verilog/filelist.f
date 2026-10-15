@@ -5,6 +5,8 @@ execute/alu.sv
 execute/muldiv_unit.sv
 bus/axi_lite_bridge.sv
 memory/blocking_cache.sv
+memory/icache_pipeline.sv
 memory/memory_system.sv
+frontend/fetch_frontend.sv
 cpu_core.sv
 student_top.sv

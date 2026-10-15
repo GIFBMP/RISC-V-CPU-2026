@@ -27,6 +27,11 @@ python3 verification/runners/audit_cases.py \
 | `ooo_mdu` / `ooo_load` | 年轻独立指令先于更老依赖指令发射，按程序顺序提交 |
 | `flush_*` | 预热后的错误路径 Store、MMIO、非法指令确实进入窗口并发射；合法/越界 Load 与 MDU 在途被杀；合法 Load 旧响应回来前已复用物理目的寄存器 |
 | `random_*` | 固定种子的整数/M/访存/分支混合，默认 8 个种子，每个 250 个随机操作 |
+| `prediction_loop_exit` | taken 循环训练后的正确预测，以及最后一次 not-taken 恢复 |
+| `prediction_jalr_switch` | 同一 JALR 的目标 A→B 变化、目标恢复、每次调用的 link |
+| `prediction_btb_alias` | 相差 256 B 的两个控制流地址冲突于默认 64 项 BTB，禁止借用另一条指令的目标 |
+| `pipeline_completion` | V2 寄存 EX 被 Load/MDU 完成抢占写回端口后保持且仅执行一次；IQ 插入与源写回同拍 |
+| `memory_order_wrap` | 97 轮 Store/Load/部分字节更新，验证 ROB 槽位反复复用后的 older-store 位清理 |
 
 ## 对接仿真器
 
@@ -60,6 +65,8 @@ CPU_TRACE COMPLETE id=0 cycle=6 pc=00000000 insn=123450b7
 CPU_TRACE DISPATCH id=0 cycle=4 pc=00000000 insn=123450b7 rd=1 pdst=32
 CPU_TRACE FLUSH id=22 cycle=692 pc=00000054 target=00000060 load_pending=1
 CPU_TRACE DROP_LOAD id=23 cycle=767 pc=00000058
+CPU_TRACE WB_STALL id=42 cycle=200 pc=00000040 source=1
+CPU_TRACE RENAME_BYPASS id=43 cycle=201 pc=00000044 source=3
 ```
 
 - `seq` 是从 0 连续递增的架构退休序号；`id` 是分配时的唯一动态指令编号，冲刷后允许留空号。
@@ -70,6 +77,29 @@ CPU_TRACE DROP_LOAD id=23 cycle=767 pc=00000058
 - OoO 探针要求匹配最终已提交的动态 `id`：年轻独立 ADD 的 ISSUE 周期早于更老依赖 ADD，而 COMMIT 序号晚于它。仅与长操作重叠执行不算发射乱序；错误路径上的同 PC 发射也不算证据。
 - 错误路径探针先预热关键指令和恢复目标。默认必须观察错误指令 DISPATCH、ISSUE 先于指定分支 FLUSH，且从不 COMMIT。Load/MDU 还必须从不 COMPLETE；Load 必须在 FLUSH 时仍 `load_pending=1`，后来出现保留原始 `id/pc` 的 DROP_LOAD。
 - `flush_load` 额外强制检查恢复路径最终提交的指令，在旧响应到来前复用了被杀 Load 的同一个 `pdst`。`flush_bad_load` 要求杀死与错误响应排空；最短外部延迟下错误响应会很快返回，因此不额外要求它的目的寄存器也提前复用。
-- `--no-ooo` 和 `--no-speculation-coverage` 供小队列参数的纯功能回归或定位问题使用，只跳过对应计时覆盖，始终保留逐条提交对比；报告记录实际启用的检查。`--result-only` 同时跳过全部轨迹检查，不能用于完整 CPU 验收。
+- V2 预测测试要求指定控制流次数发生对应目标的 FLUSH，同时要求训练后的部分控制流无需 FLUSH。`pipeline_completion` 要求 Load（`source=1`）和 MDU（`source=2`）都实际阻塞过普通 EX 指令，且这些指令随后只 ISSUE/COMPLETE 一次并最终提交；RENAME_BYPASS 的 `source` 分别表示 rs1、rs2、两者同拍命中写回。
+- `--no-ooo` 和 `--no-speculation-coverage` 供小队列参数的纯功能回归或定位问题使用，只跳过对应计时覆盖，始终保留逐条提交对比。后者也跳过依赖默认 BTB 布局和默认流水窗口的 V2 预测/写回争用覆盖；报告记录实际启用的检查。`--result-only` 同时跳过全部轨迹检查，不能用于完整 CPU 验收。
+
+默认生成 **26 组**（18 组定向、8 个随机种子）。V2 默认配置的完整运行示例：
+
+```sh
+python3 verification/directed/generate.py --out build/verification/v2-cases
+python3 verification/runners/build_trace.py --out build/verification/v2-trace
+python3 verification/runners/run_cpu.py --sim build/verification/v2-trace/sim \
+  --cases build/verification/v2-cases --latencies 1,10,31
+python3 verification/runners/run_faults.py --sim build/verification/v2-trace/sim \
+  --out build/verification/v2-faults --latencies 1,10,31
+```
+
+非 2 的幂小参数配置的纯功能回归示例：
+
+```sh
+python3 verification/runners/build_trace.py --out build/verification/v2-trace-small \
+  --param ROB_DEPTH=5 --param PRF_SIZE=37 --param IQ_DEPTH=3 --param LSQ_DEPTH=3 \
+  --param ICACHE_BYTES=128 --param DCACHE_BYTES=128 --param CACHE_LINE_BYTES=8 \
+  --param FETCH_QUEUE_DEPTH=5 --param FETCH_OUTSTANDING=3 --param BTB_ENTRIES=5
+python3 verification/runners/run_cpu.py --sim build/verification/v2-trace-small/sim \
+  --cases build/verification/v2-cases --latencies 1,10 --no-ooo --no-speculation-coverage
+```
 
 参考模型只覆盖本课要求的用户态 RV32IM，自然对齐访问；不模拟特权、异常处理、CSR、FENCE、ECALL/EBREAK 或周期性能。它不会把架构路径上非法指令、越界访问静默跳过。随机总线背压需要总线单元测试环境支持；官方仿真器延迟扫描只能覆盖不同响应延迟和其固定的从机行为，不能声称等价于任意独立通道背压测试。

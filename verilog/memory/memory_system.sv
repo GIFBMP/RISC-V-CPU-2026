@@ -55,25 +55,16 @@ module memory_system #(
     wire [31:0] i_rd_addr, i_rd_rsp_data, d_rd_addr, d_rd_rsp_data;
     wire [31:0] d_wr_addr, d_wr_data;
     wire [3:0] d_wr_strb;
-    wire unused_i_wr_valid, unused_i_wr_rsp_ready;
-    wire [31:0] unused_i_wr_addr, unused_i_wr_data;
-    wire [3:0] unused_i_wr_strb;
-
-    blocking_cache #(
-        .CACHE_BYTES(ICACHE_BYTES), .LINE_BYTES(CACHE_LINE_BYTES), .READ_ONLY(1)
+    icache_pipeline #(
+        .CACHE_BYTES(ICACHE_BYTES), .LINE_BYTES(CACHE_LINE_BYTES)
     ) instruction_cache (
         .clock(clock), .reset(reset),
-        .req_valid(i_req_valid), .req_ready(i_req_ready), .req_write(1'b0),
-        .req_addr(i_req_addr), .req_wdata(32'b0), .req_wstrb(4'b0),
+        .req_valid(i_req_valid), .req_ready(i_req_ready), .req_addr(i_req_addr),
         .rsp_valid(i_rsp_valid), .rsp_ready(i_rsp_ready),
         .rsp_data(i_rsp_data), .rsp_error(i_rsp_error),
         .mem_rd_valid(i_rd_valid), .mem_rd_ready(i_rd_ready), .mem_rd_addr(i_rd_addr),
         .mem_rd_rsp_valid(i_rd_rsp_valid), .mem_rd_rsp_ready(i_rd_rsp_ready),
-        .mem_rd_rsp_data(i_rd_rsp_data), .mem_rd_rsp_error(i_rd_rsp_error),
-        .mem_wr_valid(unused_i_wr_valid), .mem_wr_ready(1'b0),
-        .mem_wr_addr(unused_i_wr_addr), .mem_wr_data(unused_i_wr_data),
-        .mem_wr_strb(unused_i_wr_strb), .mem_wr_rsp_valid(1'b0),
-        .mem_wr_rsp_ready(unused_i_wr_rsp_ready), .mem_wr_rsp_error(1'b0)
+        .mem_rd_rsp_data(i_rd_rsp_data), .mem_rd_rsp_error(i_rd_rsp_error)
     );
 
     blocking_cache #(

@@ -1,4 +1,4 @@
-// Course interface. All defaults describe the first, single-issue CPU.
+// Course interface. Defaults describe the V2 single-issue CPU.
 module student_top #(
     parameter integer ROB_DEPTH = 16,
     parameter integer PRF_SIZE = 48,
@@ -10,6 +10,10 @@ module student_top #(
     parameter integer ICACHE_WAYS = 1,
     parameter integer DCACHE_WAYS = 1,
     parameter integer ISSUE_WIDTH = 1,
+    parameter integer FETCH_QUEUE_DEPTH = 8,
+    parameter integer FETCH_OUTSTANDING = 4,
+    parameter integer BTB_ENTRIES = 64,
+    parameter integer PREDICT_ENABLE = 1,
     parameter integer TRACE = 0
 ) (
     input  logic clock,
@@ -41,7 +45,9 @@ module student_top #(
 
     cpu_core #(
         .ROB_DEPTH(ROB_DEPTH), .PRF_SIZE(PRF_SIZE), .IQ_DEPTH(IQ_DEPTH),
-        .LSQ_DEPTH(LSQ_DEPTH), .ISSUE_WIDTH(ISSUE_WIDTH), .TRACE(TRACE)
+        .LSQ_DEPTH(LSQ_DEPTH), .ISSUE_WIDTH(ISSUE_WIDTH), .TRACE(TRACE),
+        .FETCH_QUEUE_DEPTH(FETCH_QUEUE_DEPTH), .FETCH_OUTSTANDING(FETCH_OUTSTANDING),
+        .BTB_ENTRIES(BTB_ENTRIES), .PREDICT_ENABLE(PREDICT_ENABLE)
     ) core (
         .clock(clock), .reset(reset),
         .i_req_valid(i_req_valid), .i_req_ready(i_req_ready), .i_req_addr(i_req_addr),

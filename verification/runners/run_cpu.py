@@ -22,8 +22,8 @@ import time
 
 from rv32_reference import Commit, RV32
 
-TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|FLUSH|DROP_LOAD)\s+(.*)")
-DECIMAL = {"seq", "id", "cycle", "rd", "pdst", "store", "load_pending"}
+TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|FLUSH|DROP_LOAD|WB_STALL|RENAME_BYPASS)\s+(.*)")
+DECIMAL = {"seq", "id", "cycle", "rd", "pdst", "store", "load_pending", "source"}
 PASS = re.compile(r"^PASS cycles=(\d+) result=(\d+) expected=(\d+)\s*$")
 
 
@@ -125,6 +125,51 @@ def check_speculation(probe: dict, events: list[tuple[str, dict]]) -> tuple[str 
     return "wrong-path instruction did not dispatch and issue before the tested branch flushed", evidence
 
 
+def check_prediction(probe: dict, events: list[tuple[str, dict]]) -> tuple[str | None, dict]:
+    commits = [fields for kind, fields in events if kind == "COMMIT" and fields.get("pc") == probe["site_pc"]]
+    flushes = {fields["id"]: fields for kind, fields in events
+               if kind == "FLUSH" and fields.get("pc") == probe["site_pc"]}
+    evidence = {"commits": commits, "flushes": list(flushes.values())}
+    if len(commits) != len(probe["target_pcs"]):
+        return "prediction probe did not retire the required number of control-flow occurrences", evidence
+    for occurrence in probe["required_flushes"]:
+        flush = flushes.get(commits[occurrence].get("id"))
+        if flush is None or flush.get("target") != probe["target_pcs"][occurrence]:
+            return f"prediction recovery missing at occurrence {occurrence} of PC {probe['site_pc']:08x}", evidence
+    correct = [commit for commit in commits if commit.get("id") not in flushes]
+    evidence["correctly_predicted"] = correct
+    if len(correct) < probe["minimum_correct"]:
+        return "prediction probe lacks correctly predicted control flow after training", evidence
+    return None, evidence
+
+
+def check_pipeline(requirements: dict, events: list[tuple[str, dict]]) -> tuple[str | None, dict]:
+    committed = {fields["id"] for kind, fields in events if kind == "COMMIT"}
+    evidence = {"wb_stalls": [], "rename_bypasses": []}
+
+    def completes_once(identity: int) -> bool:
+        return (identity in committed
+                and sum(kind == "ISSUE" and fields.get("id") == identity for kind, fields in events) == 1
+                and sum(kind == "COMPLETE" and fields.get("id") == identity for kind, fields in events) == 1)
+
+    for source in requirements.get("wb_stall_sources", []):
+        stall = next((fields for kind, fields in events if kind == "WB_STALL"
+                      and fields.get("source") == source and completes_once(fields.get("id"))
+                      and any(event == "ISSUE" and item.get("id") == fields.get("id")
+                              and item.get("cycle", -1) > fields.get("cycle", -1)
+                              for event, item in events)), None)
+        if stall is None:
+            return f"no committed EX instruction stalled by completion source {source} then executed exactly once", evidence
+        evidence["wb_stalls"].append(stall)
+    if requirements.get("rename_bypass"):
+        bypass = next((fields for kind, fields in events if kind == "RENAME_BYPASS"
+                       and completes_once(fields.get("id"))), None)
+        if bypass is None:
+            return "no committed rename insertion observed concurrent with its source writeback", evidence
+        evidence["rename_bypasses"].append(bypass)
+    return None, evidence
+
+
 def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: int,
              result_only: bool, require_ooo: bool, require_speculation: bool = True) -> dict:
     expected_result = int((case / "expected.txt").read_text().strip(), 0)
@@ -133,8 +178,11 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
     metadata = json.loads((case / "meta.json").read_text()) if (case / "meta.json").exists() else {}
     probes = metadata.get("probes", [])
     speculation = metadata.get("speculation", [])
+    prediction = metadata.get("prediction", [])
+    pipeline = metadata.get("pipeline", {})
     probe_pcs = {probe[key + "_pc"] for probe in probes for key in ("older", "younger", "producer")}
     probe_pcs.update(probe[key + "_pc"] for probe in speculation for key in ("branch", "wrong", "replacement"))
+    probe_pcs.update(probe["site_pc"] for probe in prediction)
     observed = []
     folder = out / f"{case.name}-latency{latency}"
     folder.mkdir(parents=True, exist_ok=True)
@@ -162,7 +210,7 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
             if not parsed:
                 continue
             kind, fields = parsed
-            if fields.get("pc") in probe_pcs:
+            if pipeline or fields.get("pc") in probe_pcs:
                 observed.append((kind, fields))
             if kind != "COMMIT":
                 continue
@@ -203,10 +251,23 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
             speculation_proof.append({"probe": probe, "evidence": evidence})
             if error:
                 errors.append(error)
+    prediction_proof = []
+    pipeline_proof = {}
+    if not result_only and require_speculation and not errors:
+        for probe in prediction:
+            error, evidence = check_prediction(probe, observed)
+            prediction_proof.append({"probe": probe, "evidence": evidence})
+            if error:
+                errors.append(error)
+        if pipeline:
+            error, pipeline_proof = check_pipeline(pipeline, observed)
+            if error:
+                errors.append(error)
     report = {"case": case.name, "latency": latency, "passed": not errors, "errors": errors,
               "commits": commits, "cycles": pass_cycles, "elapsed_seconds": round(time.monotonic() - start, 3),
               "result_only": result_only, "command": command, "ooo_evidence": proof,
               "speculation_evidence": speculation_proof,
+              "prediction_evidence": prediction_proof, "pipeline_evidence": pipeline_proof,
               "checks": {"commits": not result_only, "ooo": not result_only and require_ooo,
                          "speculation": not result_only and require_speculation},
               "image_sha256": hashlib.sha256((case / "program.data").read_bytes()).hexdigest()}
