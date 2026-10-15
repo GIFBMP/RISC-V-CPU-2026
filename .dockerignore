@@ -1,0 +1,11 @@
+.git
+**/.git
+build
+obj_dir
+code
+*.AppImage
+*.vcd
+*.fst
+**/__pycache__
+**/.pytest_cache
+.DS_Store

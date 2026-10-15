@@ -1,0 +1,4 @@
+# Environment self-check data, NOT executable RISC-V instructions.
+# Little-endian word at address zero: 0x12345678 (305419896).
+@00000000
+78 56 34 12

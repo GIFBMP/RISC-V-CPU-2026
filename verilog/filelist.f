@@ -1,5 +1,10 @@
 # RTL paths are relative to this file in verilog/.
 # The top-level module must be named student_top.
-# Example entries:
-# student_top.sv
-# core.sv
+execute/decoder.sv
+execute/alu.sv
+execute/muldiv_unit.sv
+bus/axi_lite_bridge.sv
+memory/blocking_cache.sv
+memory/memory_system.sv
+cpu_core.sv
+student_top.sv

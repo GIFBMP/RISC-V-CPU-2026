@@ -1,0 +1,4 @@
+# Environment self-check data, NOT executable RISC-V instructions.
+# Little-endian word at address zero: 0xA5C37E91 (2781052561).
+@00000000
+91 7e c3 a5

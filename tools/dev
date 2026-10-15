@@ -1,0 +1,144 @@
+#!/bin/sh
+# Project-local entry points. Never change the global Docker context.
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
+cd "$repo_root"
+
+profile=cpu2026
+docker_context=colima-cpu2026
+docker_image=cpu2026:arm64
+
+usage() {
+    cat <<'EOF'
+Usage: tools/dev COMMAND [ARGUMENTS]
+
+  mac [make arguments]       Native gmake with config.macos.mk
+  linux [make arguments]     Course container make with config.linux.mk
+  start                      Start the project-only Colima cpu2026 profile
+  stop                       Stop only the Colima cpu2026 profile
+  build-image                Build cpu2026:arm64 using the course Dockerfile
+  smoke mac                  Build and run the independent environment check
+  smoke linux                Build/run the environment check, then synthesize it
+  help                       Show this help
+
+Examples:
+  tools/dev mac build
+  tools/dev mac test Case=correctness_add_to_100
+  tools/dev start
+  tools/dev build-image
+  tools/dev linux synth MODE=opt
+  tools/dev smoke mac
+  tools/dev smoke linux
+
+Linux commands require an already running cpu2026 profile; they never start it
+automatically. CPU RTL and smoke-check outputs use separate build directories.
+EOF
+}
+
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        printf 'Required command is unavailable: %s\n' "$1" >&2
+        exit 1
+    fi
+}
+
+require_daemon() {
+    require_command docker
+    if ! docker --context "$docker_context" info >/dev/null; then
+        printf 'The course Docker context is unavailable. Run tools/dev start first.\n' >&2
+        exit 1
+    fi
+}
+
+mac_make() {
+    gmake CONFIG=config.macos.mk "$@"
+}
+
+linux_make() {
+    docker --context "$docker_context" run --rm --platform linux/arm64 \
+        --mount "type=bind,source=$repo_root,target=/work" \
+        --workdir /work "$docker_image" make CONFIG=config.linux.mk "$@"
+}
+
+smoke() {
+    smoke_target=$1
+    case "$smoke_target" in
+        mac)
+            require_command gmake
+            smoke_make=mac_make
+            smoke_build=build/environment-macos
+            ;;
+        linux)
+            require_daemon
+            smoke_make=linux_make
+            smoke_build=build/environment-linux
+            ;;
+        *)
+            printf 'Usage: tools/dev smoke mac|linux\n' >&2
+            exit 2
+            ;;
+    esac
+
+    "$smoke_make" build FILELIST=verification/environment/filelist.f \
+        "BUILD=$smoke_build"
+    "$smoke_make" run "BUILD=$smoke_build" "SIM=$smoke_build/sim" \
+        PROGRAM=verification/environment/pattern_a.data EXPECTED=305419896 \
+        MAX_CYCLES=200 LATENCY=10
+    "$smoke_make" run "BUILD=$smoke_build" "SIM=$smoke_build/sim" \
+        PROGRAM=verification/environment/pattern_b.data EXPECTED=2781052561 \
+        MAX_CYCLES=200 LATENCY=10
+
+    if [ "$smoke_target" = linux ]; then
+        "$smoke_make" synth FILELIST=verification/environment/filelist.f \
+            "BUILD=$smoke_build" "SYNTH_OUT=$smoke_build/synth" MODE=opt
+    fi
+}
+
+command=${1:-help}
+if [ "$#" -gt 0 ]; then
+    shift
+fi
+
+case "$command" in
+    mac)
+        require_command gmake
+        mac_make "$@"
+        ;;
+    linux)
+        require_daemon
+        linux_make "$@"
+        ;;
+    start)
+        [ "$#" -eq 0 ] || { usage >&2; exit 2; }
+        require_command colima
+        colima start "$profile" --arch aarch64 --vm-type vz --cpus 6 \
+            --memory 8 --disk 40 --runtime docker --mount-type virtiofs \
+            --mount "$repo_root:w" --activate=false --ssh-config=false \
+            --ssh-agent=false --kubernetes=false --vz-rosetta=false
+        ;;
+    stop)
+        [ "$#" -eq 0 ] || { usage >&2; exit 2; }
+        require_command colima
+        colima stop "$profile"
+        ;;
+    build-image)
+        [ "$#" -eq 0 ] || { usage >&2; exit 2; }
+        require_daemon
+        docker --context "$docker_context" build --platform linux/arm64 \
+            --build-arg BUILD_JOBS=6 --tag "$docker_image" \
+            --file "$repo_root/Dockerfile" "$repo_root"
+        ;;
+    smoke)
+        [ "$#" -eq 1 ] || { usage >&2; exit 2; }
+        smoke "$1"
+        ;;
+    help|-h|--help)
+        usage
+        ;;
+    *)
+        printf 'Unknown command: %s\n' "$command" >&2
+        usage >&2
+        exit 2
+        ;;
+esac

@@ -1,0 +1,1785 @@
+{
+  "date": "2026-10-15",
+  "version": "V1 single-issue RV32IM OoO correctness baseline",
+  "framework_commit": "54fc150ffc290f52aa024209ffb9a29d43856f6d",
+  "testcases_commit": "29f980727f7d99a1842a58f34091c7579ba3fe85",
+  "rtl_sha256": {
+    "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+    "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+    "verilog/execute/muldiv_unit.sv": "e0b3b79410fe4ae1b6c849e1201011fee2a34a632a9549ac510bfe17a7bb8aa7",
+    "verilog/bus/axi_lite_bridge.sv": "fc6d5e97f7a79648740bfdc334abbde1e6a62d5c8db9cea03eb3b9b005e8670a",
+    "verilog/memory/blocking_cache.sv": "31caffb38b9faaa17a28211e39916a00f69b4f3e271074828e2396156b828e80",
+    "verilog/memory/memory_system.sv": "31a907671f72ac7ebe9c0a954f7aba0f8c7d308976e34016f8179a342d45666d",
+    "verilog/cpu_core.sv": "34fedfdaa7e3453046705968626f064f87192364f2e1ddc254394a3bd30712ba",
+    "verilog/student_top.sv": "0d2cc439e9e8e05ac9885412b3993061511d49e87d91bd0f173a84b352820c52",
+    "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc"
+  },
+  "parameters": {
+    "ROB_DEPTH": 16,
+    "PRF_SIZE": 48,
+    "IQ_DEPTH": 8,
+    "LSQ_DEPTH": 8,
+    "ICACHE_BYTES": 2048,
+    "DCACHE_BYTES": 2048,
+    "CACHE_LINE_BYTES": 16,
+    "ICACHE_WAYS": 1,
+    "DCACHE_WAYS": 1,
+    "ISSUE_WIDTH": 1,
+    "TRACE": 0
+  },
+  "official": {
+    "latency": 10,
+    "max_cycles": 100000000,
+    "platforms": [
+      "macOS arm64, Verilator 5.052",
+      "Linux arm64, Verilator 5.020"
+    ],
+    "cycles_identical": true,
+    "correctness": [
+      {
+        "case": "correctness_add_to_100",
+        "cycles": 2987,
+        "passed": true
+      },
+      {
+        "case": "correctness_array_test1",
+        "cycles": 2094,
+        "passed": true
+      },
+      {
+        "case": "correctness_array_test2",
+        "cycles": 2386,
+        "passed": true
+      },
+      {
+        "case": "correctness_basicopt1",
+        "cycles": 1441784,
+        "passed": true
+      },
+      {
+        "case": "correctness_bulgarian",
+        "cycles": 1822723,
+        "passed": true
+      },
+      {
+        "case": "correctness_expr",
+        "cycles": 2739,
+        "passed": true
+      },
+      {
+        "case": "correctness_gcd",
+        "cycles": 1605,
+        "passed": true
+      },
+      {
+        "case": "correctness_hanoi",
+        "cycles": 27399,
+        "passed": true
+      },
+      {
+        "case": "correctness_lvalue2",
+        "cycles": 1086,
+        "passed": true
+      },
+      {
+        "case": "correctness_magic",
+        "cycles": 3435250,
+        "passed": true
+      },
+      {
+        "case": "correctness_manyarguments",
+        "cycles": 992,
+        "passed": true
+      },
+      {
+        "case": "correctness_multiarray",
+        "cycles": 13759,
+        "passed": true
+      },
+      {
+        "case": "correctness_naive",
+        "cycles": 950,
+        "passed": true
+      },
+      {
+        "case": "correctness_pi",
+        "cycles": 45527614,
+        "passed": true
+      },
+      {
+        "case": "correctness_qsort",
+        "cycles": 7466834,
+        "passed": true
+      },
+      {
+        "case": "correctness_queens",
+        "cycles": 1883037,
+        "passed": true
+      },
+      {
+        "case": "correctness_statement_test",
+        "cycles": 6058,
+        "passed": true
+      },
+      {
+        "case": "correctness_superloop",
+        "cycles": 2226815,
+        "passed": true
+      },
+      {
+        "case": "correctness_tak",
+        "cycles": 10017167,
+        "passed": true
+      }
+    ],
+    "performance": [
+      {
+        "case": "perf_median",
+        "instructions": 6961,
+        "cycles": 59734,
+        "ipc": 0.11653329761944621,
+        "passed": true
+      },
+      {
+        "case": "perf_multiply",
+        "instructions": 21722,
+        "cycles": 140369,
+        "ipc": 0.1547492680007694,
+        "passed": true
+      },
+      {
+        "case": "perf_qsort",
+        "instructions": 139900,
+        "cycles": 1238315,
+        "ipc": 0.11297610058829942,
+        "passed": true
+      },
+      {
+        "case": "perf_rsort",
+        "instructions": 195719,
+        "cycles": 1608397,
+        "ipc": 0.12168575295775856,
+        "passed": true
+      },
+      {
+        "case": "perf_towers",
+        "instructions": 5278,
+        "cycles": 51066,
+        "ipc": 0.10335644068460424,
+        "passed": true
+      },
+      {
+        "case": "perf_vvadd",
+        "instructions": 4524,
+        "cycles": 44488,
+        "ipc": 0.10169034346340586,
+        "passed": true
+      }
+    ],
+    "ipc_geomean": 0.11730603856564727
+  },
+  "synthesis": {
+    "mode": "opt",
+    "area": {
+      "logic_area_um2": 7687.4799599971475,
+      "sequential_area_um2": 3628.3788,
+      "combinational_area_um2": 4059.1011599971475,
+      "sram_area_um2": 1375.9414240000003,
+      "area_um2": 9063.421383997147,
+      "module_tree": {
+        "instance": "student_top",
+        "module": "student_top",
+        "source_module": "student_top",
+        "direct_area_um2": 9063.421383997147,
+        "direct": {
+          "logic_area_um2": 7687.4799599971475,
+          "sequential_area_um2": 3628.3788,
+          "combinational_area_um2": 4059.1011599971475,
+          "sram_area_um2": 1375.9414240000003,
+          "area_um2": 9063.421383997147
+        },
+        "logic_area_um2": 7687.4799599971475,
+        "sequential_area_um2": 3628.3788,
+        "combinational_area_um2": 4059.1011599971475,
+        "sram_area_um2": 1375.9414240000003,
+        "area_um2": 9063.421383997147,
+        "children": [],
+        "percent_of_total": 100.0
+      },
+      "sram_instances": [
+        {
+          "instance": "student_top/memory.data_cache.data_array.lane_0",
+          "module": "fakeram_asap7_512x8",
+          "depth": 512,
+          "width": 8,
+          "area_um2": 171.992678
+        },
+        {
+          "instance": "student_top/memory.data_cache.data_array.lane_1",
+          "module": "fakeram_asap7_512x8",
+          "depth": 512,
+          "width": 8,
+          "area_um2": 171.992678
+        },
+        {
+          "instance": "student_top/memory.data_cache.data_array.lane_2",
+          "module": "fakeram_asap7_512x8",
+          "depth": 512,
+          "width": 8,
+          "area_um2": 171.992678
+        },
+        {
+          "instance": "student_top/memory.data_cache.data_array.lane_3",
+          "module": "fakeram_asap7_512x8",
+          "depth": 512,
+          "width": 8,
+          "area_um2": 171.992678
+        },
+        {
+          "instance": "student_top/memory.instruction_cache.data_array.lane_0",
+          "module": "fakeram_asap7_512x8",
+          "depth": 512,
+          "width": 8,
+          "area_um2": 171.992678
+        },
+        {
+          "instance": "student_top/memory.instruction_cache.data_array.lane_1",
+          "module": "fakeram_asap7_512x8",
+          "depth": 512,
+          "width": 8,
+          "area_um2": 171.992678
+        },
+        {
+          "instance": "student_top/memory.instruction_cache.data_array.lane_2",
+          "module": "fakeram_asap7_512x8",
+          "depth": 512,
+          "width": 8,
+          "area_um2": 171.992678
+        },
+        {
+          "instance": "student_top/memory.instruction_cache.data_array.lane_3",
+          "module": "fakeram_asap7_512x8",
+          "depth": 512,
+          "width": 8,
+          "area_um2": 171.992678
+        }
+      ]
+    },
+    "timing": {
+      "clock_port": "clock",
+      "clock_period_ns": 2.0,
+      "input_delay_ns": 0.2,
+      "output_delay_ns": 0.2,
+      "input_transition_ns": 0.05,
+      "clock_transition_ns": 0.05,
+      "clock_uncertainty_ns": 0.05,
+      "output_load_ff": 5.0,
+      "reset_value": 0,
+      "clock_model": "ideal",
+      "interconnect": "no_parasitics",
+      "frequency_resolution_ns": 0.001,
+      "minimum_period_ns": 22.4599609375,
+      "estimated_fmax_mhz": 44.5236749423888,
+      "worst_setup_slack_ns": -20.459633,
+      "timing_analyzed": true
+    },
+    "tools": {
+      "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+      "opensta": "3.1.0"
+    },
+    "sram_model": {
+      "name": "fakeram-asap7-v1",
+      "upstream": "ABKGroup/FakeRAM2.0",
+      "commit": "49dad15badc28a55363813e105c830c7776fc588",
+      "estimated": true,
+      "area_per_bit_um2": 0.0419904,
+      "clock_to_q_formula_ns": "0.071262 + 0.0000167155 * depth + 0.001243254 * width",
+      "setup_ns": 0.05,
+      "hold_ns": 0.05,
+      "min_period_ns": 0.157
+    }
+  },
+  "validation": {
+    "default": {
+      "passed": 63,
+      "total": 63,
+      "compared_commits": 55602,
+      "latencies": [
+        1,
+        10,
+        31
+      ],
+      "trace_comparison": true,
+      "ooo_coverage": true,
+      "speculation_coverage": true,
+      "local_summary": "build/verification/runs/20261015-211747-377799/summary.json",
+      "cases": [
+        {
+          "case": "dependencies_wrap",
+          "latency": 1,
+          "passed": true,
+          "commits": 1163,
+          "cycles": 12549,
+          "image_sha256": "ed145b8beab2667c5f1193ea28e749b910f32715d77cb45b0837d7fb3874ed32"
+        },
+        {
+          "case": "dependencies_wrap",
+          "latency": 10,
+          "passed": true,
+          "commits": 1163,
+          "cycles": 23142,
+          "image_sha256": "ed145b8beab2667c5f1193ea28e749b910f32715d77cb45b0837d7fb3874ed32"
+        },
+        {
+          "case": "dependencies_wrap",
+          "latency": 31,
+          "passed": true,
+          "commits": 1163,
+          "cycles": 47935,
+          "image_sha256": "ed145b8beab2667c5f1193ea28e749b910f32715d77cb45b0837d7fb3874ed32"
+        },
+        {
+          "case": "flush_bad_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 597,
+          "image_sha256": "8750aa82fe9aa3c956d3e0856880b8adace49bddf78da00d51bc4ebc089b15a6"
+        },
+        {
+          "case": "flush_bad_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1106,
+          "image_sha256": "8750aa82fe9aa3c956d3e0856880b8adace49bddf78da00d51bc4ebc089b15a6"
+        },
+        {
+          "case": "flush_bad_load",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 2315,
+          "image_sha256": "8750aa82fe9aa3c956d3e0856880b8adace49bddf78da00d51bc4ebc089b15a6"
+        },
+        {
+          "case": "flush_illegal",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 597,
+          "image_sha256": "36eaf303a38dedc66ea61b2f04099aa51354f71d8d8037402e1019aae8815d5c"
+        },
+        {
+          "case": "flush_illegal",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1106,
+          "image_sha256": "36eaf303a38dedc66ea61b2f04099aa51354f71d8d8037402e1019aae8815d5c"
+        },
+        {
+          "case": "flush_illegal",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 2303,
+          "image_sha256": "36eaf303a38dedc66ea61b2f04099aa51354f71d8d8037402e1019aae8815d5c"
+        },
+        {
+          "case": "flush_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 598,
+          "image_sha256": "023135914d1356027a47065d3a0bab6addeda566f8988283478a9b13750a13f8"
+        },
+        {
+          "case": "flush_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1118,
+          "image_sha256": "023135914d1356027a47065d3a0bab6addeda566f8988283478a9b13750a13f8"
+        },
+        {
+          "case": "flush_load",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 2395,
+          "image_sha256": "023135914d1356027a47065d3a0bab6addeda566f8988283478a9b13750a13f8"
+        },
+        {
+          "case": "flush_mdu",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 591,
+          "image_sha256": "2ecc6d30a88d5d4720bc7a5f45d377d280f7d4912be981fe8293159ae5a25028"
+        },
+        {
+          "case": "flush_mdu",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1118,
+          "image_sha256": "2ecc6d30a88d5d4720bc7a5f45d377d280f7d4912be981fe8293159ae5a25028"
+        },
+        {
+          "case": "flush_mdu",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 2391,
+          "image_sha256": "2ecc6d30a88d5d4720bc7a5f45d377d280f7d4912be981fe8293159ae5a25028"
+        },
+        {
+          "case": "flush_mmio",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 597,
+          "image_sha256": "d99493c76fd3b9e8ef9ee1b0ae9c30dfea3c06d5e1592a016cb7da9b291a8a47"
+        },
+        {
+          "case": "flush_mmio",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1106,
+          "image_sha256": "d99493c76fd3b9e8ef9ee1b0ae9c30dfea3c06d5e1592a016cb7da9b291a8a47"
+        },
+        {
+          "case": "flush_mmio",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 2303,
+          "image_sha256": "d99493c76fd3b9e8ef9ee1b0ae9c30dfea3c06d5e1592a016cb7da9b291a8a47"
+        },
+        {
+          "case": "flush_store",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 597,
+          "image_sha256": "07c16d1ef070f4cfc68d2897b9f9f8b16d4739d939693a9b335b4dc1fb9801fa"
+        },
+        {
+          "case": "flush_store",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1106,
+          "image_sha256": "07c16d1ef070f4cfc68d2897b9f9f8b16d4739d939693a9b335b4dc1fb9801fa"
+        },
+        {
+          "case": "flush_store",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 2303,
+          "image_sha256": "07c16d1ef070f4cfc68d2897b9f9f8b16d4739d939693a9b335b4dc1fb9801fa"
+        },
+        {
+          "case": "integer_isa",
+          "latency": 1,
+          "passed": true,
+          "commits": 3072,
+          "cycles": 33033,
+          "image_sha256": "795ef69aed7c0d62a42148ef25d93adc4453ea2e712a284b61cce972b78de602"
+        },
+        {
+          "case": "integer_isa",
+          "latency": 10,
+          "passed": true,
+          "commits": 3072,
+          "cycles": 60690,
+          "image_sha256": "795ef69aed7c0d62a42148ef25d93adc4453ea2e712a284b61cce972b78de602"
+        },
+        {
+          "case": "integer_isa",
+          "latency": 31,
+          "passed": true,
+          "commits": 3072,
+          "cycles": 125223,
+          "image_sha256": "795ef69aed7c0d62a42148ef25d93adc4453ea2e712a284b61cce972b78de602"
+        },
+        {
+          "case": "jumps_branches",
+          "latency": 1,
+          "passed": true,
+          "commits": 245,
+          "cycles": 2294,
+          "image_sha256": "510a875336b34336cdf020ee1b93fae8dbb5d4dc8f4f3feb9b01978d9bf88d30"
+        },
+        {
+          "case": "jumps_branches",
+          "latency": 10,
+          "passed": true,
+          "commits": 245,
+          "cycles": 3599,
+          "image_sha256": "510a875336b34336cdf020ee1b93fae8dbb5d4dc8f4f3feb9b01978d9bf88d30"
+        },
+        {
+          "case": "jumps_branches",
+          "latency": 31,
+          "passed": true,
+          "commits": 245,
+          "cycles": 6644,
+          "image_sha256": "510a875336b34336cdf020ee1b93fae8dbb5d4dc8f4f3feb9b01978d9bf88d30"
+        },
+        {
+          "case": "m_extension",
+          "latency": 1,
+          "passed": true,
+          "commits": 2713,
+          "cycles": 29191,
+          "image_sha256": "fb9becbb9f7afaff973be53a8e91d89c6303b306b5d6f68d00fd3139acb155db"
+        },
+        {
+          "case": "m_extension",
+          "latency": 10,
+          "passed": true,
+          "commits": 2713,
+          "cycles": 53644,
+          "image_sha256": "fb9becbb9f7afaff973be53a8e91d89c6303b306b5d6f68d00fd3139acb155db"
+        },
+        {
+          "case": "m_extension",
+          "latency": 31,
+          "passed": true,
+          "commits": 2713,
+          "cycles": 110701,
+          "image_sha256": "fb9becbb9f7afaff973be53a8e91d89c6303b306b5d6f68d00fd3139acb155db"
+        },
+        {
+          "case": "memory_lanes",
+          "latency": 1,
+          "passed": true,
+          "commits": 131,
+          "cycles": 1443,
+          "image_sha256": "4d212e38d452d9ee3caf0cda05ae30e64bf81285f25b891f5e7b6de6e90a117a"
+        },
+        {
+          "case": "memory_lanes",
+          "latency": 10,
+          "passed": true,
+          "commits": 131,
+          "cycles": 2694,
+          "image_sha256": "4d212e38d452d9ee3caf0cda05ae30e64bf81285f25b891f5e7b6de6e90a117a"
+        },
+        {
+          "case": "memory_lanes",
+          "latency": 31,
+          "passed": true,
+          "commits": 131,
+          "cycles": 5647,
+          "image_sha256": "4d212e38d452d9ee3caf0cda05ae30e64bf81285f25b891f5e7b6de6e90a117a"
+        },
+        {
+          "case": "ooo_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 33,
+          "cycles": 408,
+          "image_sha256": "40d25a57ae218649f892f4765b0b702686a0ab53c5900121faf918fa827e2e04"
+        },
+        {
+          "case": "ooo_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 33,
+          "cycles": 769,
+          "image_sha256": "40d25a57ae218649f892f4765b0b702686a0ab53c5900121faf918fa827e2e04"
+        },
+        {
+          "case": "ooo_load",
+          "latency": 31,
+          "passed": true,
+          "commits": 33,
+          "cycles": 1626,
+          "image_sha256": "40d25a57ae218649f892f4765b0b702686a0ab53c5900121faf918fa827e2e04"
+        },
+        {
+          "case": "ooo_mdu",
+          "latency": 1,
+          "passed": true,
+          "commits": 31,
+          "cycles": 403,
+          "image_sha256": "c3cb54703814d50912e394a519464ce1b6e08cf4ef732580f7ed0257e3db8230"
+        },
+        {
+          "case": "ooo_mdu",
+          "latency": 10,
+          "passed": true,
+          "commits": 31,
+          "cycles": 736,
+          "image_sha256": "c3cb54703814d50912e394a519464ce1b6e08cf4ef732580f7ed0257e3db8230"
+        },
+        {
+          "case": "ooo_mdu",
+          "latency": 31,
+          "passed": true,
+          "commits": 31,
+          "cycles": 1513,
+          "image_sha256": "c3cb54703814d50912e394a519464ce1b6e08cf4ef732580f7ed0257e3db8230"
+        },
+        {
+          "case": "random_00000001",
+          "latency": 1,
+          "passed": true,
+          "commits": 1359,
+          "cycles": 14932,
+          "image_sha256": "ac05e7ea89793f4764ade8f456bbd1204241ab649cc9965760278cc936f9c302"
+        },
+        {
+          "case": "random_00000001",
+          "latency": 10,
+          "passed": true,
+          "commits": 1359,
+          "cycles": 27698,
+          "image_sha256": "ac05e7ea89793f4764ade8f456bbd1204241ab649cc9965760278cc936f9c302"
+        },
+        {
+          "case": "random_00000001",
+          "latency": 31,
+          "passed": true,
+          "commits": 1359,
+          "cycles": 57593,
+          "image_sha256": "ac05e7ea89793f4764ade8f456bbd1204241ab649cc9965760278cc936f9c302"
+        },
+        {
+          "case": "random_00000007",
+          "latency": 1,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 14869,
+          "image_sha256": "729594cedf5f66be61fee226db51e07f5e6e633d775b1c4f4bfd60296327b3d9"
+        },
+        {
+          "case": "random_00000007",
+          "latency": 10,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 27609,
+          "image_sha256": "729594cedf5f66be61fee226db51e07f5e6e633d775b1c4f4bfd60296327b3d9"
+        },
+        {
+          "case": "random_00000007",
+          "latency": 31,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 57432,
+          "image_sha256": "729594cedf5f66be61fee226db51e07f5e6e633d775b1c4f4bfd60296327b3d9"
+        },
+        {
+          "case": "random_00000017",
+          "latency": 1,
+          "passed": true,
+          "commits": 1356,
+          "cycles": 14870,
+          "image_sha256": "9aa9b751830e9026632055ff179c97cbad79caca6ab6e36d7f1bcefff80ca18b"
+        },
+        {
+          "case": "random_00000017",
+          "latency": 10,
+          "passed": true,
+          "commits": 1356,
+          "cycles": 27651,
+          "image_sha256": "9aa9b751830e9026632055ff179c97cbad79caca6ab6e36d7f1bcefff80ca18b"
+        },
+        {
+          "case": "random_00000017",
+          "latency": 31,
+          "passed": true,
+          "commits": 1356,
+          "cycles": 57564,
+          "image_sha256": "9aa9b751830e9026632055ff179c97cbad79caca6ab6e36d7f1bcefff80ca18b"
+        },
+        {
+          "case": "random_0000002a",
+          "latency": 1,
+          "passed": true,
+          "commits": 1358,
+          "cycles": 14883,
+          "image_sha256": "e703d454490663b193ce40b7c9aff66c39c46c11c8818e522371acbe1d32876a"
+        },
+        {
+          "case": "random_0000002a",
+          "latency": 10,
+          "passed": true,
+          "commits": 1358,
+          "cycles": 27618,
+          "image_sha256": "e703d454490663b193ce40b7c9aff66c39c46c11c8818e522371acbe1d32876a"
+        },
+        {
+          "case": "random_0000002a",
+          "latency": 31,
+          "passed": true,
+          "commits": 1358,
+          "cycles": 57435,
+          "image_sha256": "e703d454490663b193ce40b7c9aff66c39c46c11c8818e522371acbe1d32876a"
+        },
+        {
+          "case": "random_00000063",
+          "latency": 1,
+          "passed": true,
+          "commits": 1357,
+          "cycles": 14825,
+          "image_sha256": "ea029ac5aef120ad9a5781d3388221c14acf23dce3b21f332c6a839d55f01a56"
+        },
+        {
+          "case": "random_00000063",
+          "latency": 10,
+          "passed": true,
+          "commits": 1357,
+          "cycles": 27505,
+          "image_sha256": "ea029ac5aef120ad9a5781d3388221c14acf23dce3b21f332c6a839d55f01a56"
+        },
+        {
+          "case": "random_00000063",
+          "latency": 31,
+          "passed": true,
+          "commits": 1357,
+          "cycles": 57160,
+          "image_sha256": "ea029ac5aef120ad9a5781d3388221c14acf23dce3b21f332c6a839d55f01a56"
+        },
+        {
+          "case": "random_00000100",
+          "latency": 1,
+          "passed": true,
+          "commits": 1353,
+          "cycles": 14784,
+          "image_sha256": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a"
+        },
+        {
+          "case": "random_00000100",
+          "latency": 10,
+          "passed": true,
+          "commits": 1353,
+          "cycles": 27421,
+          "image_sha256": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a"
+        },
+        {
+          "case": "random_00000100",
+          "latency": 31,
+          "passed": true,
+          "commits": 1353,
+          "cycles": 56986,
+          "image_sha256": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a"
+        },
+        {
+          "case": "random_00000400",
+          "latency": 1,
+          "passed": true,
+          "commits": 1355,
+          "cycles": 14832,
+          "image_sha256": "e115f48e8dbdd08b7b504bc62510b134a9ef25dde9e3ad736d46d495f0ebe670"
+        },
+        {
+          "case": "random_00000400",
+          "latency": 10,
+          "passed": true,
+          "commits": 1355,
+          "cycles": 27617,
+          "image_sha256": "e115f48e8dbdd08b7b504bc62510b134a9ef25dde9e3ad736d46d495f0ebe670"
+        },
+        {
+          "case": "random_00000400",
+          "latency": 31,
+          "passed": true,
+          "commits": 1355,
+          "cycles": 57590,
+          "image_sha256": "e115f48e8dbdd08b7b504bc62510b134a9ef25dde9e3ad736d46d495f0ebe670"
+        },
+        {
+          "case": "random_0000ffff",
+          "latency": 1,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 14870,
+          "image_sha256": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
+        },
+        {
+          "case": "random_0000ffff",
+          "latency": 10,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 27663,
+          "image_sha256": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
+        },
+        {
+          "case": "random_0000ffff",
+          "latency": 31,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 57588,
+          "image_sha256": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
+        }
+      ]
+    },
+    "small": {
+      "passed": 42,
+      "total": 42,
+      "compared_commits": 37068,
+      "latencies": [
+        1,
+        10
+      ],
+      "trace_comparison": true,
+      "ooo_coverage": false,
+      "speculation_coverage": false,
+      "local_summary": "build/verification/runs-small/20261015-211609-084978/summary.json",
+      "cases": [
+        {
+          "case": "dependencies_wrap",
+          "latency": 1,
+          "passed": true,
+          "commits": 1163,
+          "cycles": 12234,
+          "image_sha256": "ed145b8beab2667c5f1193ea28e749b910f32715d77cb45b0837d7fb3874ed32"
+        },
+        {
+          "case": "dependencies_wrap",
+          "latency": 10,
+          "passed": true,
+          "commits": 1163,
+          "cycles": 22847,
+          "image_sha256": "ed145b8beab2667c5f1193ea28e749b910f32715d77cb45b0837d7fb3874ed32"
+        },
+        {
+          "case": "flush_bad_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 571,
+          "image_sha256": "8750aa82fe9aa3c956d3e0856880b8adace49bddf78da00d51bc4ebc089b15a6"
+        },
+        {
+          "case": "flush_bad_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1048,
+          "image_sha256": "8750aa82fe9aa3c956d3e0856880b8adace49bddf78da00d51bc4ebc089b15a6"
+        },
+        {
+          "case": "flush_illegal",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 571,
+          "image_sha256": "36eaf303a38dedc66ea61b2f04099aa51354f71d8d8037402e1019aae8815d5c"
+        },
+        {
+          "case": "flush_illegal",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1048,
+          "image_sha256": "36eaf303a38dedc66ea61b2f04099aa51354f71d8d8037402e1019aae8815d5c"
+        },
+        {
+          "case": "flush_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 577,
+          "image_sha256": "023135914d1356027a47065d3a0bab6addeda566f8988283478a9b13750a13f8"
+        },
+        {
+          "case": "flush_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1055,
+          "image_sha256": "023135914d1356027a47065d3a0bab6addeda566f8988283478a9b13750a13f8"
+        },
+        {
+          "case": "flush_mdu",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 554,
+          "image_sha256": "2ecc6d30a88d5d4720bc7a5f45d377d280f7d4912be981fe8293159ae5a25028"
+        },
+        {
+          "case": "flush_mdu",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1048,
+          "image_sha256": "2ecc6d30a88d5d4720bc7a5f45d377d280f7d4912be981fe8293159ae5a25028"
+        },
+        {
+          "case": "flush_mmio",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 571,
+          "image_sha256": "d99493c76fd3b9e8ef9ee1b0ae9c30dfea3c06d5e1592a016cb7da9b291a8a47"
+        },
+        {
+          "case": "flush_mmio",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1048,
+          "image_sha256": "d99493c76fd3b9e8ef9ee1b0ae9c30dfea3c06d5e1592a016cb7da9b291a8a47"
+        },
+        {
+          "case": "flush_store",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 571,
+          "image_sha256": "07c16d1ef070f4cfc68d2897b9f9f8b16d4739d939693a9b335b4dc1fb9801fa"
+        },
+        {
+          "case": "flush_store",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1048,
+          "image_sha256": "07c16d1ef070f4cfc68d2897b9f9f8b16d4739d939693a9b335b4dc1fb9801fa"
+        },
+        {
+          "case": "integer_isa",
+          "latency": 1,
+          "passed": true,
+          "commits": 3072,
+          "cycles": 32265,
+          "image_sha256": "795ef69aed7c0d62a42148ef25d93adc4453ea2e712a284b61cce972b78de602"
+        },
+        {
+          "case": "integer_isa",
+          "latency": 10,
+          "passed": true,
+          "commits": 3072,
+          "cycles": 59922,
+          "image_sha256": "795ef69aed7c0d62a42148ef25d93adc4453ea2e712a284b61cce972b78de602"
+        },
+        {
+          "case": "jumps_branches",
+          "latency": 1,
+          "passed": true,
+          "commits": 245,
+          "cycles": 2258,
+          "image_sha256": "510a875336b34336cdf020ee1b93fae8dbb5d4dc8f4f3feb9b01978d9bf88d30"
+        },
+        {
+          "case": "jumps_branches",
+          "latency": 10,
+          "passed": true,
+          "commits": 245,
+          "cycles": 3563,
+          "image_sha256": "510a875336b34336cdf020ee1b93fae8dbb5d4dc8f4f3feb9b01978d9bf88d30"
+        },
+        {
+          "case": "m_extension",
+          "latency": 1,
+          "passed": true,
+          "commits": 2713,
+          "cycles": 28501,
+          "image_sha256": "fb9becbb9f7afaff973be53a8e91d89c6303b306b5d6f68d00fd3139acb155db"
+        },
+        {
+          "case": "m_extension",
+          "latency": 10,
+          "passed": true,
+          "commits": 2713,
+          "cycles": 52936,
+          "image_sha256": "fb9becbb9f7afaff973be53a8e91d89c6303b306b5d6f68d00fd3139acb155db"
+        },
+        {
+          "case": "memory_lanes",
+          "latency": 1,
+          "passed": true,
+          "commits": 131,
+          "cycles": 1395,
+          "image_sha256": "4d212e38d452d9ee3caf0cda05ae30e64bf81285f25b891f5e7b6de6e90a117a"
+        },
+        {
+          "case": "memory_lanes",
+          "latency": 10,
+          "passed": true,
+          "commits": 131,
+          "cycles": 2621,
+          "image_sha256": "4d212e38d452d9ee3caf0cda05ae30e64bf81285f25b891f5e7b6de6e90a117a"
+        },
+        {
+          "case": "ooo_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 33,
+          "cycles": 374,
+          "image_sha256": "40d25a57ae218649f892f4765b0b702686a0ab53c5900121faf918fa827e2e04"
+        },
+        {
+          "case": "ooo_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 33,
+          "cycles": 709,
+          "image_sha256": "40d25a57ae218649f892f4765b0b702686a0ab53c5900121faf918fa827e2e04"
+        },
+        {
+          "case": "ooo_mdu",
+          "latency": 1,
+          "passed": true,
+          "commits": 31,
+          "cycles": 373,
+          "image_sha256": "c3cb54703814d50912e394a519464ce1b6e08cf4ef732580f7ed0257e3db8230"
+        },
+        {
+          "case": "ooo_mdu",
+          "latency": 10,
+          "passed": true,
+          "commits": 31,
+          "cycles": 670,
+          "image_sha256": "c3cb54703814d50912e394a519464ce1b6e08cf4ef732580f7ed0257e3db8230"
+        },
+        {
+          "case": "random_00000001",
+          "latency": 1,
+          "passed": true,
+          "commits": 1359,
+          "cycles": 14524,
+          "image_sha256": "ac05e7ea89793f4764ade8f456bbd1204241ab649cc9965760278cc936f9c302"
+        },
+        {
+          "case": "random_00000001",
+          "latency": 10,
+          "passed": true,
+          "commits": 1359,
+          "cycles": 27155,
+          "image_sha256": "ac05e7ea89793f4764ade8f456bbd1204241ab649cc9965760278cc936f9c302"
+        },
+        {
+          "case": "random_00000007",
+          "latency": 1,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 14483,
+          "image_sha256": "729594cedf5f66be61fee226db51e07f5e6e633d775b1c4f4bfd60296327b3d9"
+        },
+        {
+          "case": "random_00000007",
+          "latency": 10,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 27106,
+          "image_sha256": "729594cedf5f66be61fee226db51e07f5e6e633d775b1c4f4bfd60296327b3d9"
+        },
+        {
+          "case": "random_00000017",
+          "latency": 1,
+          "passed": true,
+          "commits": 1356,
+          "cycles": 14502,
+          "image_sha256": "9aa9b751830e9026632055ff179c97cbad79caca6ab6e36d7f1bcefff80ca18b"
+        },
+        {
+          "case": "random_00000017",
+          "latency": 10,
+          "passed": true,
+          "commits": 1356,
+          "cycles": 27213,
+          "image_sha256": "9aa9b751830e9026632055ff179c97cbad79caca6ab6e36d7f1bcefff80ca18b"
+        },
+        {
+          "case": "random_0000002a",
+          "latency": 1,
+          "passed": true,
+          "commits": 1358,
+          "cycles": 14501,
+          "image_sha256": "e703d454490663b193ce40b7c9aff66c39c46c11c8818e522371acbe1d32876a"
+        },
+        {
+          "case": "random_0000002a",
+          "latency": 10,
+          "passed": true,
+          "commits": 1358,
+          "cycles": 27168,
+          "image_sha256": "e703d454490663b193ce40b7c9aff66c39c46c11c8818e522371acbe1d32876a"
+        },
+        {
+          "case": "random_00000063",
+          "latency": 1,
+          "passed": true,
+          "commits": 1357,
+          "cycles": 14431,
+          "image_sha256": "ea029ac5aef120ad9a5781d3388221c14acf23dce3b21f332c6a839d55f01a56"
+        },
+        {
+          "case": "random_00000063",
+          "latency": 10,
+          "passed": true,
+          "commits": 1357,
+          "cycles": 27005,
+          "image_sha256": "ea029ac5aef120ad9a5781d3388221c14acf23dce3b21f332c6a839d55f01a56"
+        },
+        {
+          "case": "random_00000100",
+          "latency": 1,
+          "passed": true,
+          "commits": 1353,
+          "cycles": 14377,
+          "image_sha256": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a"
+        },
+        {
+          "case": "random_00000100",
+          "latency": 10,
+          "passed": true,
+          "commits": 1353,
+          "cycles": 26869,
+          "image_sha256": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a"
+        },
+        {
+          "case": "random_00000400",
+          "latency": 1,
+          "passed": true,
+          "commits": 1355,
+          "cycles": 14433,
+          "image_sha256": "e115f48e8dbdd08b7b504bc62510b134a9ef25dde9e3ad736d46d495f0ebe670"
+        },
+        {
+          "case": "random_00000400",
+          "latency": 10,
+          "passed": true,
+          "commits": 1355,
+          "cycles": 27091,
+          "image_sha256": "e115f48e8dbdd08b7b504bc62510b134a9ef25dde9e3ad736d46d495f0ebe670"
+        },
+        {
+          "case": "random_0000ffff",
+          "latency": 1,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 14498,
+          "image_sha256": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
+        },
+        {
+          "case": "random_0000ffff",
+          "latency": 10,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 27175,
+          "image_sha256": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
+        }
+      ]
+    }
+  },
+  "coverage_evidence_at_latency_10": {
+    "flush_bad_load": {
+      "ooo": [],
+      "speculation": [
+        {
+          "probe": {
+            "kind": "bad_load",
+            "branch": "branch",
+            "wrong": "wrong_path",
+            "replacement": "replacement",
+            "require_reuse": false,
+            "branch_pc": 84,
+            "wrong_pc": 88,
+            "replacement_pc": 100
+          },
+          "evidence": {
+            "dispatched": [
+              {
+                "id": 23,
+                "cycle": 666,
+                "pc": 88,
+                "insn": 107395,
+                "rd": 7,
+                "pdst": 33
+              }
+            ],
+            "issued": [
+              {
+                "id": 23,
+                "cycle": 691,
+                "pc": 88,
+                "insn": 107395
+              }
+            ],
+            "flushes": [
+              {
+                "id": 22,
+                "cycle": 692,
+                "pc": 84,
+                "target": 96,
+                "load_pending": 1
+              }
+            ],
+            "wrong_dispatch": {
+              "id": 23,
+              "cycle": 666,
+              "pc": 88,
+              "insn": 107395,
+              "rd": 7,
+              "pdst": 33
+            },
+            "wrong_issue": {
+              "id": 23,
+              "cycle": 691,
+              "pc": 88,
+              "insn": 107395
+            },
+            "flush": {
+              "id": 22,
+              "cycle": 692,
+              "pc": 84,
+              "target": 96,
+              "load_pending": 1
+            },
+            "drop": {
+              "id": 23,
+              "cycle": 708,
+              "pc": 88
+            },
+            "replacement_candidates": [
+              {
+                "id": 26,
+                "cycle": 681,
+                "pc": 100,
+                "insn": 305136531,
+                "rd": 7,
+                "pdst": 35
+              },
+              {
+                "id": 30,
+                "cycle": 702,
+                "pc": 100,
+                "insn": 305136531,
+                "rd": 7,
+                "pdst": 9
+              }
+            ],
+            "replacement": null
+          }
+        }
+      ]
+    },
+    "flush_illegal": {
+      "ooo": [],
+      "speculation": [
+        {
+          "probe": {
+            "kind": "illegal",
+            "branch": "branch",
+            "wrong": "wrong_path",
+            "replacement": "replacement",
+            "require_reuse": false,
+            "branch_pc": 84,
+            "wrong_pc": 88,
+            "replacement_pc": 100
+          },
+          "evidence": {
+            "dispatched": [
+              {
+                "id": 23,
+                "cycle": 666,
+                "pc": 88,
+                "insn": 4294967295,
+                "rd": 0,
+                "pdst": 0
+              }
+            ],
+            "issued": [
+              {
+                "id": 23,
+                "cycle": 667,
+                "pc": 88,
+                "insn": 4294967295
+              }
+            ],
+            "flushes": [
+              {
+                "id": 22,
+                "cycle": 692,
+                "pc": 84,
+                "target": 96,
+                "load_pending": 0
+              }
+            ],
+            "wrong_dispatch": {
+              "id": 23,
+              "cycle": 666,
+              "pc": 88,
+              "insn": 4294967295,
+              "rd": 0,
+              "pdst": 0
+            },
+            "wrong_issue": {
+              "id": 23,
+              "cycle": 667,
+              "pc": 88,
+              "insn": 4294967295
+            },
+            "flush": {
+              "id": 22,
+              "cycle": 692,
+              "pc": 84,
+              "target": 96,
+              "load_pending": 0
+            }
+          }
+        }
+      ]
+    },
+    "flush_load": {
+      "ooo": [],
+      "speculation": [
+        {
+          "probe": {
+            "kind": "load",
+            "branch": "branch",
+            "wrong": "wrong_path",
+            "replacement": "replacement",
+            "require_reuse": true,
+            "branch_pc": 84,
+            "wrong_pc": 88,
+            "replacement_pc": 100
+          },
+          "evidence": {
+            "dispatched": [
+              {
+                "id": 23,
+                "cycle": 666,
+                "pc": 88,
+                "insn": 107395,
+                "rd": 7,
+                "pdst": 33
+              }
+            ],
+            "issued": [
+              {
+                "id": 23,
+                "cycle": 691,
+                "pc": 88,
+                "insn": 107395
+              }
+            ],
+            "flushes": [
+              {
+                "id": 22,
+                "cycle": 692,
+                "pc": 84,
+                "target": 96,
+                "load_pending": 1
+              }
+            ],
+            "wrong_dispatch": {
+              "id": 23,
+              "cycle": 666,
+              "pc": 88,
+              "insn": 107395,
+              "rd": 7,
+              "pdst": 33
+            },
+            "wrong_issue": {
+              "id": 23,
+              "cycle": 691,
+              "pc": 88,
+              "insn": 107395
+            },
+            "flush": {
+              "id": 22,
+              "cycle": 692,
+              "pc": 84,
+              "target": 96,
+              "load_pending": 1
+            },
+            "drop": {
+              "id": 23,
+              "cycle": 767,
+              "pc": 88
+            },
+            "replacement_candidates": [
+              {
+                "id": 26,
+                "cycle": 681,
+                "pc": 100,
+                "insn": 305136531,
+                "rd": 7,
+                "pdst": 35
+              },
+              {
+                "id": 30,
+                "cycle": 702,
+                "pc": 100,
+                "insn": 305136531,
+                "rd": 7,
+                "pdst": 33
+              }
+            ],
+            "replacement": {
+              "id": 30,
+              "cycle": 702,
+              "pc": 100,
+              "insn": 305136531,
+              "rd": 7,
+              "pdst": 33
+            }
+          }
+        }
+      ]
+    },
+    "flush_mdu": {
+      "ooo": [],
+      "speculation": [
+        {
+          "probe": {
+            "kind": "mdu",
+            "branch": "branch",
+            "wrong": "wrong_path",
+            "replacement": "replacement",
+            "require_reuse": false,
+            "branch_pc": 84,
+            "wrong_pc": 88,
+            "replacement_pc": 100
+          },
+          "evidence": {
+            "dispatched": [
+              {
+                "id": 23,
+                "cycle": 666,
+                "pc": 88,
+                "insn": 35767219,
+                "rd": 7,
+                "pdst": 33
+              }
+            ],
+            "issued": [
+              {
+                "id": 23,
+                "cycle": 721,
+                "pc": 88,
+                "insn": 35767219
+              }
+            ],
+            "flushes": [
+              {
+                "id": 22,
+                "cycle": 722,
+                "pc": 84,
+                "target": 96,
+                "load_pending": 0
+              }
+            ],
+            "wrong_dispatch": {
+              "id": 23,
+              "cycle": 666,
+              "pc": 88,
+              "insn": 35767219,
+              "rd": 7,
+              "pdst": 33
+            },
+            "wrong_issue": {
+              "id": 23,
+              "cycle": 721,
+              "pc": 88,
+              "insn": 35767219
+            },
+            "flush": {
+              "id": 22,
+              "cycle": 722,
+              "pc": 84,
+              "target": 96,
+              "load_pending": 0
+            }
+          }
+        }
+      ]
+    },
+    "flush_mmio": {
+      "ooo": [],
+      "speculation": [
+        {
+          "probe": {
+            "kind": "mmio",
+            "branch": "branch",
+            "wrong": "wrong_path",
+            "replacement": "replacement",
+            "require_reuse": false,
+            "branch_pc": 84,
+            "wrong_pc": 88,
+            "replacement_pc": 100
+          },
+          "evidence": {
+            "dispatched": [
+              {
+                "id": 23,
+                "cycle": 666,
+                "pc": 88,
+                "insn": 7512099,
+                "rd": 0,
+                "pdst": 0
+              }
+            ],
+            "issued": [
+              {
+                "id": 23,
+                "cycle": 667,
+                "pc": 88,
+                "insn": 7512099
+              }
+            ],
+            "flushes": [
+              {
+                "id": 22,
+                "cycle": 692,
+                "pc": 84,
+                "target": 96,
+                "load_pending": 0
+              }
+            ],
+            "wrong_dispatch": {
+              "id": 23,
+              "cycle": 666,
+              "pc": 88,
+              "insn": 7512099,
+              "rd": 0,
+              "pdst": 0
+            },
+            "wrong_issue": {
+              "id": 23,
+              "cycle": 667,
+              "pc": 88,
+              "insn": 7512099
+            },
+            "flush": {
+              "id": 22,
+              "cycle": 692,
+              "pc": 84,
+              "target": 96,
+              "load_pending": 0
+            }
+          }
+        }
+      ]
+    },
+    "flush_store": {
+      "ooo": [],
+      "speculation": [
+        {
+          "probe": {
+            "kind": "store",
+            "branch": "branch",
+            "wrong": "wrong_path",
+            "replacement": "replacement",
+            "require_reuse": false,
+            "branch_pc": 84,
+            "wrong_pc": 88,
+            "replacement_pc": 100
+          },
+          "evidence": {
+            "dispatched": [
+              {
+                "id": 23,
+                "cycle": 666,
+                "pc": 88,
+                "insn": 8364067,
+                "rd": 0,
+                "pdst": 0
+              }
+            ],
+            "issued": [
+              {
+                "id": 23,
+                "cycle": 667,
+                "pc": 88,
+                "insn": 8364067
+              }
+            ],
+            "flushes": [
+              {
+                "id": 22,
+                "cycle": 692,
+                "pc": 84,
+                "target": 96,
+                "load_pending": 0
+              }
+            ],
+            "wrong_dispatch": {
+              "id": 23,
+              "cycle": 666,
+              "pc": 88,
+              "insn": 8364067,
+              "rd": 0,
+              "pdst": 0
+            },
+            "wrong_issue": {
+              "id": 23,
+              "cycle": 667,
+              "pc": 88,
+              "insn": 8364067
+            },
+            "flush": {
+              "id": 22,
+              "cycle": 692,
+              "pc": 84,
+              "target": 96,
+              "load_pending": 0
+            }
+          }
+        }
+      ]
+    },
+    "ooo_load": {
+      "ooo": [
+        {
+          "probe": {
+            "kind": "issue_reordering",
+            "older": "dependent",
+            "younger": "independent",
+            "producer": "load_producer",
+            "older_pc": 68,
+            "younger_pc": 72,
+            "producer_pc": 64
+          },
+          "evidence": {
+            "older_issue": {
+              "id": 19,
+              "cycle": 534,
+              "pc": 68,
+              "insn": 7438899
+            },
+            "younger_issue": {
+              "id": 20,
+              "cycle": 467,
+              "pc": 72,
+              "insn": 7570099
+            },
+            "older_commit": {
+              "seq": 19,
+              "id": 19,
+              "cycle": 535,
+              "pc": 68,
+              "insn": 7438899,
+              "rd": 4,
+              "value": 1898137034,
+              "store": 0,
+              "addr": 0,
+              "data": 0,
+              "strb": 0
+            },
+            "younger_commit": {
+              "seq": 20,
+              "id": 20,
+              "cycle": 536,
+              "pc": 72,
+              "insn": 7570099,
+              "rd": 5,
+              "value": 198,
+              "store": 0,
+              "addr": 0,
+              "data": 0,
+              "strb": 0
+            }
+          }
+        }
+      ],
+      "speculation": []
+    },
+    "ooo_mdu": {
+      "ooo": [
+        {
+          "probe": {
+            "kind": "issue_reordering",
+            "older": "dependent",
+            "younger": "independent",
+            "producer": "producer",
+            "older_pc": 68,
+            "younger_pc": 72,
+            "producer_pc": 64
+          },
+          "evidence": {
+            "older_issue": {
+              "id": 17,
+              "cycle": 481,
+              "pc": 68,
+              "insn": 7438899
+            },
+            "younger_issue": {
+              "id": 18,
+              "cycle": 457,
+              "pc": 72,
+              "insn": 7570099
+            },
+            "older_commit": {
+              "seq": 17,
+              "id": 17,
+              "cycle": 482,
+              "pc": 68,
+              "insn": 7438899,
+              "rd": 4,
+              "value": 271162518,
+              "store": 0,
+              "addr": 0,
+              "data": 0,
+              "strb": 0
+            },
+            "younger_commit": {
+              "seq": 18,
+              "id": 18,
+              "cycle": 483,
+              "pc": 72,
+              "insn": 7570099,
+              "rd": 5,
+              "value": 198,
+              "store": 0,
+              "addr": 0,
+              "data": 0,
+              "strb": 0
+            }
+          }
+        }
+      ],
+      "speculation": []
+    }
+  },
+  "small_parameters": {
+    "TRACE": "1",
+    "ROB_DEPTH": "5",
+    "PRF_SIZE": "37",
+    "IQ_DEPTH": "3",
+    "LSQ_DEPTH": "3",
+    "ICACHE_BYTES": "128",
+    "DCACHE_BYTES": "128",
+    "CACHE_LINE_BYTES": "8"
+  },
+  "faults": {
+    "macos": {
+      "passed": 27,
+      "failed": 0,
+      "total": 27,
+      "simulator_sha256": "7d9d4338021fdf12522ffbee01ce39469e322610106cdc3b21fdf53d0f134263"
+    },
+    "linux": {
+      "passed": 27,
+      "failed": 0,
+      "total": 27,
+      "simulator_sha256": "f84e52cb71715d2596baa4e8ce4571c2295d0d733940d41711c2e07d2bb6f574"
+    }
+  },
+  "unit_checks": {
+    "decoder": 4035,
+    "alu": 6628,
+    "muldiv": 2257,
+    "muldiv_flush_scenarios": 9,
+    "reference_and_coverage_checker_tests": 11,
+    "memory_protocol_and_cache": "passed Icarus and Verilator"
+  },
+  "limitations": [
+    "IPC and frequency are below performance-tier thresholds",
+    "single outstanding AXI read and serialized cache refill",
+    "single-entry frontend limits supply throughput",
+    "commit-time branch recovery",
+    "small-parameter tests skip timing-specific OoO/speculation coverage, retaining all commit comparisons"
+  ]
+}
