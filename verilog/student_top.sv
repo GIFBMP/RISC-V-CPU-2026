@@ -1,14 +1,15 @@
-// Course interface. Defaults describe the V2 single-issue CPU.
+// Course interface. Defaults describe the V3 single-issue CPU.
 module student_top #(
     parameter integer ROB_DEPTH = 16,
     parameter integer PRF_SIZE = 48,
     parameter integer IQ_DEPTH = 8,
     parameter integer LSQ_DEPTH = 8,
     parameter integer ICACHE_BYTES = 2048,
-    parameter integer DCACHE_BYTES = 2048,
+    parameter integer DCACHE_BYTES = 4096,
     parameter integer CACHE_LINE_BYTES = 16,
     parameter integer ICACHE_WAYS = 1,
-    parameter integer DCACHE_WAYS = 1,
+    parameter integer DCACHE_WAYS = 4,
+    parameter integer DCACHE_WRITE_BACK = 1,
     parameter integer ISSUE_WIDTH = 1,
     parameter integer FETCH_QUEUE_DEPTH = 8,
     parameter integer FETCH_OUTSTANDING = 4,
@@ -63,7 +64,8 @@ module student_top #(
     memory_system #(
         .ICACHE_BYTES(ICACHE_BYTES), .DCACHE_BYTES(DCACHE_BYTES),
         .CACHE_LINE_BYTES(CACHE_LINE_BYTES),
-        .ICACHE_WAYS(ICACHE_WAYS), .DCACHE_WAYS(DCACHE_WAYS)
+        .ICACHE_WAYS(ICACHE_WAYS), .DCACHE_WAYS(DCACHE_WAYS),
+        .DCACHE_WRITE_BACK(DCACHE_WRITE_BACK)
     ) memory (
         .clock(clock), .reset(reset),
         .i_req_valid(i_req_valid), .i_req_ready(i_req_ready), .i_req_addr(i_req_addr),

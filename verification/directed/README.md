@@ -32,6 +32,11 @@ python3 verification/runners/audit_cases.py \
 | `prediction_btb_alias` | 相差 256 B 的两个控制流地址冲突于默认 64 项 BTB，禁止借用另一条指令的目标 |
 | `pipeline_completion` | V2 寄存 EX 被 Load/MDU 完成抢占写回端口后保持且仅执行一次；IQ 插入与源写回同拍 |
 | `memory_order_wrap` | 97 轮 Store/Load/部分字节更新，验证 ROB 槽位反复复用后的 older-store 位清理 |
+| `cache_conflict_dirty` | 7 个相差 4 KiB 的同组地址、5 轮脏行替换、部分写与全字重读 |
+| `cache_partial_allocate` | 冷 SB/SH 写分配，保留未写字节；冲突替换后逐字节核对 |
+| `cache_exit_dirty` | 写脏 256 行，最后更新后直接 MMIO；CPU 层核对架构数据，外存实际排空由存储单测核验 |
+| `flush_dirty_store` | 错路 SB 命中预先写入的驻留行，必须发射后被杀且原数据保持 |
+| `flush_writeback_load` | 错路 uncached Load 触发脏行排空后被杀；配合专用注入器验证写回失败后的重试 |
 
 ## 对接仿真器
 
@@ -67,6 +72,8 @@ CPU_TRACE FLUSH id=22 cycle=692 pc=00000054 target=00000060 load_pending=1
 CPU_TRACE DROP_LOAD id=23 cycle=767 pc=00000058
 CPU_TRACE WB_STALL id=42 cycle=200 pc=00000040 source=1
 CPU_TRACE RENAME_BYPASS id=43 cycle=201 pc=00000044 source=3
+CPU_TRACE MEM_RESPONSE id=44 cycle=220 pc=00000048 write=1 killed=0
+CPU_TRACE STORE_RETIRE id=44 cycle=221 pc=00000048
 ```
 
 - `seq` 是从 0 连续递增的架构退休序号；`id` 是分配时的唯一动态指令编号，冲刷后允许留空号。
@@ -80,7 +87,7 @@ CPU_TRACE RENAME_BYPASS id=43 cycle=201 pc=00000044 source=3
 - V2 预测测试要求指定控制流次数发生对应目标的 FLUSH，同时要求训练后的部分控制流无需 FLUSH。`pipeline_completion` 要求 Load（`source=1`）和 MDU（`source=2`）都实际阻塞过普通 EX 指令，且这些指令随后只 ISSUE/COMPLETE 一次并最终提交；RENAME_BYPASS 的 `source` 分别表示 rs1、rs2、两者同拍命中写回。
 - `--no-ooo` 和 `--no-speculation-coverage` 供小队列参数的纯功能回归或定位问题使用，只跳过对应计时覆盖，始终保留逐条提交对比。后者也跳过依赖默认 BTB 布局和默认流水窗口的 V2 预测/写回争用覆盖；报告记录实际启用的检查。`--result-only` 同时跳过全部轨迹检查，不能用于完整 CPU 验收。
 
-默认生成 **26 组**（18 组定向、8 个随机种子）。V2 默认配置的完整运行示例：
+默认生成 **31 组**（23 组定向、8 个随机种子；V2 冻结版本为 26 组）。完整运行示例：
 
 ```sh
 python3 verification/directed/generate.py --out build/verification/v2-cases
@@ -103,3 +110,30 @@ python3 verification/runners/run_cpu.py --sim build/verification/v2-trace-small/
 ```
 
 参考模型只覆盖本课要求的用户态 RV32IM，自然对齐访问；不模拟特权、异常处理、CSR、FENCE、ECALL/EBREAK 或周期性能。它不会把架构路径上非法指令、越界访问静默跳过。随机总线背压需要总线单元测试环境支持；官方仿真器延迟扫描只能覆盖不同响应延迟和其固定的从机行为，不能声称等价于任意独立通道背压测试。
+
+## 从逐提交轨迹测量瓶颈
+
+先运行六个性能程序并逐提交核对，再把输出中的时间戳目录传给分析器：
+
+```sh
+python3 verification/runners/run_cpu.py --sim build/verification/trace/sim \
+  --cases testcases --case 'perf_*' --latencies 10 --out build/verification/perf-trace
+python3 verification/runners/analyze_trace.py \
+  --runs build/verification/perf-trace/TIMESTAMP \
+  --sim build/verification/trace/sim --out build/verification/perf-analysis.json
+```
+
+分析器统计已提交 Load 的 ISSUE→COMPLETE 延迟分布、分配到发射等待、Store 发射到请求等待、控制流恢复比例、FLUSH 到下一次提交的间隔及写回冲突事件。Store 的 COMMIT 早于真实 ROB 退队，因此 V2 轨迹不能直接给出精确 B 等待或 Store 占据 ROB 头的周期数。分析器报告全部 Store 后的提交空档，以及其中后继指令早已完成的保守下界；两者之间还可能包含后继自身的等待。V3 新增 MEM_RESPONSE/STORE_RETIRE 后，还可准确统计请求握手→CPU 接收响应、请求握手→ROB 退队的间隔；这仍不包含请求前已在 ROB 头的等待，最终退出 Store 也可能因官方框架立即停机而没有这两个事件。Load 延迟、恢复间隔和提交空档会重叠，不能相加当成 CPI 分解。预测率仅统计已提交控制流，Load 延迟仅统计最终提交的动态指令身份。
+
+## CPU 级写回错误注入
+
+下面是独立的验证专用构建，普通回归继续使用未修改的官方 `sim.cpp`。注入器复用官方镜像加载、RAM 和读服务代码，在指定地址首次写回时返回 SLVERR，并在退出 AW 握手前检查架构 Store 的外存字节与先前 B 响应已经完成。它不改变 RTL，也不用于课程性能数字。
+
+```sh
+python3 verification/runners/build_trace.py --out build/verification/writeback-fault-trace \
+  --harness verification/runners/writeback_fault_sim.cpp
+python3 verification/runners/run_writeback_faults.py \
+  --sim build/verification/writeback-fault-trace/sim --latencies 1,10,31
+```
+
+两条合法路径分别要求当前触发 Load/退出 Store 的准确 fault 编号和 PC；错误不能伪装成更早已退休 Store 的精确异常。错路测试先把一行写脏，再让年轻 uncached Load 触发排空，向第二个写回字注入错误。它必须在恢复后以原动态 `id` 出现唯一 `MEM_RESPONSE killed=1` 与 `DROP_LOAD`，不 COMPLETE/COMMIT；最终 MMIO 必须重试脏行并成功，退出前核对 16 个已提交 RAM 字节。每次仍逐条对比成功路径的架构提交。注入器通过环境变量选择故障地址与外存核对文件，运行器统一配置并保存日志，避免把单纯超时或任意 abort 当成成功。

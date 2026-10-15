@@ -282,12 +282,26 @@ def out_of_order(kind: str) -> Program:
 
 def wrong_path(kind: str) -> Program:
     p = Program(f"flush_{kind}", f"Prewarmed taken branch squashes a dispatched/issued younger {kind}")
-    p.li(1, 0xF0000000 if kind == "bad_load" else 0x18000 if kind == "load" else 0x70000000)
+    p.li(1, 0xF0000000 if kind in ("bad_load", "writeback_load") else 0x18000 if kind == "load" else 0x70000000)
     p.li(2, 1)
     p.li(5, 0x80000000)
     p.li(6, 0x18000)
     p.li(7, 0xBAD)
     p.li(8, 1)
+    if kind == "dirty_store":
+        # Establish a cached line with an architecturally committed write before
+        # the wrong-path partial Store. A WB implementation must not dirty or
+        # alter this line speculatively, even if it could respond immediately.
+        p.li(11, 0x76543210)
+        p.store("sw", 11, 31)
+        p.load("lw", 12, 31)
+    elif kind == "writeback_load":
+        # An uncached wrong-path Load forces dirty draining independently of
+        # cache associativity. The fault harness rejects the second WB word
+        # once; after cancellation, final MMIO must retry the entire line.
+        for offset in (0, 4, 8, 12):
+            p.li(11, 0x76543210 + offset)
+            p.store("sw", 11, 31, offset)
     for lane, byte in enumerate((0x78, 0x56, 0x34, 0x12)):
         p.data[0x18000 + lane] = byte
     # Warm the recovery line first, then the critical line. Jumping into each
@@ -305,11 +319,13 @@ def wrong_path(kind: str) -> Program:
     p.label("wrong_path")
     if kind == "store":
         p.store("sw", 7, 31)
+    elif kind == "dirty_store":
+        p.store("sb", 7, 31, 1)
     elif kind == "mmio":
         p.store("sw", 7, 5)
     elif kind == "illegal":
         p.emit(0xFFFFFFFF, ".word 0xffffffff")
-    elif kind in ("bad_load", "load"):
+    elif kind in ("bad_load", "load", "writeback_load"):
         # The branch is already done, but cannot retire before producer. The
         # load wakes up as producer retires and is killed on the next cycle.
         p.load("lw", 7, 3)
@@ -320,7 +336,7 @@ def wrong_path(kind: str) -> Program:
     p.label("safe")
     # Keep the first recovery allocation unretired so it cannot recycle a
     # smaller physical register before x7 reuses the killed Load's destination.
-    if kind == "load":
+    if kind in ("load", "writeback_load"):
         p.r("divu", 9, 1, 2)
     else:
         p.i("addi", 9, 0, 0x456)
@@ -501,6 +517,80 @@ def memory_order_wrap() -> Program:
     return p
 
 
+def cache_conflict_dirty() -> Program:
+    p = Program("cache_conflict_dirty", "Seven congruent lines, dirty replacement, partial writes and refetch preserve every byte")
+    addresses = [0x20000 + index * 0x1000 for index in range(7)]
+    for index, address in enumerate(addresses):
+        for offset in range(64):
+            p.data[address + offset] = (index * 41 + offset * 13 + 7) & 255
+    for round_index in range(5):
+        for index, address in enumerate(addresses):
+            p.li(1, address)
+            p.load("lw", 2, 1, 0)
+            p.checksum(2)
+            p.li(3, 0x81020304 ^ (round_index << 16) ^ (index * 0x01010101))
+            p.store("sw", 3, 1, 4 * (round_index % 4))
+            p.store("sb", 3, 1, 1)
+            p.store("sh", 3, 1, 10)
+            # Same-line hit following each Store must observe the newest bytes.
+            for offset in (0, 4, 8, 12):
+                p.load("lw", 4, 1, offset)
+                p.checksum(4)
+        # Reverse traversal combines recently resident hits and dirty victims.
+        for address in reversed(addresses):
+            p.li(1, address)
+            for offset in (0, 4, 8, 12):
+                p.load("lw", 4, 1, offset)
+                p.checksum(4)
+    p.finish()
+    return p
+
+
+def cache_partial_allocate() -> Program:
+    p = Program("cache_partial_allocate", "Cold SB/SH allocate without losing untouched bytes; conflicting dirty lines reload accurately")
+    for index in range(6):
+        address = 0x30000 + index * 0x1000
+        for offset in range(64):
+            p.data[address + offset] = (0xA5 + 17 * index + 3 * offset) & 255
+        p.li(1, address)
+        p.li(2, 0xFEDCBA80 + index)
+        # The very first access is a partial write miss.
+        p.store("sb", 2, 1, 1)
+        p.load("lw", 3, 1, 0)
+        p.checksum(3)
+        p.store("sh", 2, 1, 6)
+        p.load("lw", 3, 1, 4)
+        p.checksum(3)
+        p.store("sw", 2, 1, 12)
+    for index in range(6):
+        p.li(1, 0x30000 + index * 0x1000)
+        for offset in range(16):
+            p.load("lbu", 3, 1, offset)
+            p.checksum(3)
+    p.finish()
+    return p
+
+
+def cache_exit_dirty() -> Program:
+    p = Program("cache_exit_dirty", "Populate 256 dirty lines and exit immediately after final updates; external drain is checked by the memory unit bench")
+    p.li(1, 0x40000)
+    p.li(2, 256)
+    p.li(3, 0xABCDEF01)
+    p.label("dirty_loop")
+    p.store("sw", 3, 1)
+    p.store("sb", 2, 1, 5)
+    p.store("sh", 3, 1, 10)
+    p.load("lw", 4, 1)
+    p.checksum(4)
+    p.i("addi", 3, 3, 71)
+    p.store("sw", 3, 1, 12)
+    p.i("addi", 1, 1, 16)
+    p.i("addi", 2, 2, -1)
+    p.branch("bne", 2, 0, "dirty_loop")
+    p.finish()
+    return p
+
+
 def random_program(seed: int, count: int) -> Program:
     rng = random.Random(seed)
     p = Program(f"random_{seed:08x}", f"Seed {seed}, {count} random arithmetic/memory/control operations")
@@ -598,6 +688,8 @@ def main() -> None:
     programs += [wrong_path(kind) for kind in ("store", "mmio", "illegal", "bad_load", "load", "mdu")]
     programs += [prediction_loop_exit(), prediction_jalr_switch(), prediction_alias(),
                  pipeline_contention(), memory_order_wrap()]
+    programs += [cache_conflict_dirty(), cache_partial_allocate(), cache_exit_dirty(),
+                 wrong_path("dirty_store"), wrong_path("writeback_load")]
     programs += [random_program(int(seed, 0), args.random_count) for seed in args.seeds.split(",") if seed]
     if args.case:
         programs = [p for p in programs if p.name == args.case]

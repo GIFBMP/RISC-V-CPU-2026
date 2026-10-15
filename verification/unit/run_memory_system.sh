@@ -5,7 +5,7 @@ cd "$repo_root"
 mkdir -p build/unit-memory-system
 iverilog -g2012 -s memory_system_tb -o build/unit-memory-system/test.vvp \
     scripts/ram/sram_fakeram.sv \
-    verilog/memory/blocking_cache.sv verilog/memory/icache_pipeline.sv verilog/bus/axi_lite_bridge.sv \
+    verilog/memory/blocking_cache.sv verilog/memory/dcache_writeback.sv verilog/memory/icache_pipeline.sv verilog/bus/axi_lite_bridge.sv \
     verilog/memory/memory_system.sv verification/unit/memory_system_tb.sv
 vvp build/unit-memory-system/test.vvp
 vvp build/unit-memory-system/test.vvp +READ_LATENCY=1
@@ -15,7 +15,7 @@ vvp build/unit-memory-system/test.vvp +READ_LATENCY=1
 iverilog -g2012 -s memory_system_tb -Pmemory_system_tb.CACHE_LINE_BYTES=64 \
     -o build/unit-memory-system/long-line.vvp \
     scripts/ram/sram_fakeram.sv \
-    verilog/memory/blocking_cache.sv verilog/memory/icache_pipeline.sv \
+    verilog/memory/blocking_cache.sv verilog/memory/dcache_writeback.sv verilog/memory/icache_pipeline.sv \
     verilog/bus/axi_lite_bridge.sv verilog/memory/memory_system.sv \
     verification/unit/memory_system_tb.sv
 vvp build/unit-memory-system/long-line.vvp
@@ -24,17 +24,17 @@ vvp build/unit-memory-system/long-line.vvp
 # shapes fail elaboration instead of silently becoming a different design.
 iverilog -g2012 -s memory_system -o build/unit-memory-system/minimum.vvp \
     -Pmemory_system.ICACHE_BYTES=4 -Pmemory_system.DCACHE_BYTES=4 \
-    -Pmemory_system.CACHE_LINE_BYTES=4 \
+    -Pmemory_system.CACHE_LINE_BYTES=4 -Pmemory_system.DCACHE_WAYS=1 -Pmemory_system.DCACHE_WRITE_BACK=0 \
     scripts/ram/sram_fakeram.sv \
-    verilog/memory/blocking_cache.sv verilog/memory/icache_pipeline.sv verilog/bus/axi_lite_bridge.sv \
+    verilog/memory/blocking_cache.sv verilog/memory/dcache_writeback.sv verilog/memory/icache_pipeline.sv verilog/bus/axi_lite_bridge.sv \
     verilog/memory/memory_system.sv
 
-for invalid_parameter in ICACHE_WAYS=2 DCACHE_WAYS=2 ICACHE_BYTES=96 CACHE_LINE_BYTES=12; do
+for invalid_parameter in ICACHE_WAYS=2 DCACHE_WAYS=3 ICACHE_BYTES=96 CACHE_LINE_BYTES=12; do
     if iverilog -g2012 -s memory_system \
         -o build/unit-memory-system/invalid.vvp \
         "-Pmemory_system.$invalid_parameter" \
         scripts/ram/sram_fakeram.sv \
-        verilog/memory/blocking_cache.sv verilog/memory/icache_pipeline.sv verilog/bus/axi_lite_bridge.sv \
+        verilog/memory/blocking_cache.sv verilog/memory/dcache_writeback.sv verilog/memory/icache_pipeline.sv verilog/bus/axi_lite_bridge.sv \
         verilog/memory/memory_system.sv \
         >build/unit-memory-system/invalid-parameter.log 2>&1; then
         printf 'FAIL: invalid cache parameter accepted: %s\n' "$invalid_parameter" >&2

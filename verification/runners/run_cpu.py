@@ -22,8 +22,8 @@ import time
 
 from rv32_reference import Commit, RV32
 
-TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|FLUSH|DROP_LOAD|WB_STALL|RENAME_BYPASS)\s+(.*)")
-DECIMAL = {"seq", "id", "cycle", "rd", "pdst", "store", "load_pending", "source"}
+TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|FLUSH|DROP_LOAD|WB_STALL|RENAME_BYPASS|MEM_RESPONSE|STORE_RETIRE)\s+(.*)")
+DECIMAL = {"seq", "id", "cycle", "rd", "pdst", "store", "load_pending", "source", "write", "killed"}
 PASS = re.compile(r"^PASS cycles=(\d+) result=(\d+) expected=(\d+)\s*$")
 
 
@@ -100,11 +100,11 @@ def check_speculation(probe: dict, events: list[tuple[str, dict]]) -> tuple[str 
         associated = [(kind, fields) for kind, fields in events if fields.get("id") == identity]
         if any(kind == "COMMIT" for kind, _ in associated):
             return "wrong-path instruction committed", evidence
-        if probe["kind"] in ("mdu", "load", "bad_load"):
+        if probe["kind"] in ("mdu", "load", "bad_load", "writeback_load"):
             if any(kind == "COMPLETE" for kind, _ in associated):
                 return "wrong-path long operation completed; required coverage is cancellation while in flight", evidence
         evidence.update({"wrong_dispatch": allocation, "wrong_issue": issue, "flush": flush})
-        if probe["kind"] in ("load", "bad_load"):
+        if probe["kind"] in ("load", "bad_load", "writeback_load"):
             drop = next((fields for kind, fields in associated if kind == "DROP_LOAD"
                          and fields.get("cycle", -1) >= flush["cycle"]), None)
             if drop is None or not flush.get("load_pending"):

@@ -1,7 +1,7 @@
 // Pipelined I/D AXI reads. A registered AR slot reserves one of 16 credits;
 // accepted AR owners are queued until their ordered R response is consumed.
 // Fair arbitration happens at each internal request acceptance. Writes are
-// independent and still allow only one outstanding AW/W/B transaction.
+// independent, with four ordered write credits and separate AW/W progress.
 module axi_lite_bridge (
     input  wire        clock,
     input  wire        reset,
@@ -46,19 +46,23 @@ module axi_lite_bridge (
     input  wire        bvalid,
     output wire        bready
 );
-    localparam [1:0] WRITE_IDLE = 2'd0, WRITE_SEND = 2'd1, WRITE_ACK = 2'd2;
-    reg [1:0] write_state;
     reg ar_pending, ar_owner_d;
     reg [15:0] read_owners;
     reg [3:0] read_head, read_tail;
     reg [4:0] read_count;
     reg prefer_d;
     reg [31:0] read_address;
-    reg [31:0] write_address;
-    reg [31:0] write_data;
-    reg [3:0] write_strobe;
-    reg aw_sent;
-    reg w_sent;
+    reg [31:0] write_address [0:3], write_data [0:3];
+    reg [3:0] write_strobe [0:3];
+    reg [1:0] write_tail, aw_head, w_head;
+    reg [2:0] write_count, aw_count, w_count;
+    wire aw_fire = awvalid && awready;
+    wire w_fire = wvalid && wready;
+    wire b_fire = bvalid && bready;
+    wire write_push = d_wr_valid && d_wr_ready;
+    wire sent_pair = write_count > aw_count && write_count > w_count;
+    reg [31:0] selected_awaddr, selected_wdata;
+    reg [3:0] selected_wstrb;
 
     wire grant_i = i_rd_valid && (!d_rd_valid || !prefer_d);
     wire grant_d = d_rd_valid && (!i_rd_valid || prefer_d);
@@ -80,15 +84,65 @@ module axi_lite_bridge (
     assign i_rd_rsp_error = rresp != 2'b00;
     assign d_rd_rsp_error = rresp != 2'b00;
 
-    assign d_wr_ready = !reset && write_state == WRITE_IDLE;
-    assign awvalid = !reset && write_state == WRITE_SEND && !aw_sent;
-    assign wvalid = !reset && write_state == WRITE_SEND && !w_sent;
-    assign awaddr = write_address;
-    assign wdata = write_data;
-    assign wstrb = write_strobe;
-    assign bready = !reset && write_state == WRITE_ACK && d_wr_rsp_ready;
-    assign d_wr_rsp_valid = !reset && write_state == WRITE_ACK && bvalid;
+    assign d_wr_ready = !reset && (write_count < 3'd4 || b_fire);
+    assign awvalid = !reset && aw_count != 0;
+    assign wvalid = !reset && w_count != 0;
+    assign awaddr = selected_awaddr;
+    assign wdata = selected_wdata;
+    assign wstrb = selected_wstrb;
+    assign bready = !reset && sent_pair && d_wr_rsp_ready;
+    assign d_wr_rsp_valid = !reset && sent_pair && bvalid;
     assign d_wr_rsp_error = bresp != 2'b00;
+    always @* begin
+        selected_awaddr = 0;
+        selected_wdata = 0;
+        selected_wstrb = 0;
+        for (integer slot = 0; slot < 4; slot = slot + 1) begin
+            selected_awaddr = selected_awaddr | (write_address[slot] & {32{aw_head == 2'(slot)}});
+            selected_wdata = selected_wdata | (write_data[slot] & {32{w_head == 2'(slot)}});
+            selected_wstrb = selected_wstrb | (write_strobe[slot] & {4{w_head == 2'(slot)}});
+        end
+    end
+    generate
+        for (genvar slot = 0; slot < 4; slot = slot + 1) begin : write_slots
+            always @(posedge clock) begin
+                if (write_push && write_tail == 2'(slot)) begin
+                    write_address[slot] <= d_wr_addr;
+                    write_data[slot] <= d_wr_data;
+                    write_strobe[slot] <= d_wr_strb;
+                end
+            end
+        end
+    endgenerate
+    always @(posedge clock) begin
+        if (reset) begin
+            write_tail <= 0;
+            aw_head <= 0;
+            w_head <= 0;
+            write_count <= 0;
+            aw_count <= 0;
+            w_count <= 0;
+        end else begin
+            if (write_push) write_tail <= write_tail + 1'b1;
+            if (aw_fire) aw_head <= aw_head + 1'b1;
+            if (w_fire) w_head <= w_head + 1'b1;
+            case ({write_push, b_fire})
+                2'b10: write_count <= write_count + 1'b1;
+                2'b01: write_count <= write_count - 1'b1;
+                default: ;
+            endcase
+            case ({write_push, aw_fire})
+                2'b10: aw_count <= aw_count + 1'b1;
+                2'b01: aw_count <= aw_count - 1'b1;
+                default: ;
+            endcase
+            case ({write_push, w_fire})
+                2'b10: w_count <= w_count + 1'b1;
+                2'b01: w_count <= w_count - 1'b1;
+                default: ;
+            endcase
+        end
+    end
 
     always @(posedge clock) begin
         if (reset) begin
@@ -98,14 +152,8 @@ module axi_lite_bridge (
             read_head <= 4'b0;
             read_tail <= 4'b0;
             read_count <= 5'b0;
-            write_state <= WRITE_IDLE;
             prefer_d <= 1'b0;
             read_address <= 32'b0;
-            write_address <= 32'b0;
-            write_data <= 32'b0;
-            write_strobe <= 4'b0;
-            aw_sent <= 1'b0;
-            w_sent <= 1'b0;
         end else begin
             if (ar_fire) begin
                 read_owners[read_tail] <= ar_owner_d;
@@ -130,28 +178,12 @@ module axi_lite_bridge (
                 prefer_d <= 1'b0;
             end else if (ar_fire)
                 ar_pending <= 1'b0;
-            case (write_state)
-                WRITE_IDLE: if (d_wr_valid && d_wr_ready) begin
-                    write_address <= d_wr_addr;
-                    write_data <= d_wr_data;
-                    write_strobe <= d_wr_strb;
-                    aw_sent <= 1'b0;
-                    w_sent <= 1'b0;
-                    write_state <= WRITE_SEND;
-                end
-                WRITE_SEND: begin
-                    if (awvalid && awready)
-                        aw_sent <= 1'b1;
-                    if (wvalid && wready)
-                        w_sent <= 1'b1;
-                    if ((aw_sent || (awvalid && awready)) &&
-                        (w_sent || (wvalid && wready)))
-                        write_state <= WRITE_ACK;
-                end
-                WRITE_ACK: if (bvalid && bready)
-                    write_state <= WRITE_IDLE;
-                default: write_state <= WRITE_IDLE;
-            endcase
         end
     end
+`ifndef SYNTHESIS
+    always @(posedge clock) if (!reset) begin
+        assert (write_count <= 4 && aw_count <= write_count && w_count <= write_count);
+        assert (read_count <= 16 && reserved_reads <= 16);
+    end
+`endif
 endmodule

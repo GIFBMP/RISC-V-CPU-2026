@@ -1,4 +1,4 @@
-// V2: decoupled predicted fetch, rename, oldest-ready select/read, registered
+// V3: decoupled predicted fetch, rename, oldest-ready select/read, registered
 // execute and in-order retirement. The conservative LSQ forbids loads passing
 // older stores; external stores are issued only from the committed ROB head.
 module cpu_core #(
@@ -99,7 +99,7 @@ module cpu_core #(
     logic mem_response, load_completion;
     logic [31:0] load_shifted, load_value;
 
-    logic mdu_req_valid, mdu_req_ready, mdu_result_valid, mdu_result_ready;
+    logic mdu_req_valid, mdu_req_available, mdu_result_pending, mdu_result_valid, mdu_result_ready;
     logic [31:0] mdu_result;
     logic [RW-1:0] mdu_rob;
     logic [PW-1:0] mdu_dst;
@@ -112,7 +112,7 @@ module cpu_core #(
     logic [PW-1:0] dispatch_src1, dispatch_src2;
     logic [4:0] dispatch_op;
 
-    logic issue_valid, ex_valid, select_fire, select_found, execute_slot_ready;
+    logic issue_valid, ex_valid, select_fire, select_found, execute_slot_ready, execute_resources_ready;
     logic [IQ_DEPTH-1:0] candidate, grant;
     logic [PW-1:0] issue_dst;
     logic [2:0] issue_funct3;
@@ -231,11 +231,13 @@ module cpu_core #(
         for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
             candidate[q] = iq_valid[q] && iq_ready1[q] && iq_ready2[q];
             if (iq_kind[q] == 1)
-                candidate[q] = candidate[q] && !(|iq_stores[q]) && !mem_busy && !store_start
-                             && !(issue_valid && issue_op == OP_LOAD);
+                // Select on the old context's response cycle. Operands enter
+                // EX at that edge, after the LSU context has become free.
+                candidate[q] = candidate[q] && !(|iq_stores[q]) && (!mem_busy || mem_response)
+                             && !(ex_valid && issue_op == OP_LOAD);
             if (iq_kind[q] == 2)
-                candidate[q] = candidate[q] && mdu_req_ready
-                             && !(issue_valid && issue_op == OP_MULDIV);
+                candidate[q] = candidate[q] && mdu_req_available
+                             && !(ex_valid && issue_op == OP_MULDIV);
         end
         // Pairwise age comparisons avoid a serial best-age priority chain.
         for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
@@ -255,7 +257,9 @@ module cpu_core #(
     always_ff @(posedge clock) begin
         if (reset || flush) ex_valid <= 1'b0;
         else if (execute_slot_ready) ex_valid <= select_fire;
-        if (select_fire) begin
+        // Only a live blocked EX must hold operands. Empty slots may sample
+        // arbitrary candidates; ex_valid alone determines their relevance.
+        if (execute_slot_ready) begin
             issue_rob <= iq_rob[issue_index];
             issue_op <= rob_op[iq_rob[issue_index]];
             issue_dst <= rob_dst[iq_rob[issue_index]];
@@ -310,19 +314,32 @@ module cpu_core #(
                 && issue_target[1:0] != 0)
                 issue_fault = FAULT_ALIGN;
         end
-        issue_simple = issue_fault != FAULT_NONE
-                    || (issue_op != OP_LOAD && issue_op != OP_STORE && issue_op != OP_MULDIV);
-        issue_valid = ex_valid && !reset && !halted && !flush;
-        if (issue_simple) issue_valid = issue_valid && !load_completion && !mdu_result_valid;
-        else if (issue_op == OP_LOAD) issue_valid = issue_valid && !mem_busy && !store_start;
-        else if (issue_op == OP_MULDIV) issue_valid = issue_valid && mdu_req_ready;
-        execute_slot_ready = !ex_valid || issue_valid;
+        // Branches/jumps always use ordinary writeback, including a target
+        // alignment fault. Their 32-bit comparison need not control EX holding.
+        // Only memory alignment/initial faults change a special unit into WB.
+        issue_simple = (issue_op != OP_LOAD && issue_op != OP_STORE && issue_op != OP_MULDIV)
+                    || issue_initial_fault != FAULT_NONE
+                    || ((issue_op == OP_LOAD || issue_op == OP_STORE) && issue_misaligned);
+        // Resource availability excludes global cancellation. Invalid payload
+        // may be sampled during recovery; only issue/select handshakes authorize
+        // effects. This keeps recovery out of candidate selection and EX data.
+        execute_resources_ready = 1'b1;
+        if (issue_simple) execute_resources_ready =
+            !(mem_response && !mem_write && !mem_killed) && !mdu_result_pending;
+        // An eligible Load has no older Store; a younger Store cannot be at
+        // the ROB head. Thus store_start is mutually exclusive by age, without
+        // putting ROB-head decode back on the scheduling/EX critical path.
+        else if (issue_op == OP_LOAD) execute_resources_ready = !mem_busy;
+        else if (issue_op == OP_MULDIV) execute_resources_ready = mdu_req_available;
+        issue_valid = ex_valid && execute_resources_ready && !reset && !halted && !flush;
+        execute_slot_ready = !ex_valid || execute_resources_ready;
         mdu_req_valid = issue_valid && issue_op == OP_MULDIV && issue_fault == FAULT_NONE;
     end
 
     muldiv_unit mdu (
         .clock(clock), .reset(reset), .flush(flush),
-        .req_valid(mdu_req_valid), .req_ready(mdu_req_ready),
+        .req_valid(mdu_req_valid), .req_ready(),
+        .req_available(mdu_req_available), .result_pending(mdu_result_pending),
         .operation(issue_funct3), .operand_a(issue_a), .operand_b(issue_b),
         .result_valid(mdu_result_valid), .result_ready(mdu_result_ready), .result(mdu_result)
     );
@@ -397,6 +414,10 @@ module cpu_core #(
         end
         for (genvar r = 0; r < ROB_DEPTH; r = r + 1) begin : reorder_entries
             wire allocate = dispatch && rob_tail == RW'(r);
+            // The tail slot is unallocated whenever the ROB is not full.
+            // Prewrite its payload even while rename is stalled; validity is
+            // still set exclusively by dispatch, and flush clears validity.
+            wire prepare_payload = rob_count < CW'(ROB_DEPTH) && rob_tail == RW'(r);
             wire retire = commit_fire && rob_head == RW'(r);
             wire complete = wb_valid && wb_rob == RW'(r);
             wire execute = issue_valid && issue_rob == RW'(r);
@@ -429,7 +450,7 @@ module cpu_core #(
                     if (complete) rob_done[r] <= 1'b1;
                     if (store_complete) rob_store_done[r] <= 1'b1;
                 end
-                if (allocate) begin
+                if (prepare_payload) begin
                     rob_pc[r] <= fetch_buffer_pc;
                     rob_insn[r] <= fetch_buffer_insn;
                     rob_imm[r] <= dec_imm;
@@ -467,7 +488,9 @@ module cpu_core #(
                 iq_stores[q] <= iq_stores[q] & ~retiring_store;
                 if (wb_valid && wb_dst == iq_src1[q]) iq_ready1[q] <= 1'b1;
                 if (wb_valid && wb_dst == iq_src2[q]) iq_ready2[q] <= 1'b1;
-                if (allocate) begin
+                // Invalid slots may prepare payload independently of global
+                // rename/flush control; the chosen slot becomes valid on dispatch.
+                if (!iq_valid[q]) begin
                     iq_rob[q] <= rob_tail;
                     iq_src1[q] <= dispatch_src1;
                     iq_src2[q] <= dispatch_src2;
@@ -617,6 +640,13 @@ module cpu_core #(
                 $display("CPU_TRACE RENAME_BYPASS id=%0d cycle=%0d pc=%08x source=%0d",
                          trace_next_id, trace_cycle, fetch_buffer_pc,
                          (dispatch_src1 == wb_dst ? 1 : 0) + (dispatch_src2 == wb_dst ? 2 : 0));
+            if (TRACE != 0 && mem_response)
+                $display("CPU_TRACE MEM_RESPONSE id=%0d cycle=%0d pc=%08x write=%0d killed=%0d",
+                         mem_write ? trace_id[mem_rob] : trace_mem_id, trace_cycle,
+                         mem_write ? rob_pc[mem_rob] : trace_mem_pc, mem_write, mem_killed || flush);
+            if (TRACE != 0 && commit_fire && rob_is_store[rob_head])
+                $display("CPU_TRACE STORE_RETIRE id=%0d cycle=%0d pc=%08x",
+                         trace_id[rob_head], trace_cycle, rob_pc[rob_head]);
             if (TRACE != 0 && wb_valid)
                 $display("CPU_TRACE COMPLETE id=%0d cycle=%0d pc=%08x insn=%08x",
                          trace_id[wb_rob], trace_cycle, rob_pc[wb_rob], rob_insn[wb_rob]);
@@ -653,6 +683,13 @@ module cpu_core #(
                 trace_retired <= trace_retired + 1;
             end
             if (!halted) begin
+                if (ex_valid && !flush && issue_op == OP_LOAD && issue_fault == FAULT_NONE)
+                    assert (!store_start);
+                for (integer q = 0; q < IQ_DEPTH; q = q + 1)
+                    if (iq_valid[q] && iq_kind[q] == 1)
+                        for (integer r = 0; r < ROB_DEPTH; r = r + 1)
+                            if (rob_valid[r] && rob_is_store[r] && older(RW'(r), iq_rob[q], rob_head))
+                                assert (iq_stores[q][r]);
                 assert (rat[0] == 0 && rrat[0] == 0 && prf[0] == 0 && prf_ready[0] && !free_regs[0]);
                 assert (int'(rob_count) <= ROB_DEPTH && int'(lsq_count) <= LSQ_DEPTH);
                 if (issue_valid) assert (rob_valid[issue_rob] && !rob_done[issue_rob]);

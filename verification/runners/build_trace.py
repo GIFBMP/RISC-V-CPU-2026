@@ -34,6 +34,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=ROOT / "build/verification/trace")
     parser.add_argument("--filelist", type=Path, default=ROOT / "verilog/filelist.f")
+    parser.add_argument("--harness", type=Path, default=ROOT / "scripts/sim.cpp",
+                        help="verification-only alternative C++ harness; default is the unmodified official simulator")
     parser.add_argument("--param", action="append", default=[], metavar="NAME=VALUE")
     parser.add_argument("--verilator", default="verilator")
     parser.add_argument("--cxx", default="clang++" if platform.system() == "Darwin" else "g++")
@@ -60,7 +62,9 @@ def main() -> None:
     output.mkdir(parents=True, exist_ok=True)
     flags = " ".join(shlex.quote(f"{key}={value}") for key, value in
                      {"CXX": compiler, "LINK": compiler, "AR": ar, "PYTHON3": sys.executable}.items())
-    simulator_source = ROOT / "scripts/sim.cpp"
+    simulator_source = args.harness.resolve()
+    if not simulator_source.is_file():
+        parser.error(f"missing simulator source {simulator_source}")
     command = [verilator, "--cc", "--exe", "--build", "--trace", "--assert", "-Wall", "-Wno-fatal",
                "--top-module", "student_top", "--Mdir", str(output / "obj"), "-o", str(output / "sim"),
                "-j", str(args.jobs), "-MAKEFLAGS", flags, "-CFLAGS", "-std=c++17",
@@ -68,9 +72,12 @@ def main() -> None:
                *[str(path) for path in sources], str(simulator_source)]
     environment = os.environ.copy()
     environment["MAKE"] = make
+    recorded_sources = [*sources, simulator_source]
+    if simulator_source != ROOT / "scripts/sim.cpp":
+        recorded_sources.append(ROOT / "scripts/sim.cpp")
     record = {"command": command, "parameters": parameters,
               "source_sha256": {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
-                                for path in [*sources, simulator_source]}}
+                                for path in recorded_sources}}
     (output / "build.json").write_text(json.dumps(record, indent=2) + "\n")
     # A failed rebuild must not leave a stale simulator looking current.
     (output / "sim").unlink(missing_ok=True)

@@ -60,6 +60,10 @@ module fetch_frontend #(
     logic [31:0] btb_target [0:BTB_ENTRIES-1];
     logic [1:0] btb_counter [0:BTB_ENTRIES-1];
     logic [BW-1:0] lookup_index, update_index;
+    logic [BTB_ENTRIES-1:0] train_enable;
+    logic [31:0] train_pc, train_target;
+    logic train_conditional, train_taken;
+    logic [31:0] response_pc, response_prediction;
     logic prediction_hit;
     logic [BTB_ENTRIES-1:0] prediction_match;
     logic [31:0] prediction_target;
@@ -109,15 +113,30 @@ module fetch_frontend #(
         predicted_next = prediction_hit ? prediction_target : next_pc + 32'd4;
 
         instruction_valid = !reset && !redirect_valid && queue_count != 0;
-        instruction_pc = queue_count != 0 ? queue_pc[queue_head] : 32'b0;
-        instruction_data = queue_count != 0 ? queue_data[queue_head] : 32'b0;
-        instruction_predicted_pc = queue_count != 0 ? queue_prediction[queue_head] : 32'b0;
-        instruction_error = queue_count != 0 && queue_error[queue_head];
+        // Decode a row once; a binary pointer must not drive every data mux.
+        // Payload is don't-care when instruction_valid is low.
+        instruction_pc = 32'b0;
+        instruction_data = 32'b0;
+        instruction_predicted_pc = 32'b0;
+        instruction_error = 1'b0;
+        for (integer q = 0; q < FETCH_QUEUE_DEPTH; q = q + 1) begin
+            instruction_pc = instruction_pc | (queue_pc[q] & {32{queue_head == QW'(q)}});
+            instruction_data = instruction_data | (queue_data[q] & {32{queue_head == QW'(q)}});
+            instruction_predicted_pc = instruction_predicted_pc | (queue_prediction[q] & {32{queue_head == QW'(q)}});
+            instruction_error = instruction_error | (queue_error[q] && queue_head == QW'(q));
+        end
+        response_pc = 32'b0;
+        response_prediction = 32'b0;
+        for (integer r = 0; r < FETCH_OUTSTANDING; r = r + 1) begin
+            response_pc = response_pc | (request_pc[r] & {32{request_head == OW'(r)}});
+            response_prediction = response_prediction | (request_prediction[r] & {32{request_head == OW'(r)}});
+        end
         instruction_fire = instruction_valid && instruction_ready;
 
-        i_rsp_ready = !reset && request_count != 0
-                   && (draining || redirect_valid || queue_count < QCW'(FETCH_QUEUE_DEPTH)
-                       || instruction_fire);
+        // Accepted requests already reserve response space. If one is in
+        // flight the instruction FIFO cannot be full, so response acceptance
+        // need not depend on the decode/dispatch path of its oldest instruction.
+        i_rsp_ready = !reset && request_count != 0;
         response_fire = i_rsp_valid && i_rsp_ready;
         queue_push = response_fire && !draining && !redirect_valid;
 
@@ -140,8 +159,6 @@ module fetch_frontend #(
             request_head <= '0;
             request_tail <= '0;
             request_count <= '0;
-            btb_valid <= '0;
-            btb_conditional <= '0;
         end else begin
             if (request_fire) begin
                 request_pc[request_tail] <= next_pc;
@@ -170,10 +187,10 @@ module fetch_frontend #(
                 if (draining && response_fire && request_count == OCW'(1))
                     draining <= 1'b0;
                 if (queue_push) begin
-                    queue_pc[queue_tail] <= request_pc[request_head];
+                    queue_pc[queue_tail] <= response_pc;
                     queue_data[queue_tail] <= i_rsp_data;
-                    queue_prediction[queue_tail] <= request_prediction[request_head];
-                    queue_error[queue_tail] <= i_rsp_error || request_pc[request_head][1:0] != 0;
+                    queue_prediction[queue_tail] <= response_prediction;
+                    queue_error[queue_tail] <= i_rsp_error || response_pc[1:0] != 0;
                     queue_tail <= next_queue(queue_tail);
                 end
                 if (instruction_fire)
@@ -185,24 +202,47 @@ module fetch_frontend #(
                 endcase
             end
 
-            if (PREDICT_ENABLE != 0 && update_valid) begin
-                btb_valid[update_index] <= 1'b1;
-                btb_pc[update_index] <= update_pc;
-                btb_target[update_index] <= update_target;
-                btb_conditional[update_index] <= update_conditional;
-                if (!update_conditional)
-                    btb_counter[update_index] <= 2'b11;
-                else if (btb_valid[update_index] && btb_pc[update_index] == update_pc
-                         && btb_conditional[update_index]) begin
-                    if (update_taken && btb_counter[update_index] != 2'b11)
-                        btb_counter[update_index] <= btb_counter[update_index] + 1'b1;
-                    else if (!update_taken && btb_counter[update_index] != 2'b00)
-                        btb_counter[update_index] <= btb_counter[update_index] - 1'b1;
-                end else
-                    btb_counter[update_index] <= update_taken ? 2'b10 : 2'b01;
-            end
         end
     end
+
+    // Train committed control flow through a registered bundle. One-hot row
+    // enables cut the ROB-head-to-BTB path and eliminate dynamic training reads.
+    // A redirect must not cancel this already-committed update.
+    always_ff @(posedge clock) begin
+        train_pc <= update_pc;
+        train_target <= update_target;
+        train_conditional <= update_conditional;
+        train_taken <= update_taken;
+    end
+    generate
+        for (genvar b = 0; b < BTB_ENTRIES; b = b + 1) begin : predictor_rows
+            always_ff @(posedge clock) begin
+                if (reset) begin
+                    train_enable[b] <= 1'b0;
+                    btb_valid[b] <= 1'b0;
+                    btb_conditional[b] <= 1'b0;
+                end else begin
+                    train_enable[b] <= PREDICT_ENABLE != 0 && update_valid && update_index == BW'(b);
+                    if (train_enable[b]) begin
+                        btb_valid[b] <= 1'b1;
+                        btb_conditional[b] <= train_conditional;
+                    end
+                end
+                if (train_enable[b]) begin
+                    btb_pc[b] <= train_pc;
+                    btb_target[b] <= train_target;
+                    if (!train_conditional)
+                        btb_counter[b] <= 2'b11;
+                    else if (btb_valid[b] && btb_pc[b] == train_pc && btb_conditional[b]) begin
+                        if (train_taken && btb_counter[b] != 2'b11)
+                            btb_counter[b] <= btb_counter[b] + 1'b1;
+                        else if (!train_taken && btb_counter[b] != 2'b00)
+                            btb_counter[b] <= btb_counter[b] - 1'b1;
+                    end else btb_counter[b] <= train_taken ? 2'b10 : 2'b01;
+                end
+            end
+        end
+    endgenerate
 
 `ifndef SYNTHESIS
     logic stalled_request, stalled_instruction;
@@ -220,7 +260,7 @@ module fetch_frontend #(
         end else begin
             assert (int'(queue_count) <= FETCH_QUEUE_DEPTH);
             assert (int'(request_count) <= FETCH_OUTSTANDING);
-            if (!draining) assert (int'(reserved_slots) <= FETCH_QUEUE_DEPTH);
+            assert (int'(reserved_slots) <= FETCH_QUEUE_DEPTH);
             if (stalled_request && !redirect_valid)
                 assert (i_req_valid && i_req_addr == held_request_addr);
             if (stalled_instruction && !redirect_valid)

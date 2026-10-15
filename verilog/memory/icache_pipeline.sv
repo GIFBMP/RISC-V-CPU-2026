@@ -39,11 +39,11 @@ module icache_pipeline #(
     endgenerate
 
     reg [LINES-1:0] valid_bits;
-    reg [TAG_BITS-1:0] tags [0:LINES-1];
     reg miss_active, miss_cacheable, miss_error;
     reg [31:0] miss_address, requested_data;
     reg [COUNT_BITS-1:0] issued_words, received_words;
     reg lookup_valid, lookup_error;
+    reg [31:0] lookup_address;
     reg [31:0] responses [0:3];
     reg [3:0] response_errors;
     reg [1:0] response_head, response_tail;
@@ -51,46 +51,38 @@ module icache_pipeline #(
     wire [SET_BITS-1:0] input_set = SET_BITS'((req_addr >> LINE_OFFSET) & (LINES - 1));
     wire input_cacheable = req_addr[31:28] == 0;
     wire input_aligned = req_addr[1:0] == 0;
-    // Compare each fixed tag before selecting its set, rather than multiplexing
-    // every tag bit with the request index on the fetch-to-SRAM path.
-    wire [LINES-1:0] input_hits;
-    genvar hit_row;
-    generate
-        for (hit_row = 0; hit_row < LINES; hit_row = hit_row + 1) begin : tag_match
-            assign input_hits[hit_row] = valid_bits[hit_row] &&
-                input_set == SET_BITS'(hit_row) &&
-                tags[hit_row] == req_addr[31:CACHE_OFFSET];
-        end
-    endgenerate
-    wire input_hit = |input_hits;
+    wire [SET_BITS-1:0] lookup_set = SET_BITS'((lookup_address >> LINE_OFFSET) & (LINES - 1));
+    wire lookup_cacheable = lookup_address[31:28] == 0;
+    wire [TAG_BITS-1:0] tag_rdata;
+    wire lookup_hit = valid_bits[lookup_set] && tag_rdata == lookup_address[31:CACHE_OFFSET];
+    wire lookup_complete = lookup_valid && (lookup_error || (lookup_cacheable && lookup_hit));
+    wire lookup_miss = lookup_valid && !lookup_error && !(lookup_cacheable && lookup_hit);
     wire [SET_BITS-1:0] miss_set = SET_BITS'((miss_address >> LINE_OFFSET) & (LINES - 1));
     wire [WORD_BITS-1:0] miss_word_index = WORD_BITS'((miss_address >> 2) & (WORDS - 1));
     wire [COUNT_BITS-1:0] requested_word = COUNT_BITS'((miss_address >> 2) & (LINE_WORDS - 1));
     wire [COUNT_BITS-1:0] needed_words = miss_cacheable ? COUNT_BITS'(LINE_WORDS) : COUNT_BITS'(1);
     wire response_pop = rsp_valid && rsp_ready;
     wire [3:0] reserved_responses = {1'b0, response_count} + {3'b0, lookup_valid};
-    assign req_ready = !reset && !miss_active && (reserved_responses < 4'd4 || response_pop);
+    assign req_ready = !reset && !miss_active && !lookup_miss &&
+        (reserved_responses < 4'd4 || response_pop);
     wire request_fire = req_valid && req_ready;
     wire read_fire = mem_rd_rsp_valid && mem_rd_rsp_ready;
     wire miss_complete = read_fire && received_words + 1'b1 == needed_words;
-    wire response_push = lookup_valid || miss_complete;
+    wire response_push = lookup_complete || miss_complete;
     wire final_error = miss_error || mem_rd_rsp_error;
     wire [31:0] final_data = !miss_cacheable || received_words == requested_word
         ? mem_rd_rsp_data : requested_data;
-    // Give each tag row its own write enable so refill completion does not
-    // directly drive a mux on every bit of the complete tag array.
-    genvar tag_row;
-    generate
-        for (tag_row = 0; tag_row < LINES; tag_row = tag_row + 1) begin : tag_write
-            always @(posedge clock) begin
-                if (!reset && miss_complete && miss_cacheable &&
-                    miss_set == SET_BITS'(tag_row))
-                    tags[tag_row] <= miss_address[31:CACHE_OFFSET];
-            end
-        end
-    endgenerate
+    wire tag_write = miss_complete && miss_cacheable && !final_error;
+    wire tag_read = request_fire && input_aligned && input_cacheable;
+    sram_fakeram #(.DEPTH(LINES), .WIDTH(TAG_BITS)) tag_array (
+        .clk(clock), .en(!reset && (tag_read || tag_write)), .we(tag_write),
+        .wmask(1'b1), .addr(tag_write ? miss_set : input_set),
+        .wdata(miss_address[31:CACHE_OFFSET]), .rdata(tag_rdata)
+    );
     wire [31:0] ram_rdata;
-    wire ram_read = request_fire && input_aligned && input_cacheable && input_hit;
+    // Tag and data SRAMs read together. A lookup miss stops the following
+    // request before acceptance; accepted hits still complete every cycle.
+    wire ram_read = tag_read;
     wire ram_write = miss_active && miss_cacheable && read_fire && !mem_rd_rsp_error;
     wire [WORD_BITS-1:0] ram_addr = ram_write
         ? ((miss_word_index & ~WORD_BITS'(LINE_WORDS - 1)) | WORD_BITS'(received_words))
@@ -119,23 +111,25 @@ module icache_pipeline #(
             received_words <= 0;
             lookup_valid <= 0;
             lookup_error <= 0;
+            lookup_address <= 0;
             response_errors <= 0;
             response_head <= 0;
             response_tail <= 0;
             response_count <= 0;
         end else begin
-            lookup_valid <= request_fire && (!input_aligned || (input_cacheable && input_hit));
+            lookup_valid <= request_fire;
             if (request_fire) begin
                 lookup_error <= !input_aligned;
-                if (input_aligned && !(input_cacheable && input_hit)) begin
-                    miss_active <= 1;
-                    miss_cacheable <= input_cacheable;
-                    miss_address <= req_addr;
-                    miss_error <= 0;
-                    issued_words <= 0;
-                    received_words <= 0;
-                    if (input_cacheable) valid_bits[input_set] <= 0;
-                end
+                lookup_address <= req_addr;
+            end
+            if (lookup_miss) begin
+                miss_active <= 1;
+                miss_cacheable <= lookup_cacheable;
+                miss_address <= lookup_address;
+                miss_error <= 0;
+                issued_words <= 0;
+                received_words <= 0;
+                if (lookup_cacheable) valid_bits[lookup_set] <= 0;
             end
             if (mem_rd_valid && mem_rd_ready)
                 issued_words <= issued_words + 1'b1;

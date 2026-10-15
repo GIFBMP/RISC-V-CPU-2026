@@ -12,6 +12,10 @@ module muldiv_unit (
     input  logic        result_ready,
     output logic        req_ready,
     output logic        result_valid,
+    // State-only availability for scheduling; handshakes below still cancel
+    // on reset/flush. Consumers must gate actual issue with their validity.
+    output logic        req_available,
+    output logic        result_pending,
     output logic [31:0] result
 );
     localparam logic [1:0] IDLE = 2'd0;
@@ -46,8 +50,10 @@ module muldiv_unit (
     logic [31:0] b_magnitude;
 
     always_comb begin
-        req_ready = state == IDLE && !reset && !flush;
-        result_valid = state == RESULT && !reset && !flush;
+        req_available = state == IDLE;
+        result_pending = state == RESULT;
+        req_ready = req_available && !reset && !flush;
+        result_valid = result_pending && !reset && !flush;
         result = result_reg;
 
         // Low-half MUL can use unsigned operands; the low bits are identical.
@@ -76,80 +82,63 @@ module muldiv_unit (
         end
     end
 
+    // Cancel validity/state only. A discarded iteration may update payload,
+    // but a new request reinitializes every datum used by its operation.
     always_ff @(posedge clock) begin
-        if (reset || flush) begin
-            state <= IDLE;
-            active_operation <= 3'b0;
-            iteration <= 6'b0;
-            result_reg <= 32'b0;
-            accumulator <= 64'b0;
-            multiplicand <= 64'b0;
-            multiplier <= 32'b0;
-            negate_product <= 1'b0;
-            divisor <= 32'b0;
-            quotient <= 32'b0;
-            remainder_value <= 32'b0;
-            negate_quotient <= 1'b0;
-            negate_remainder <= 1'b0;
-        end else begin
-            case (state)
-                IDLE: begin
-                    if (req_valid && req_ready) begin
-                        active_operation <= operation;
-                        iteration <= 6'b0;
-                        if (!operation[2]) begin
-                            accumulator <= 64'b0;
-                            multiplicand <= {32'b0, a_magnitude};
-                            multiplier <= b_magnitude;
-                            negate_product <= a_negative ^ b_negative;
-                            state <= MULTIPLY;
-                        end else if (operand_b == 32'b0) begin
-                            // DIV[U] by zero is all ones; REM[U] returns rs1.
-                            result_reg <= operation[1] ? operand_a : 32'hffff_ffff;
-                            state <= RESULT;
-                        end else begin
-                            divisor <= b_magnitude;
-                            quotient <= a_magnitude;
-                            remainder_value <= 32'b0;
-                            negate_quotient <= a_negative ^ b_negative;
-                            negate_remainder <= a_negative;
-                            state <= DIVIDE;
-                        end
-                    end
+        if (reset || flush) state <= IDLE;
+        else case (state)
+            IDLE: if (req_valid) begin
+                if (!operation[2]) state <= MULTIPLY;
+                else if (operand_b == 0) state <= RESULT;
+                else state <= DIVIDE;
+            end
+            MULTIPLY, DIVIDE: if (iteration == 6'd31) state <= RESULT;
+            RESULT: if (result_ready) state <= IDLE;
+            default: state <= IDLE;
+        endcase
+    end
+    always_ff @(posedge clock) begin
+        case (state)
+            // Idle payload is unobservable. Prepare operands independently of
+            // the core's request/flush control; only the state handshake starts
+            // an operation, on the same edge that captures its real operands.
+            IDLE: begin
+                active_operation <= operation;
+                iteration <= 6'b0;
+                if (!operation[2]) begin
+                    accumulator <= 64'b0;
+                    multiplicand <= {32'b0, a_magnitude};
+                    multiplier <= b_magnitude;
+                    negate_product <= a_negative ^ b_negative;
+                end else if (operand_b == 0) begin
+                    result_reg <= operation[1] ? operand_a : 32'hffff_ffff;
+                end else begin
+                    divisor <= b_magnitude;
+                    quotient <= a_magnitude;
+                    remainder_value <= 32'b0;
+                    negate_quotient <= a_negative ^ b_negative;
+                    negate_remainder <= a_negative;
                 end
-                MULTIPLY: begin
-                    accumulator <= product_sum;
-                    multiplicand <= multiplicand << 1;
-                    multiplier <= multiplier >> 1;
-                    if (iteration == 6'd31) begin
-                        result_reg <= active_operation == 3'b000 ?
-                                      signed_product[31:0] : signed_product[63:32];
-                        state <= RESULT;
-                    end else begin
-                        iteration <= iteration + 6'd1;
-                    end
-                end
-                DIVIDE: begin
-                    quotient <= next_quotient;
-                    remainder_value <= next_remainder;
-                    if (iteration == 6'd31) begin
-                        if (active_operation[1])
-                            result_reg <= negate_remainder ?
-                                          (~next_remainder + 32'd1) : next_remainder;
-                        else
-                            result_reg <= negate_quotient ?
-                                          (~next_quotient + 32'd1) : next_quotient;
-                        state <= RESULT;
-                    end else begin
-                        iteration <= iteration + 6'd1;
-                    end
-                end
-                RESULT: begin
-                    if (result_valid && result_ready)
-                        state <= IDLE;
-                end
-                default: state <= IDLE;
-            endcase
-        end
+            end
+            MULTIPLY: begin
+                accumulator <= product_sum;
+                multiplicand <= multiplicand << 1;
+                multiplier <= multiplier >> 1;
+                if (iteration == 6'd31)
+                    result_reg <= active_operation == 3'b000 ? signed_product[31:0] : signed_product[63:32];
+                else iteration <= iteration + 6'd1;
+            end
+            DIVIDE: begin
+                quotient <= next_quotient;
+                remainder_value <= next_remainder;
+                if (iteration == 6'd31) begin
+                    if (active_operation[1])
+                        result_reg <= negate_remainder ? (~next_remainder + 32'd1) : next_remainder;
+                    else
+                        result_reg <= negate_quotient ? (~next_quotient + 32'd1) : next_quotient;
+                end else iteration <= iteration + 6'd1;
+            end
+            default: ;
+        endcase
     end
 endmodule

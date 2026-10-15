@@ -7,7 +7,7 @@ module execute_muldiv_tb;
     logic [2:0] operation = 0;
     logic [31:0] operand_a = 0, operand_b = 0;
     logic result_ready = 0;
-    wire req_ready, result_valid;
+    wire req_ready, result_valid, req_available, result_pending;
     wire [31:0] result;
     integer checks = 0;
     integer cancellations = 0;

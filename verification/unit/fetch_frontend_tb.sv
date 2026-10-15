@@ -51,6 +51,9 @@ module fetch_frontend_tb #(
     integer output_streak = 0, longest_output_streak = 0;
     integer request_streak = 0, longest_request_streak = 0;
     integer same_edge_redirect_response = 0;
+    integer back_to_back_training = 0, redirect_capture_training = 0;
+    integer redirect_apply_training = 0, canceled_training = 0;
+    logic model_training_pending = 0;
     logic [31:0] random_state = 32'h3a19_75cb;
 
     // At most two known entries are used in a predictor test. Collision tests
@@ -89,12 +92,14 @@ module fetch_frontend_tb #(
     end
 
     logic sampled_reset, sampled_redirect, sampled_request, sampled_response, sampled_output;
+    logic sampled_update;
     logic [31:0] sampled_redirect_pc, sampled_request_pc;
     logic [31:0] sampled_output_pc, sampled_output_data, sampled_output_prediction;
     logic sampled_output_error;
     integer index, live_pending;
     always @(posedge clock) begin
         sampled_reset = reset;
+        sampled_update = update_valid;
         sampled_redirect = redirect_valid;
         sampled_redirect_pc = redirect_pc;
         sampled_request = i_req_valid && i_req_ready;
@@ -108,6 +113,8 @@ module fetch_frontend_tb #(
         // Update the external model only after DUT sequential sampling.
         #1;
         if (sampled_reset) begin
+            if (model_training_pending) canceled_training = canceled_training + 1;
+            model_training_pending = 0;
             pending_head = 0;
             pending_tail = 0;
             expected_head = 0;
@@ -119,6 +126,10 @@ module fetch_frontend_tb #(
             output_streak = 0;
             request_streak = 0;
         end else begin
+            if (sampled_update && model_training_pending) back_to_back_training = back_to_back_training + 1;
+            if (sampled_redirect && sampled_update) redirect_capture_training = redirect_capture_training + 1;
+            if (sampled_redirect && model_training_pending) redirect_apply_training = redirect_apply_training + 1;
+            model_training_pending = sampled_update;
             if (sampled_redirect) begin
                 if (sampled_request || sampled_output)
                     $fatal(1, "redirect accepted a new request or delivered an old instruction");
@@ -230,6 +241,10 @@ module fetch_frontend_tb #(
             update_taken = taken;
             @(negedge clock);
             update_valid = 0;
+            // Capture at edge N; the BTB applies at edge N+1. Expectations
+            // change only after that edge, so an accepted request on N+1 still
+            // uses the old prediction. Directed tests below exercise that edge.
+            @(negedge clock);
         end
     endtask
 
@@ -385,6 +400,82 @@ module fetch_frontend_tb #(
         steps(30);
         pause_and_clear();
 
+        // Back-to-back updates of the same entry must use the preceding update,
+        // not a stale counter: known state 00, then T,T -> 01,10 (predict taken).
+        train(32'h100, 32'h100, 1, 0);
+        train(32'h100, 32'h100, 1, 0);
+        expected_a_pc = 32'h100;
+        expected_a_target = 32'h100;
+        expected_a_valid = 1;
+        expected_a_taken = 0;
+        @(negedge clock);
+        update_valid = 1;
+        update_pc = 32'h100;
+        update_target = 32'h100;
+        update_conditional = 1;
+        update_taken = 1;
+        steps(2);
+        update_valid = 0;
+        steps(1);
+        expected_a_taken = 1;
+        run_from(32'h100, 35);
+
+        // A request accepted exactly when delayed training is applied carries
+        // the old target. The next request for this PC observes the new target.
+        redirect(32'h100);
+        cache_accept = 0;
+        steps(3);
+        @(negedge clock);
+        update_valid = 1;
+        update_pc = 32'h100;
+        update_target = 32'h900;
+        update_conditional = 0;
+        update_taken = 1;
+        @(negedge clock);
+        update_valid = 0;
+        cache_accept = 1;
+        before_accepted = accepted;
+        @(negedge clock);
+        if (accepted != before_accepted + 1)
+            $fatal(1, "training-application request edge was not exercised");
+        expected_a_target = 32'h900;
+        instruction_ready = 1;
+        steps(35);
+        pause_and_clear();
+
+        // Redirect must preserve a committed update both when captured and
+        // when applied one cycle later. Keep cache requests paused meanwhile.
+        @(negedge clock);
+        redirect_valid = 1;
+        redirect_pc = 32'h100;
+        update_valid = 1;
+        update_pc = 32'h100;
+        update_target = 32'hb00;
+        update_conditional = 0;
+        update_taken = 1;
+        @(negedge clock);
+        update_valid = 0;
+        redirect_pc = 32'h100;
+        @(negedge clock);
+        redirect_valid = 0;
+        expected_a_target = 32'hb00;
+        run_from(32'h100, 35);
+
+        // Reset on the application edge cancels pending training. Although
+        // payload bits may still change, valid must remain clear after reset.
+        @(negedge clock);
+        update_valid = 1;
+        update_pc = 32'h100;
+        update_target = 32'hd00;
+        update_conditional = 0;
+        update_taken = 1;
+        @(negedge clock);
+        update_valid = 0;
+        reset = 1;
+        @(negedge clock);
+        reset = 0;
+        run_from(32'h100, 35);
+
         // Misalignment is propagated as fetch error, and reset removes both
         // prediction state and all outstanding/queued frontend state.
         run_from(32'h1003, 30);
@@ -407,6 +498,9 @@ module fetch_frontend_tb #(
         if (QUEUE_DEPTH >= 3 && OUTSTANDING >= 2
             && (simultaneous_request_response == 0 || simultaneous_output_response == 0))
             $fatal(1, "simultaneous queue operations were not covered");
+        if (back_to_back_training == 0 || redirect_capture_training == 0
+            || redirect_apply_training == 0 || canceled_training == 0)
+            $fatal(1, "training pipeline edge coverage missing");
         $display("PASS fetch_frontend Q=%0d OUT=%0d BTB=%0d PRED=%0d accepted=%0d delivered=%0d dropped=%0d longest_output_streak=%0d",
                  QUEUE_DEPTH, OUTSTANDING, BTB_SIZE, PREDICT, accepted, delivered, dropped, longest_output_streak);
         $finish;

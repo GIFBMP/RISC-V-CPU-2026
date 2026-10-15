@@ -1,0 +1,4851 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-15",
+  "version": "V3 single-issue RV32IM OoO, SRAM-tag four-way write-back cache and local resource control",
+  "baseline_commit": "3e8f93fed64a95480b59e437b0776ad2e1b518af",
+  "framework_commit": "54fc150ffc290f52aa024209ffb9a29d43856f6d",
+  "testcases_commit": "29f980727f7d99a1842a58f34091c7579ba3fe85",
+  "rtl_sha256": {
+    "verilog/student_top.sv": "b97307edde14d7f6384fde74b4657d71ffa6b2257e99834241b54c9558a83561",
+    "verilog/cpu_core.sv": "058a0a00d5e218b5c3383782dd3a8c216de226c171b68e1f055108a7862c5800",
+    "verilog/memory/memory_system.sv": "3c456dd17258c222a9848c4b6f93e18b69cad3c641075096316d5e520aa6b163",
+    "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+    "verilog/memory/icache_pipeline.sv": "1d24f1ae8b61d5508932c7d44979c74db7a84663191a8d16c2c7c193af3cae7c",
+    "verilog/memory/dcache_writeback.sv": "6afcddeaf5fa64c729a939e860b2c9db1631bef4203a9fd6d7083e7d2e76868d",
+    "verilog/frontend/fetch_frontend.sv": "12f651d64322fbc86768cef7590fd02c60a4b0f325277628c470e93df9e6cb40",
+    "verilog/bus/axi_lite_bridge.sv": "af14517d54a247bfb0548f6061d1937ff3fdcc401294fc022301cc383e5f94f0",
+    "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+    "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+    "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+    "verilog/filelist.f": "b2bff2816c90aacc41d79d0b78343b1c5a91f2175584e881177410608051d16d",
+    "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec",
+    "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc"
+  },
+  "parameters": {
+    "ROB_DEPTH": 16,
+    "PRF_SIZE": 48,
+    "IQ_DEPTH": 8,
+    "LSQ_DEPTH": 8,
+    "ICACHE_BYTES": 2048,
+    "DCACHE_BYTES": 4096,
+    "CACHE_LINE_BYTES": 16,
+    "ICACHE_WAYS": 1,
+    "DCACHE_WAYS": 4,
+    "DCACHE_WRITE_BACK": 1,
+    "ISSUE_WIDTH": 1,
+    "FETCH_QUEUE_DEPTH": 8,
+    "FETCH_OUTSTANDING": 4,
+    "BTB_ENTRIES": 64,
+    "PREDICT_ENABLE": 1,
+    "TRACE": 0
+  },
+  "official": {
+    "latency": 10,
+    "max_cycles": 100000000,
+    "platforms": [
+      "macOS arm64, Verilator 5.052",
+      "Linux arm64, Verilator 5.020"
+    ],
+    "cycles_identical": true,
+    "correctness": [
+      {
+        "case": "correctness_add_to_100",
+        "cycles": 969,
+        "passed": true
+      },
+      {
+        "case": "correctness_array_test1",
+        "cycles": 1128,
+        "passed": true
+      },
+      {
+        "case": "correctness_array_test2",
+        "cycles": 1257,
+        "passed": true
+      },
+      {
+        "case": "correctness_basicopt1",
+        "cycles": 917587,
+        "passed": true
+      },
+      {
+        "case": "correctness_bulgarian",
+        "cycles": 534264,
+        "passed": true
+      },
+      {
+        "case": "correctness_expr",
+        "cycles": 1215,
+        "passed": true
+      },
+      {
+        "case": "correctness_gcd",
+        "cycles": 973,
+        "passed": true
+      },
+      {
+        "case": "correctness_hanoi",
+        "cycles": 11527,
+        "passed": true
+      },
+      {
+        "case": "correctness_lvalue2",
+        "cycles": 739,
+        "passed": true
+      },
+      {
+        "case": "correctness_magic",
+        "cycles": 1303255,
+        "passed": true
+      },
+      {
+        "case": "correctness_manyarguments",
+        "cycles": 680,
+        "passed": true
+      },
+      {
+        "case": "correctness_multiarray",
+        "cycles": 5382,
+        "passed": true
+      },
+      {
+        "case": "correctness_naive",
+        "cycles": 656,
+        "passed": true
+      },
+      {
+        "case": "correctness_pi",
+        "cycles": 40365078,
+        "passed": true
+      },
+      {
+        "case": "correctness_qsort",
+        "cycles": 2544365,
+        "passed": true
+      },
+      {
+        "case": "correctness_queens",
+        "cycles": 741617,
+        "passed": true
+      },
+      {
+        "case": "correctness_statement_test",
+        "cycles": 3153,
+        "passed": true
+      },
+      {
+        "case": "correctness_superloop",
+        "cycles": 611888,
+        "passed": true
+      },
+      {
+        "case": "correctness_tak",
+        "cycles": 3981351,
+        "passed": true
+      }
+    ],
+    "performance": [
+      {
+        "case": "perf_median",
+        "instructions": 6961,
+        "cycles": 26419,
+        "ipc": 0.2634846133464552,
+        "passed": true
+      },
+      {
+        "case": "perf_multiply",
+        "instructions": 21722,
+        "cycles": 31652,
+        "ipc": 0.6862757487678504,
+        "passed": true
+      },
+      {
+        "case": "perf_qsort",
+        "instructions": 139900,
+        "cycles": 433877,
+        "ipc": 0.3224416136370446,
+        "passed": true
+      },
+      {
+        "case": "perf_rsort",
+        "instructions": 195719,
+        "cycles": 859300,
+        "ipc": 0.2277656231816595,
+        "passed": true
+      },
+      {
+        "case": "perf_towers",
+        "instructions": 5278,
+        "cycles": 21744,
+        "ipc": 0.2427336276674025,
+        "passed": true
+      },
+      {
+        "case": "perf_vvadd",
+        "instructions": 4524,
+        "cycles": 16673,
+        "ipc": 0.2713368919810472,
+        "passed": true
+      }
+    ],
+    "ipc_geomean": 0.3092468806761621,
+    "simulator_sha256": {
+      "macos": "fa0cacae7640e2e4aab45526dab663c98eb2acb61cf201dd384747d2afa44f84",
+      "linux": "73fe2e15e8513a95b1a468b744e4ccaaa666107e393a164190d536b01a26d3f2"
+    },
+    "log_sha256": {
+      "mac-build": "801b8fdf93dc166cce6cf47297c414fa9f41d91bd50ee56ea10368fd41942fd0",
+      "mac-test": "096c0f9a6795fb96eff9f71572524c7fd9d18f1ddfaecc455eed03c0e91bcd36",
+      "mac-perf": "abe99bdfe5d500199e14a9aa8f666ef522a5ce1318b76a358f0130c2959ed6de",
+      "linux-build": "f822e528201a31ceb85204314f710fad65d775d249cf303ad77cddd75a22cdef",
+      "linux-test": "dfbb1220ba2861be25668bf5c25e414140d7d18110854dc30d32dfaa498c66d8",
+      "linux-perf": "956bfdd5d741af6ee878489835f6f92851b5ecb5e2bc2749c5a361aa1c4ffe43"
+    },
+    "final_timing_changes_preserve_r2_cycles": true
+  },
+  "synthesis": {
+    "local_report": "build/v3/synth-r5/opt/report.json",
+    "report_sha256": "fb05723ef3e9366b5b3a587e62b906379eb58466088a14cd9e2437c7975bc57c",
+    "area": {
+      "area_um2": 10792.602382997073,
+      "combinational_area_um2": 4214.698919997072,
+      "sequential_area_um2": 4164.6312,
+      "sram_area_um2": 2413.2722630000003
+    },
+    "timing": {
+      "clock_port": "clock",
+      "clock_period_ns": 2.0,
+      "input_delay_ns": 0.2,
+      "output_delay_ns": 0.2,
+      "input_transition_ns": 0.05,
+      "clock_transition_ns": 0.05,
+      "clock_uncertainty_ns": 0.05,
+      "output_load_ff": 5.0,
+      "reset_value": 0,
+      "clock_model": "ideal",
+      "interconnect": "no_parasitics",
+      "frequency_resolution_ns": 0.001,
+      "minimum_period_ns": 2.9501953125,
+      "estimated_fmax_mhz": 338.9606090698444,
+      "worst_setup_slack_ns": -0.949757,
+      "timing_analyzed": true
+    },
+    "critical_path": {
+      "start": "core.frontend.queue_head[1]",
+      "end": "core.frontend.request_pc[3][0]",
+      "description": "FIFO read/decode/dispatch to new fetch request credit/handshake"
+    },
+    "tools": {
+      "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+      "opensta": "3.1.0"
+    },
+    "libraries": [
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_AO_RVT_TT_nldm_211120.lib",
+        "sha256": "b1ece108c0a2acd8d01c05cee6daee2834425037b1d9aad625d6f1dd640f1940"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_INVBUF_RVT_TT_nldm_220122.lib",
+        "sha256": "a4ceb32e418e1aac8667e28fbd8e9e46baf520180be4db075598a4d7c681a56e"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_OA_RVT_TT_nldm_211120.lib",
+        "sha256": "6529c6c72465cd133dfbfb03952327ab2774bb6aa4be866d78fd7bc6c58c9f6f"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_SEQ_RVT_TT_nldm_220123.lib",
+        "sha256": "57a0b403485b99ebd676942af4673ac086b86c7c75fbdc3e5c0038501dd22ba3"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.lib",
+        "sha256": "fa92e6ab1481810602811b1eea54bc016a341f11fb5188d7512c026599adf038"
+      },
+      {
+        "path": "/work/build/v3/synth-r5/opt/ram/fakeram_asap7_128x21.lib",
+        "sha256": "93a346e2f315d9cb355604dfdeec91bd3c9e01397739ee903e643c699987a918"
+      },
+      {
+        "path": "/work/build/v3/synth-r5/opt/ram/fakeram_asap7_256x8.lib",
+        "sha256": "46e5f88b2429ddb8fbbf4eeba0ad56a87018a353d48bbcc7175dc6abd95ed311"
+      },
+      {
+        "path": "/work/build/v3/synth-r5/opt/ram/fakeram_asap7_512x8.lib",
+        "sha256": "76008a32e7c01d04fd0e8c2c1ec8bea9fd8579e47ac559731b2d98fa3b539a07"
+      },
+      {
+        "path": "/work/build/v3/synth-r5/opt/ram/fakeram_asap7_64x22.lib",
+        "sha256": "519091d2fcb00b6089e3bd4792c22932e67578addbb74cbf07370610ccc238ca"
+      }
+    ],
+    "sram_model": {
+      "name": "fakeram-asap7-v1",
+      "upstream": "ABKGroup/FakeRAM2.0",
+      "commit": "49dad15badc28a55363813e105c830c7776fc588",
+      "estimated": true,
+      "area_per_bit_um2": 0.0419904,
+      "clock_to_q_formula_ns": "0.071262 + 0.0000167155 * depth + 0.001243254 * width",
+      "setup_ns": 0.05,
+      "hold_ns": 0.05,
+      "min_period_ns": 0.157
+    },
+    "inputs": [
+      {
+        "path": "/work/verilog/execute/decoder.sv",
+        "sha256": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c"
+      },
+      {
+        "path": "/work/verilog/execute/alu.sv",
+        "sha256": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76"
+      },
+      {
+        "path": "/work/verilog/execute/muldiv_unit.sv",
+        "sha256": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b"
+      },
+      {
+        "path": "/work/verilog/bus/axi_lite_bridge.sv",
+        "sha256": "af14517d54a247bfb0548f6061d1937ff3fdcc401294fc022301cc383e5f94f0"
+      },
+      {
+        "path": "/work/verilog/memory/blocking_cache.sv",
+        "sha256": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e"
+      },
+      {
+        "path": "/work/verilog/memory/icache_pipeline.sv",
+        "sha256": "1d24f1ae8b61d5508932c7d44979c74db7a84663191a8d16c2c7c193af3cae7c"
+      },
+      {
+        "path": "/work/verilog/memory/dcache_writeback.sv",
+        "sha256": "6afcddeaf5fa64c729a939e860b2c9db1631bef4203a9fd6d7083e7d2e76868d"
+      },
+      {
+        "path": "/work/verilog/memory/memory_system.sv",
+        "sha256": "3c456dd17258c222a9848c4b6f93e18b69cad3c641075096316d5e520aa6b163"
+      },
+      {
+        "path": "/work/verilog/frontend/fetch_frontend.sv",
+        "sha256": "12f651d64322fbc86768cef7590fd02c60a4b0f325277628c470e93df9e6cb40"
+      },
+      {
+        "path": "/work/verilog/cpu_core.sv",
+        "sha256": "058a0a00d5e218b5c3383782dd3a8c216de226c171b68e1f055108a7862c5800"
+      },
+      {
+        "path": "/work/verilog/student_top.sv",
+        "sha256": "b97307edde14d7f6384fde74b4657d71ffa6b2257e99834241b54c9558a83561"
+      },
+      {
+        "path": "/work/scripts/ram/sram_fakeram.sv",
+        "sha256": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc"
+      }
+    ]
+  },
+  "relative_to_v2": {
+    "ipc_ratio": 1.2559826465155854,
+    "frequency_ratio": 3.952002648129758,
+    "area_ratio": 0.9032944034489501
+  },
+  "synthesis_rounds": [
+    {
+      "round": "V1",
+      "report": "build/linux/synth/opt/report.json",
+      "frequency_mhz": 44.5236749423888,
+      "period_ns": 22.4599609375,
+      "area_um2": 9063.421383997147,
+      "sequential_area_um2": 3628.3788,
+      "combinational_area_um2": 4059.1011599971475,
+      "sram_area_um2": 1375.9414240000003,
+      "change_and_limiting_path": "Initial integrated CPU; shared dynamic register-bank and flush control fanout."
+    },
+    {
+      "round": "V2",
+      "report": "build/v2/synth-r3/opt/report.json",
+      "frequency_mhz": 85.76932741435631,
+      "period_ns": 11.6591796875,
+      "area_um2": 11948.045224003228,
+      "sequential_area_um2": 5459.3352,
+      "combinational_area_um2": 5112.768600003227,
+      "sram_area_um2": 1375.9414240000003,
+      "change_and_limiting_path": "Final V2; critical Dcache refill tag metadata write control."
+    },
+    {
+      "round": "V3-r1",
+      "report": "build/v3/synth-r1/opt/report.json",
+      "frequency_mhz": 210.82973028618488,
+      "period_ns": 4.7431640625,
+      "area_um2": 10785.701960997038,
+      "sequential_area_um2": 4102.812,
+      "combinational_area_um2": 4280.367239997038,
+      "sram_area_um2": 2402.5227210000003,
+      "change_and_limiting_path": "SRAM tags; registered BTB training; payload prewrite; remaining Dcache packed dirty/valid update fanout."
+    },
+    {
+      "round": "V3-r2",
+      "report": "build/v3/synth-r2/opt/report.json",
+      "frequency_mhz": 259.6348884381339,
+      "period_ns": 3.8515625,
+      "area_um2": 10793.972902997275,
+      "sequential_area_um2": 4164.6312,
+      "combinational_area_um2": 4216.0694399972745,
+      "sram_area_um2": 2413.2722630000003,
+      "change_and_limiting_path": "Four-way Dcache with per-row metadata and pipelined writeback; four-credit AXI writes; remove redundant older-store issue dependency. Remaining MDU payload request enable."
+    },
+    {
+      "round": "V3-r3",
+      "report": "build/v3/synth-r3/opt/report.json",
+      "frequency_mhz": 281.5507286224911,
+      "period_ns": 3.5517578125,
+      "area_um2": 10787.251522997178,
+      "sequential_area_um2": 4164.6312,
+      "combinational_area_um2": 4209.348059997177,
+      "sram_area_um2": 2413.2722630000003,
+      "change_and_limiting_path": "MDU IDLE payload prewrite removes request-valid gating. Remaining flush-dependent MDU availability in scheduler."
+    },
+    {
+      "round": "V3-r4",
+      "report": "build/v3/synth-r4/opt/report.json",
+      "frequency_mhz": 282.01597356100245,
+      "period_ns": 3.5458984375,
+      "area_um2": 10779.655342997095,
+      "sequential_area_um2": 4164.6312,
+      "combinational_area_um2": 4201.751879997095,
+      "sram_area_um2": 2413.2722630000003,
+      "change_and_limiting_path": "Raw resource availability independent of cancellation. Remaining branch comparison incorrectly participates in generic simple-operation class and EX hold enable."
+    },
+    {
+      "round": "V3-r5",
+      "report": "build/v3/synth-r5/opt/report.json",
+      "frequency_mhz": 338.9606090698444,
+      "period_ns": 2.9501953125,
+      "area_um2": 10792.602382997073,
+      "sequential_area_um2": 4164.6312,
+      "combinational_area_um2": 4214.698919997072,
+      "sram_area_um2": 2413.2722630000003,
+      "change_and_limiting_path": "Classify simple execution without branch-target fault cone; simplify I-response ready using reserved-slot invariant. Remaining FIFO head decode/rename admission to next I-request metadata."
+    }
+  ],
+  "validation": {
+    "default": {
+      "local_report": "build/v3/strict-r5/20261015-223148-261840/summary.json",
+      "passed": 93,
+      "total": 93,
+      "commits": 81588,
+      "results": [
+        {
+          "case": "cache_conflict_dirty",
+          "latency": 1,
+          "passed": true,
+          "commits": 1897,
+          "cycles": 6463,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "a1a99d9434c362630c52d76c57857b7905a56fc939ceeabfa04561499b3e63b3"
+        },
+        {
+          "case": "cache_conflict_dirty",
+          "latency": 10,
+          "passed": true,
+          "commits": 1897,
+          "cycles": 10751,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "a1a99d9434c362630c52d76c57857b7905a56fc939ceeabfa04561499b3e63b3"
+        },
+        {
+          "case": "cache_conflict_dirty",
+          "latency": 31,
+          "passed": true,
+          "commits": 1897,
+          "cycles": 20768,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "a1a99d9434c362630c52d76c57857b7905a56fc939ceeabfa04561499b3e63b3"
+        },
+        {
+          "case": "cache_exit_dirty",
+          "latency": 1,
+          "passed": true,
+          "commits": 3341,
+          "cycles": 18507,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "5d45f3c78034ebdaf80a6bcf367bb01d6f38b10d0e750e9b703ae15bf2133bf0"
+        },
+        {
+          "case": "cache_exit_dirty",
+          "latency": 10,
+          "passed": true,
+          "commits": 3341,
+          "cycles": 23165,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "5d45f3c78034ebdaf80a6bcf367bb01d6f38b10d0e750e9b703ae15bf2133bf0"
+        },
+        {
+          "case": "cache_exit_dirty",
+          "latency": 31,
+          "passed": true,
+          "commits": 3341,
+          "cycles": 34064,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "5d45f3c78034ebdaf80a6bcf367bb01d6f38b10d0e750e9b703ae15bf2133bf0"
+        },
+        {
+          "case": "cache_partial_allocate",
+          "latency": 1,
+          "passed": true,
+          "commits": 601,
+          "cycles": 2289,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "1b42d1db4c47876bb72cbffc8c82c11f777b5d07abf6ad8ae2135cb23e612ce2"
+        },
+        {
+          "case": "cache_partial_allocate",
+          "latency": 10,
+          "passed": true,
+          "commits": 601,
+          "cycles": 3600,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "1b42d1db4c47876bb72cbffc8c82c11f777b5d07abf6ad8ae2135cb23e612ce2"
+        },
+        {
+          "case": "cache_partial_allocate",
+          "latency": 31,
+          "passed": true,
+          "commits": 601,
+          "cycles": 6792,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "1b42d1db4c47876bb72cbffc8c82c11f777b5d07abf6ad8ae2135cb23e612ce2"
+        },
+        {
+          "case": "dependencies_wrap",
+          "latency": 1,
+          "passed": true,
+          "commits": 1163,
+          "cycles": 4338,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "ed145b8beab2667c5f1193ea28e749b910f32715d77cb45b0837d7fb3874ed32"
+        },
+        {
+          "case": "dependencies_wrap",
+          "latency": 10,
+          "passed": true,
+          "commits": 1163,
+          "cycles": 6807,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "ed145b8beab2667c5f1193ea28e749b910f32715d77cb45b0837d7fb3874ed32"
+        },
+        {
+          "case": "dependencies_wrap",
+          "latency": 31,
+          "passed": true,
+          "commits": 1163,
+          "cycles": 13007,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "ed145b8beab2667c5f1193ea28e749b910f32715d77cb45b0837d7fb3874ed32"
+        },
+        {
+          "case": "flush_bad_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 748,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "8750aa82fe9aa3c956d3e0856880b8adace49bddf78da00d51bc4ebc089b15a6"
+        },
+        {
+          "case": "flush_bad_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 865,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "8750aa82fe9aa3c956d3e0856880b8adace49bddf78da00d51bc4ebc089b15a6"
+        },
+        {
+          "case": "flush_bad_load",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 1138,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "8750aa82fe9aa3c956d3e0856880b8adace49bddf78da00d51bc4ebc089b15a6"
+        },
+        {
+          "case": "flush_dirty_store",
+          "latency": 1,
+          "passed": true,
+          "commits": 51,
+          "cycles": 546,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "38407a01ad5e433ba5840e5fe4467aa8123d0f10185a719dc4271767201a9848"
+        },
+        {
+          "case": "flush_dirty_store",
+          "latency": 10,
+          "passed": true,
+          "commits": 51,
+          "cycles": 695,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "38407a01ad5e433ba5840e5fe4467aa8123d0f10185a719dc4271767201a9848"
+        },
+        {
+          "case": "flush_dirty_store",
+          "latency": 31,
+          "passed": true,
+          "commits": 51,
+          "cycles": 1052,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "38407a01ad5e433ba5840e5fe4467aa8123d0f10185a719dc4271767201a9848"
+        },
+        {
+          "case": "flush_illegal",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 512,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "36eaf303a38dedc66ea61b2f04099aa51354f71d8d8037402e1019aae8815d5c"
+        },
+        {
+          "case": "flush_illegal",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 647,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "36eaf303a38dedc66ea61b2f04099aa51354f71d8d8037402e1019aae8815d5c"
+        },
+        {
+          "case": "flush_illegal",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 962,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "36eaf303a38dedc66ea61b2f04099aa51354f71d8d8037402e1019aae8815d5c"
+        },
+        {
+          "case": "flush_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 545,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "023135914d1356027a47065d3a0bab6addeda566f8988283478a9b13750a13f8"
+        },
+        {
+          "case": "flush_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 680,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "023135914d1356027a47065d3a0bab6addeda566f8988283478a9b13750a13f8"
+        },
+        {
+          "case": "flush_load",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 995,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "023135914d1356027a47065d3a0bab6addeda566f8988283478a9b13750a13f8"
+        },
+        {
+          "case": "flush_mdu",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 492,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "2ecc6d30a88d5d4720bc7a5f45d377d280f7d4912be981fe8293159ae5a25028"
+        },
+        {
+          "case": "flush_mdu",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 636,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "2ecc6d30a88d5d4720bc7a5f45d377d280f7d4912be981fe8293159ae5a25028"
+        },
+        {
+          "case": "flush_mdu",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 972,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "2ecc6d30a88d5d4720bc7a5f45d377d280f7d4912be981fe8293159ae5a25028"
+        },
+        {
+          "case": "flush_mmio",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 512,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "d99493c76fd3b9e8ef9ee1b0ae9c30dfea3c06d5e1592a016cb7da9b291a8a47"
+        },
+        {
+          "case": "flush_mmio",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 647,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "d99493c76fd3b9e8ef9ee1b0ae9c30dfea3c06d5e1592a016cb7da9b291a8a47"
+        },
+        {
+          "case": "flush_mmio",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 962,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "d99493c76fd3b9e8ef9ee1b0ae9c30dfea3c06d5e1592a016cb7da9b291a8a47"
+        },
+        {
+          "case": "flush_store",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 512,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "07c16d1ef070f4cfc68d2897b9f9f8b16d4739d939693a9b335b4dc1fb9801fa"
+        },
+        {
+          "case": "flush_store",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 647,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "07c16d1ef070f4cfc68d2897b9f9f8b16d4739d939693a9b335b4dc1fb9801fa"
+        },
+        {
+          "case": "flush_store",
+          "latency": 31,
+          "passed": true,
+          "commits": 47,
+          "cycles": 962,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "07c16d1ef070f4cfc68d2897b9f9f8b16d4739d939693a9b335b4dc1fb9801fa"
+        },
+        {
+          "case": "flush_writeback_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 59,
+          "cycles": 793,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "96228b880f86eec653721e0885243f4266a09075c01d550509ee7771e15e0147"
+        },
+        {
+          "case": "flush_writeback_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 59,
+          "cycles": 937,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "96228b880f86eec653721e0885243f4266a09075c01d550509ee7771e15e0147"
+        },
+        {
+          "case": "flush_writeback_load",
+          "latency": 31,
+          "passed": true,
+          "commits": 59,
+          "cycles": 1284,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "96228b880f86eec653721e0885243f4266a09075c01d550509ee7771e15e0147"
+        },
+        {
+          "case": "integer_isa",
+          "latency": 1,
+          "passed": true,
+          "commits": 3072,
+          "cycles": 10254,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "795ef69aed7c0d62a42148ef25d93adc4453ea2e712a284b61cce972b78de602"
+        },
+        {
+          "case": "integer_isa",
+          "latency": 10,
+          "passed": true,
+          "commits": 3072,
+          "cycles": 17175,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "795ef69aed7c0d62a42148ef25d93adc4453ea2e712a284b61cce972b78de602"
+        },
+        {
+          "case": "integer_isa",
+          "latency": 31,
+          "passed": true,
+          "commits": 3072,
+          "cycles": 33324,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "795ef69aed7c0d62a42148ef25d93adc4453ea2e712a284b61cce972b78de602"
+        },
+        {
+          "case": "jumps_branches",
+          "latency": 1,
+          "passed": true,
+          "commits": 245,
+          "cycles": 922,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "510a875336b34336cdf020ee1b93fae8dbb5d4dc8f4f3feb9b01978d9bf88d30"
+        },
+        {
+          "case": "jumps_branches",
+          "latency": 10,
+          "passed": true,
+          "commits": 245,
+          "cycles": 1264,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "510a875336b34336cdf020ee1b93fae8dbb5d4dc8f4f3feb9b01978d9bf88d30"
+        },
+        {
+          "case": "jumps_branches",
+          "latency": 31,
+          "passed": true,
+          "commits": 245,
+          "cycles": 2062,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "510a875336b34336cdf020ee1b93fae8dbb5d4dc8f4f3feb9b01978d9bf88d30"
+        },
+        {
+          "case": "m_extension",
+          "latency": 1,
+          "passed": true,
+          "commits": 2713,
+          "cycles": 17950,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "fb9becbb9f7afaff973be53a8e91d89c6303b306b5d6f68d00fd3139acb155db"
+        },
+        {
+          "case": "m_extension",
+          "latency": 10,
+          "passed": true,
+          "commits": 2713,
+          "cycles": 18213,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "fb9becbb9f7afaff973be53a8e91d89c6303b306b5d6f68d00fd3139acb155db"
+        },
+        {
+          "case": "m_extension",
+          "latency": 31,
+          "passed": true,
+          "commits": 2713,
+          "cycles": 29491,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "fb9becbb9f7afaff973be53a8e91d89c6303b306b5d6f68d00fd3139acb155db"
+        },
+        {
+          "case": "memory_lanes",
+          "latency": 1,
+          "passed": true,
+          "commits": 131,
+          "cycles": 718,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "4d212e38d452d9ee3caf0cda05ae30e64bf81285f25b891f5e7b6de6e90a117a"
+        },
+        {
+          "case": "memory_lanes",
+          "latency": 10,
+          "passed": true,
+          "commits": 131,
+          "cycles": 1031,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "4d212e38d452d9ee3caf0cda05ae30e64bf81285f25b891f5e7b6de6e90a117a"
+        },
+        {
+          "case": "memory_lanes",
+          "latency": 31,
+          "passed": true,
+          "commits": 131,
+          "cycles": 1766,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "4d212e38d452d9ee3caf0cda05ae30e64bf81285f25b891f5e7b6de6e90a117a"
+        },
+        {
+          "case": "memory_order_wrap",
+          "latency": 1,
+          "passed": true,
+          "commits": 1757,
+          "cycles": 5202,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "5ca7d8e268d4f7e22a12072ebf4fc03b50dd2922cc72edcada5eb3f245b254d0"
+        },
+        {
+          "case": "memory_order_wrap",
+          "latency": 10,
+          "passed": true,
+          "commits": 1757,
+          "cycles": 5292,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "5ca7d8e268d4f7e22a12072ebf4fc03b50dd2922cc72edcada5eb3f245b254d0"
+        },
+        {
+          "case": "memory_order_wrap",
+          "latency": 31,
+          "passed": true,
+          "commits": 1757,
+          "cycles": 5502,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "5ca7d8e268d4f7e22a12072ebf4fc03b50dd2922cc72edcada5eb3f245b254d0"
+        },
+        {
+          "case": "ooo_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 33,
+          "cycles": 410,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "40d25a57ae218649f892f4765b0b702686a0ab53c5900121faf918fa827e2e04"
+        },
+        {
+          "case": "ooo_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 33,
+          "cycles": 509,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "40d25a57ae218649f892f4765b0b702686a0ab53c5900121faf918fa827e2e04"
+        },
+        {
+          "case": "ooo_load",
+          "latency": 31,
+          "passed": true,
+          "commits": 33,
+          "cycles": 740,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "40d25a57ae218649f892f4765b0b702686a0ab53c5900121faf918fa827e2e04"
+        },
+        {
+          "case": "ooo_mdu",
+          "latency": 1,
+          "passed": true,
+          "commits": 31,
+          "cycles": 430,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "c3cb54703814d50912e394a519464ce1b6e08cf4ef732580f7ed0257e3db8230"
+        },
+        {
+          "case": "ooo_mdu",
+          "latency": 10,
+          "passed": true,
+          "commits": 31,
+          "cycles": 520,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "c3cb54703814d50912e394a519464ce1b6e08cf4ef732580f7ed0257e3db8230"
+        },
+        {
+          "case": "ooo_mdu",
+          "latency": 31,
+          "passed": true,
+          "commits": 31,
+          "cycles": 730,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "c3cb54703814d50912e394a519464ce1b6e08cf4ef732580f7ed0257e3db8230"
+        },
+        {
+          "case": "pipeline_completion",
+          "latency": 1,
+          "passed": true,
+          "commits": 805,
+          "cycles": 1546,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "1e0985f0332f8576cc00df342db6cc33b7af1e100c0e00d80639d72bfc0a4053"
+        },
+        {
+          "case": "pipeline_completion",
+          "latency": 10,
+          "passed": true,
+          "commits": 805,
+          "cycles": 1663,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "1e0985f0332f8576cc00df342db6cc33b7af1e100c0e00d80639d72bfc0a4053"
+        },
+        {
+          "case": "pipeline_completion",
+          "latency": 31,
+          "passed": true,
+          "commits": 805,
+          "cycles": 1936,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "1e0985f0332f8576cc00df342db6cc33b7af1e100c0e00d80639d72bfc0a4053"
+        },
+        {
+          "case": "prediction_btb_alias",
+          "latency": 1,
+          "passed": true,
+          "commits": 48,
+          "cycles": 498,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "f3bd04e9c984acfbb1ecced7b501f22ee19c306b2759f700be39e0b884a8587c"
+        },
+        {
+          "case": "prediction_btb_alias",
+          "latency": 10,
+          "passed": true,
+          "commits": 48,
+          "cycles": 615,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "f3bd04e9c984acfbb1ecced7b501f22ee19c306b2759f700be39e0b884a8587c"
+        },
+        {
+          "case": "prediction_btb_alias",
+          "latency": 31,
+          "passed": true,
+          "commits": 48,
+          "cycles": 888,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "f3bd04e9c984acfbb1ecced7b501f22ee19c306b2759f700be39e0b884a8587c"
+        },
+        {
+          "case": "prediction_jalr_switch",
+          "latency": 1,
+          "passed": true,
+          "commits": 63,
+          "cycles": 479,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "0ebcbdf605dab49c301b4601c2f499d2948e11760667d1231d99c744676cfa6d"
+        },
+        {
+          "case": "prediction_jalr_switch",
+          "latency": 10,
+          "passed": true,
+          "commits": 63,
+          "cycles": 569,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "0ebcbdf605dab49c301b4601c2f499d2948e11760667d1231d99c744676cfa6d"
+        },
+        {
+          "case": "prediction_jalr_switch",
+          "latency": 31,
+          "passed": true,
+          "commits": 63,
+          "cycles": 779,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "0ebcbdf605dab49c301b4601c2f499d2948e11760667d1231d99c744676cfa6d"
+        },
+        {
+          "case": "prediction_loop_exit",
+          "latency": 1,
+          "passed": true,
+          "commits": 40,
+          "cycles": 360,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "086f8cc620bf13a5ba47075fe7039a31b127500d85e1cb37b038638bc137bbf5"
+        },
+        {
+          "case": "prediction_loop_exit",
+          "latency": 10,
+          "passed": true,
+          "commits": 40,
+          "cycles": 405,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "086f8cc620bf13a5ba47075fe7039a31b127500d85e1cb37b038638bc137bbf5"
+        },
+        {
+          "case": "prediction_loop_exit",
+          "latency": 31,
+          "passed": true,
+          "commits": 40,
+          "cycles": 510,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "086f8cc620bf13a5ba47075fe7039a31b127500d85e1cb37b038638bc137bbf5"
+        },
+        {
+          "case": "random_00000001",
+          "latency": 1,
+          "passed": true,
+          "commits": 1359,
+          "cycles": 5149,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "ac05e7ea89793f4764ade8f456bbd1204241ab649cc9965760278cc936f9c302"
+        },
+        {
+          "case": "random_00000001",
+          "latency": 10,
+          "passed": true,
+          "commits": 1359,
+          "cycles": 8233,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "ac05e7ea89793f4764ade8f456bbd1204241ab649cc9965760278cc936f9c302"
+        },
+        {
+          "case": "random_00000001",
+          "latency": 31,
+          "passed": true,
+          "commits": 1359,
+          "cycles": 15724,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "ac05e7ea89793f4764ade8f456bbd1204241ab649cc9965760278cc936f9c302"
+        },
+        {
+          "case": "random_00000007",
+          "latency": 1,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 5104,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "729594cedf5f66be61fee226db51e07f5e6e633d775b1c4f4bfd60296327b3d9"
+        },
+        {
+          "case": "random_00000007",
+          "latency": 10,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 8256,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "729594cedf5f66be61fee226db51e07f5e6e633d775b1c4f4bfd60296327b3d9"
+        },
+        {
+          "case": "random_00000007",
+          "latency": 31,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 15778,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "729594cedf5f66be61fee226db51e07f5e6e633d775b1c4f4bfd60296327b3d9"
+        },
+        {
+          "case": "random_00000017",
+          "latency": 1,
+          "passed": true,
+          "commits": 1356,
+          "cycles": 5097,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "9aa9b751830e9026632055ff179c97cbad79caca6ab6e36d7f1bcefff80ca18b"
+        },
+        {
+          "case": "random_00000017",
+          "latency": 10,
+          "passed": true,
+          "commits": 1356,
+          "cycles": 8207,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "9aa9b751830e9026632055ff179c97cbad79caca6ab6e36d7f1bcefff80ca18b"
+        },
+        {
+          "case": "random_00000017",
+          "latency": 31,
+          "passed": true,
+          "commits": 1356,
+          "cycles": 15650,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "9aa9b751830e9026632055ff179c97cbad79caca6ab6e36d7f1bcefff80ca18b"
+        },
+        {
+          "case": "random_0000002a",
+          "latency": 1,
+          "passed": true,
+          "commits": 1358,
+          "cycles": 5143,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "e703d454490663b193ce40b7c9aff66c39c46c11c8818e522371acbe1d32876a"
+        },
+        {
+          "case": "random_0000002a",
+          "latency": 10,
+          "passed": true,
+          "commits": 1358,
+          "cycles": 8285,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "e703d454490663b193ce40b7c9aff66c39c46c11c8818e522371acbe1d32876a"
+        },
+        {
+          "case": "random_0000002a",
+          "latency": 31,
+          "passed": true,
+          "commits": 1358,
+          "cycles": 15826,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "e703d454490663b193ce40b7c9aff66c39c46c11c8818e522371acbe1d32876a"
+        },
+        {
+          "case": "random_00000063",
+          "latency": 1,
+          "passed": true,
+          "commits": 1357,
+          "cycles": 5030,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "ea029ac5aef120ad9a5781d3388221c14acf23dce3b21f332c6a839d55f01a56"
+        },
+        {
+          "case": "random_00000063",
+          "latency": 10,
+          "passed": true,
+          "commits": 1357,
+          "cycles": 8154,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "ea029ac5aef120ad9a5781d3388221c14acf23dce3b21f332c6a839d55f01a56"
+        },
+        {
+          "case": "random_00000063",
+          "latency": 31,
+          "passed": true,
+          "commits": 1357,
+          "cycles": 15576,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "ea029ac5aef120ad9a5781d3388221c14acf23dce3b21f332c6a839d55f01a56"
+        },
+        {
+          "case": "random_00000100",
+          "latency": 1,
+          "passed": true,
+          "commits": 1353,
+          "cycles": 5073,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a"
+        },
+        {
+          "case": "random_00000100",
+          "latency": 10,
+          "passed": true,
+          "commits": 1353,
+          "cycles": 8196,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a"
+        },
+        {
+          "case": "random_00000100",
+          "latency": 31,
+          "passed": true,
+          "commits": 1353,
+          "cycles": 15670,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a"
+        },
+        {
+          "case": "random_00000400",
+          "latency": 1,
+          "passed": true,
+          "commits": 1355,
+          "cycles": 5039,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "e115f48e8dbdd08b7b504bc62510b134a9ef25dde9e3ad736d46d495f0ebe670"
+        },
+        {
+          "case": "random_00000400",
+          "latency": 10,
+          "passed": true,
+          "commits": 1355,
+          "cycles": 8154,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "e115f48e8dbdd08b7b504bc62510b134a9ef25dde9e3ad736d46d495f0ebe670"
+        },
+        {
+          "case": "random_00000400",
+          "latency": 31,
+          "passed": true,
+          "commits": 1355,
+          "cycles": 15578,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "e115f48e8dbdd08b7b504bc62510b134a9ef25dde9e3ad736d46d495f0ebe670"
+        },
+        {
+          "case": "random_0000ffff",
+          "latency": 1,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 5122,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
+        },
+        {
+          "case": "random_0000ffff",
+          "latency": 10,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 8184,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
+        },
+        {
+          "case": "random_0000ffff",
+          "latency": 31,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 15627,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
+        }
+      ],
+      "parameters": {
+        "TRACE": 1
+      },
+      "simulator_sha256": "607b7954bffb57b65eb245dc7b4f7d499f6b747625feafad258f66ac8f337320"
+    },
+    "small": {
+      "local_report": "build/verification/v3-runs-small-r5/20261015-223302-866605/summary.json",
+      "passed": 62,
+      "total": 62,
+      "commits": 54392,
+      "results": [
+        {
+          "case": "cache_conflict_dirty",
+          "latency": 1,
+          "passed": true,
+          "commits": 1897,
+          "cycles": 8628,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "a1a99d9434c362630c52d76c57857b7905a56fc939ceeabfa04561499b3e63b3"
+        },
+        {
+          "case": "cache_conflict_dirty",
+          "latency": 10,
+          "passed": true,
+          "commits": 1897,
+          "cycles": 17117,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "a1a99d9434c362630c52d76c57857b7905a56fc939ceeabfa04561499b3e63b3"
+        },
+        {
+          "case": "cache_exit_dirty",
+          "latency": 1,
+          "passed": true,
+          "commits": 3341,
+          "cycles": 20611,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "5d45f3c78034ebdaf80a6bcf367bb01d6f38b10d0e750e9b703ae15bf2133bf0"
+        },
+        {
+          "case": "cache_exit_dirty",
+          "latency": 10,
+          "passed": true,
+          "commits": 3341,
+          "cycles": 29935,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "5d45f3c78034ebdaf80a6bcf367bb01d6f38b10d0e750e9b703ae15bf2133bf0"
+        },
+        {
+          "case": "cache_partial_allocate",
+          "latency": 1,
+          "passed": true,
+          "commits": 601,
+          "cycles": 2793,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "1b42d1db4c47876bb72cbffc8c82c11f777b5d07abf6ad8ae2135cb23e612ce2"
+        },
+        {
+          "case": "cache_partial_allocate",
+          "latency": 10,
+          "passed": true,
+          "commits": 601,
+          "cycles": 5455,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "1b42d1db4c47876bb72cbffc8c82c11f777b5d07abf6ad8ae2135cb23e612ce2"
+        },
+        {
+          "case": "dependencies_wrap",
+          "latency": 1,
+          "passed": true,
+          "commits": 1163,
+          "cycles": 6011,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "ed145b8beab2667c5f1193ea28e749b910f32715d77cb45b0837d7fb3874ed32"
+        },
+        {
+          "case": "dependencies_wrap",
+          "latency": 10,
+          "passed": true,
+          "commits": 1163,
+          "cycles": 10687,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "ed145b8beab2667c5f1193ea28e749b910f32715d77cb45b0837d7fb3874ed32"
+        },
+        {
+          "case": "flush_bad_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 323,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "8750aa82fe9aa3c956d3e0856880b8adace49bddf78da00d51bc4ebc089b15a6"
+        },
+        {
+          "case": "flush_bad_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 575,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "8750aa82fe9aa3c956d3e0856880b8adace49bddf78da00d51bc4ebc089b15a6"
+        },
+        {
+          "case": "flush_dirty_store",
+          "latency": 1,
+          "passed": true,
+          "commits": 51,
+          "cycles": 367,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "38407a01ad5e433ba5840e5fe4467aa8123d0f10185a719dc4271767201a9848"
+        },
+        {
+          "case": "flush_dirty_store",
+          "latency": 10,
+          "passed": true,
+          "commits": 51,
+          "cycles": 646,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "38407a01ad5e433ba5840e5fe4467aa8123d0f10185a719dc4271767201a9848"
+        },
+        {
+          "case": "flush_illegal",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 322,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "36eaf303a38dedc66ea61b2f04099aa51354f71d8d8037402e1019aae8815d5c"
+        },
+        {
+          "case": "flush_illegal",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 574,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "36eaf303a38dedc66ea61b2f04099aa51354f71d8d8037402e1019aae8815d5c"
+        },
+        {
+          "case": "flush_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 355,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "023135914d1356027a47065d3a0bab6addeda566f8988283478a9b13750a13f8"
+        },
+        {
+          "case": "flush_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 607,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "023135914d1356027a47065d3a0bab6addeda566f8988283478a9b13750a13f8"
+        },
+        {
+          "case": "flush_mdu",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 300,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "2ecc6d30a88d5d4720bc7a5f45d377d280f7d4912be981fe8293159ae5a25028"
+        },
+        {
+          "case": "flush_mdu",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 561,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "2ecc6d30a88d5d4720bc7a5f45d377d280f7d4912be981fe8293159ae5a25028"
+        },
+        {
+          "case": "flush_mmio",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 322,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "d99493c76fd3b9e8ef9ee1b0ae9c30dfea3c06d5e1592a016cb7da9b291a8a47"
+        },
+        {
+          "case": "flush_mmio",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 574,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "d99493c76fd3b9e8ef9ee1b0ae9c30dfea3c06d5e1592a016cb7da9b291a8a47"
+        },
+        {
+          "case": "flush_store",
+          "latency": 1,
+          "passed": true,
+          "commits": 47,
+          "cycles": 322,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "07c16d1ef070f4cfc68d2897b9f9f8b16d4739d939693a9b335b4dc1fb9801fa"
+        },
+        {
+          "case": "flush_store",
+          "latency": 10,
+          "passed": true,
+          "commits": 47,
+          "cycles": 574,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "07c16d1ef070f4cfc68d2897b9f9f8b16d4739d939693a9b335b4dc1fb9801fa"
+        },
+        {
+          "case": "flush_writeback_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 59,
+          "cycles": 413,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "96228b880f86eec653721e0885243f4266a09075c01d550509ee7771e15e0147"
+        },
+        {
+          "case": "flush_writeback_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 59,
+          "cycles": 728,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "96228b880f86eec653721e0885243f4266a09075c01d550509ee7771e15e0147"
+        },
+        {
+          "case": "integer_isa",
+          "latency": 1,
+          "passed": true,
+          "commits": 3072,
+          "cycles": 13852,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "795ef69aed7c0d62a42148ef25d93adc4453ea2e712a284b61cce972b78de602"
+        },
+        {
+          "case": "integer_isa",
+          "latency": 10,
+          "passed": true,
+          "commits": 3072,
+          "cycles": 27685,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "795ef69aed7c0d62a42148ef25d93adc4453ea2e712a284b61cce972b78de602"
+        },
+        {
+          "case": "jumps_branches",
+          "latency": 1,
+          "passed": true,
+          "commits": 245,
+          "cycles": 831,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "510a875336b34336cdf020ee1b93fae8dbb5d4dc8f4f3feb9b01978d9bf88d30"
+        },
+        {
+          "case": "jumps_branches",
+          "latency": 10,
+          "passed": true,
+          "commits": 245,
+          "cycles": 1488,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "510a875336b34336cdf020ee1b93fae8dbb5d4dc8f4f3feb9b01978d9bf88d30"
+        },
+        {
+          "case": "m_extension",
+          "latency": 1,
+          "passed": true,
+          "commits": 2713,
+          "cycles": 20247,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "fb9becbb9f7afaff973be53a8e91d89c6303b306b5d6f68d00fd3139acb155db"
+        },
+        {
+          "case": "m_extension",
+          "latency": 10,
+          "passed": true,
+          "commits": 2713,
+          "cycles": 24464,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "fb9becbb9f7afaff973be53a8e91d89c6303b306b5d6f68d00fd3139acb155db"
+        },
+        {
+          "case": "memory_lanes",
+          "latency": 1,
+          "passed": true,
+          "commits": 131,
+          "cycles": 622,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "4d212e38d452d9ee3caf0cda05ae30e64bf81285f25b891f5e7b6de6e90a117a"
+        },
+        {
+          "case": "memory_lanes",
+          "latency": 10,
+          "passed": true,
+          "commits": 131,
+          "cycles": 1223,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "4d212e38d452d9ee3caf0cda05ae30e64bf81285f25b891f5e7b6de6e90a117a"
+        },
+        {
+          "case": "memory_order_wrap",
+          "latency": 1,
+          "passed": true,
+          "commits": 1757,
+          "cycles": 5177,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "5ca7d8e268d4f7e22a12072ebf4fc03b50dd2922cc72edcada5eb3f245b254d0"
+        },
+        {
+          "case": "memory_order_wrap",
+          "latency": 10,
+          "passed": true,
+          "commits": 1757,
+          "cycles": 5330,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "5ca7d8e268d4f7e22a12072ebf4fc03b50dd2922cc72edcada5eb3f245b254d0"
+        },
+        {
+          "case": "ooo_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 33,
+          "cycles": 204,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "40d25a57ae218649f892f4765b0b702686a0ab53c5900121faf918fa827e2e04"
+        },
+        {
+          "case": "ooo_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 33,
+          "cycles": 375,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "40d25a57ae218649f892f4765b0b702686a0ab53c5900121faf918fa827e2e04"
+        },
+        {
+          "case": "ooo_mdu",
+          "latency": 1,
+          "passed": true,
+          "commits": 31,
+          "cycles": 223,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "c3cb54703814d50912e394a519464ce1b6e08cf4ef732580f7ed0257e3db8230"
+        },
+        {
+          "case": "ooo_mdu",
+          "latency": 10,
+          "passed": true,
+          "commits": 31,
+          "cycles": 385,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "c3cb54703814d50912e394a519464ce1b6e08cf4ef732580f7ed0257e3db8230"
+        },
+        {
+          "case": "pipeline_completion",
+          "latency": 1,
+          "passed": true,
+          "commits": 805,
+          "cycles": 1625,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "1e0985f0332f8576cc00df342db6cc33b7af1e100c0e00d80639d72bfc0a4053"
+        },
+        {
+          "case": "pipeline_completion",
+          "latency": 10,
+          "passed": true,
+          "commits": 805,
+          "cycles": 2291,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "1e0985f0332f8576cc00df342db6cc33b7af1e100c0e00d80639d72bfc0a4053"
+        },
+        {
+          "case": "prediction_btb_alias",
+          "latency": 1,
+          "passed": true,
+          "commits": 48,
+          "cycles": 322,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "f3bd04e9c984acfbb1ecced7b501f22ee19c306b2759f700be39e0b884a8587c"
+        },
+        {
+          "case": "prediction_btb_alias",
+          "latency": 10,
+          "passed": true,
+          "commits": 48,
+          "cycles": 599,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "f3bd04e9c984acfbb1ecced7b501f22ee19c306b2759f700be39e0b884a8587c"
+        },
+        {
+          "case": "prediction_jalr_switch",
+          "latency": 1,
+          "passed": true,
+          "commits": 63,
+          "cycles": 253,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "0ebcbdf605dab49c301b4601c2f499d2948e11760667d1231d99c744676cfa6d"
+        },
+        {
+          "case": "prediction_jalr_switch",
+          "latency": 10,
+          "passed": true,
+          "commits": 63,
+          "cycles": 406,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "0ebcbdf605dab49c301b4601c2f499d2948e11760667d1231d99c744676cfa6d"
+        },
+        {
+          "case": "prediction_loop_exit",
+          "latency": 1,
+          "passed": true,
+          "commits": 40,
+          "cycles": 135,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "086f8cc620bf13a5ba47075fe7039a31b127500d85e1cb37b038638bc137bbf5"
+        },
+        {
+          "case": "prediction_loop_exit",
+          "latency": 10,
+          "passed": true,
+          "commits": 40,
+          "cycles": 216,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "086f8cc620bf13a5ba47075fe7039a31b127500d85e1cb37b038638bc137bbf5"
+        },
+        {
+          "case": "random_00000001",
+          "latency": 1,
+          "passed": true,
+          "commits": 1359,
+          "cycles": 6562,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "ac05e7ea89793f4764ade8f456bbd1204241ab649cc9965760278cc936f9c302"
+        },
+        {
+          "case": "random_00000001",
+          "latency": 10,
+          "passed": true,
+          "commits": 1359,
+          "cycles": 12642,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "ac05e7ea89793f4764ade8f456bbd1204241ab649cc9965760278cc936f9c302"
+        },
+        {
+          "case": "random_00000007",
+          "latency": 1,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 6610,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "729594cedf5f66be61fee226db51e07f5e6e633d775b1c4f4bfd60296327b3d9"
+        },
+        {
+          "case": "random_00000007",
+          "latency": 10,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 12663,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "729594cedf5f66be61fee226db51e07f5e6e633d775b1c4f4bfd60296327b3d9"
+        },
+        {
+          "case": "random_00000017",
+          "latency": 1,
+          "passed": true,
+          "commits": 1356,
+          "cycles": 6570,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "9aa9b751830e9026632055ff179c97cbad79caca6ab6e36d7f1bcefff80ca18b"
+        },
+        {
+          "case": "random_00000017",
+          "latency": 10,
+          "passed": true,
+          "commits": 1356,
+          "cycles": 12543,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "9aa9b751830e9026632055ff179c97cbad79caca6ab6e36d7f1bcefff80ca18b"
+        },
+        {
+          "case": "random_0000002a",
+          "latency": 1,
+          "passed": true,
+          "commits": 1358,
+          "cycles": 6590,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "e703d454490663b193ce40b7c9aff66c39c46c11c8818e522371acbe1d32876a"
+        },
+        {
+          "case": "random_0000002a",
+          "latency": 10,
+          "passed": true,
+          "commits": 1358,
+          "cycles": 12624,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "e703d454490663b193ce40b7c9aff66c39c46c11c8818e522371acbe1d32876a"
+        },
+        {
+          "case": "random_00000063",
+          "latency": 1,
+          "passed": true,
+          "commits": 1357,
+          "cycles": 6534,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "ea029ac5aef120ad9a5781d3388221c14acf23dce3b21f332c6a839d55f01a56"
+        },
+        {
+          "case": "random_00000063",
+          "latency": 10,
+          "passed": true,
+          "commits": 1357,
+          "cycles": 12625,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "ea029ac5aef120ad9a5781d3388221c14acf23dce3b21f332c6a839d55f01a56"
+        },
+        {
+          "case": "random_00000100",
+          "latency": 1,
+          "passed": true,
+          "commits": 1353,
+          "cycles": 6591,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a"
+        },
+        {
+          "case": "random_00000100",
+          "latency": 10,
+          "passed": true,
+          "commits": 1353,
+          "cycles": 12609,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a"
+        },
+        {
+          "case": "random_00000400",
+          "latency": 1,
+          "passed": true,
+          "commits": 1355,
+          "cycles": 6515,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "e115f48e8dbdd08b7b504bc62510b134a9ef25dde9e3ad736d46d495f0ebe670"
+        },
+        {
+          "case": "random_00000400",
+          "latency": 10,
+          "passed": true,
+          "commits": 1355,
+          "cycles": 12546,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "e115f48e8dbdd08b7b504bc62510b134a9ef25dde9e3ad736d46d495f0ebe670"
+        },
+        {
+          "case": "random_0000ffff",
+          "latency": 1,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 6582,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
+        },
+        {
+          "case": "random_0000ffff",
+          "latency": 10,
+          "passed": true,
+          "commits": 1363,
+          "cycles": 12533,
+          "checks": {
+            "commits": true,
+            "ooo": false,
+            "speculation": false
+          },
+          "image_sha256": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
+        }
+      ],
+      "parameters": {
+        "TRACE": "1",
+        "ROB_DEPTH": "5",
+        "PRF_SIZE": "37",
+        "IQ_DEPTH": "3",
+        "LSQ_DEPTH": "3",
+        "ICACHE_BYTES": "128",
+        "DCACHE_BYTES": "128",
+        "CACHE_LINE_BYTES": "8",
+        "DCACHE_WAYS": "1",
+        "FETCH_QUEUE_DEPTH": "5",
+        "FETCH_OUTSTANDING": "3",
+        "BTB_ENTRIES": "5"
+      },
+      "coverage_note": "Architectural commits always compared; only timing-dependent default-window OoO/speculation/prediction/pipeline coverage disabled for this small configuration."
+    },
+    "faults": {
+      "local_report": "build/verification/v3-faults-r5/summary.json",
+      "passed": 27,
+      "total": 27,
+      "commits": 0,
+      "results": [
+        {
+          "case": "illegal_instruction",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 2,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 2,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "illegal_instruction",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 2,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 2,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "illegal_instruction",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 2,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 2,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "load_outside_ram",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "load_outside_ram",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "load_outside_ram",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "store_outside_ram",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 5,
+          "expected_pc": "00000008",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000008"
+            }
+          ]
+        },
+        {
+          "case": "store_outside_ram",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 5,
+          "expected_pc": "00000008",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000008"
+            }
+          ]
+        },
+        {
+          "case": "store_outside_ram",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 5,
+          "expected_pc": "00000008",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000008"
+            }
+          ]
+        },
+        {
+          "case": "read_exit_mmio_x0",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "read_exit_mmio_x0",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "read_exit_mmio_x0",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_lw",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_lw",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_lw",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_sh",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_sh",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_sh",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jal",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jal",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jal",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jalr",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jalr",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jalr",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "fetch_outside_ram",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 1,
+          "expected_pc": "10000000",
+          "diagnostics": [
+            {
+              "fault": 1,
+              "pc": "10000000"
+            }
+          ]
+        },
+        {
+          "case": "fetch_outside_ram",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 1,
+          "expected_pc": "10000000",
+          "diagnostics": [
+            {
+              "fault": 1,
+              "pc": "10000000"
+            }
+          ]
+        },
+        {
+          "case": "fetch_outside_ram",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 1,
+          "expected_pc": "10000000",
+          "diagnostics": [
+            {
+              "fault": 1,
+              "pc": "10000000"
+            }
+          ]
+        }
+      ]
+    },
+    "writeback_faults": {
+      "local_report": "build/verification/v3-writeback-faults-r5/summary.json",
+      "passed": 9,
+      "total": 9,
+      "commits": 288,
+      "results": [
+        {
+          "case": "writeback_load_fault",
+          "latency": 1,
+          "passed": true,
+          "commits": 18,
+          "expected_fault": 4,
+          "expected_pc": "00000048",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000048"
+            }
+          ]
+        },
+        {
+          "case": "writeback_load_fault",
+          "latency": 10,
+          "passed": true,
+          "commits": 18,
+          "expected_fault": 4,
+          "expected_pc": "00000048",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000048"
+            }
+          ]
+        },
+        {
+          "case": "writeback_load_fault",
+          "latency": 31,
+          "passed": true,
+          "commits": 18,
+          "expected_fault": 4,
+          "expected_pc": "00000048",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000048"
+            }
+          ]
+        },
+        {
+          "case": "writeback_store_fault",
+          "latency": 1,
+          "passed": true,
+          "commits": 19,
+          "expected_fault": 5,
+          "expected_pc": "00000048",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000048"
+            }
+          ]
+        },
+        {
+          "case": "writeback_store_fault",
+          "latency": 10,
+          "passed": true,
+          "commits": 19,
+          "expected_fault": 5,
+          "expected_pc": "00000048",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000048"
+            }
+          ]
+        },
+        {
+          "case": "writeback_store_fault",
+          "latency": 31,
+          "passed": true,
+          "commits": 19,
+          "expected_fault": 5,
+          "expected_pc": "00000048",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000048"
+            }
+          ]
+        },
+        {
+          "case": "flush_writeback_load",
+          "latency": 1,
+          "passed": true,
+          "commits": 59,
+          "cycles": 601,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "96228b880f86eec653721e0885243f4266a09075c01d550509ee7771e15e0147"
+        },
+        {
+          "case": "flush_writeback_load",
+          "latency": 10,
+          "passed": true,
+          "commits": 59,
+          "cycles": 772,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "96228b880f86eec653721e0885243f4266a09075c01d550509ee7771e15e0147"
+        },
+        {
+          "case": "flush_writeback_load",
+          "latency": 31,
+          "passed": true,
+          "commits": 59,
+          "cycles": 1171,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "96228b880f86eec653721e0885243f4266a09075c01d550509ee7771e15e0147"
+        }
+      ],
+      "contract": "Fault current triggering request; drain every B, preserve complete dirty line for retry, suppress killed Load errors, verify RAM before exit AW."
+    },
+    "performance": {
+      "local_report": "build/verification/v3-perf-r5/20261015-223302-870251/summary.json",
+      "passed": 6,
+      "total": 6,
+      "commits": 374104,
+      "results": [
+        {
+          "case": "perf_median",
+          "latency": 10,
+          "passed": true,
+          "commits": 6961,
+          "cycles": 26419,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "94b9f9dda2be384dd56d8871e5b1f156ac8aea739f20ab49c33357dc4f3be917"
+        },
+        {
+          "case": "perf_multiply",
+          "latency": 10,
+          "passed": true,
+          "commits": 21722,
+          "cycles": 31652,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "ffd81f8c9fb75737575528f87f8398980b8ba341e9b52d13a7e72d49a95cf9ce"
+        },
+        {
+          "case": "perf_qsort",
+          "latency": 10,
+          "passed": true,
+          "commits": 139900,
+          "cycles": 433877,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "724e77c16cc499a27b39a7ba2c6497e8f251e5b1f921c628152e38e64bc689df"
+        },
+        {
+          "case": "perf_rsort",
+          "latency": 10,
+          "passed": true,
+          "commits": 195719,
+          "cycles": 859300,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "e51033effdebdbecbe9527384311c7e6c29ae9dc7779ee4122fd964d4f2b838f"
+        },
+        {
+          "case": "perf_towers",
+          "latency": 10,
+          "passed": true,
+          "commits": 5278,
+          "cycles": 21744,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "419ae4f1e80efd4b045afccffefa59cad6bf9395ebd54f947391f6f74f72063e"
+        },
+        {
+          "case": "perf_vvadd",
+          "latency": 10,
+          "passed": true,
+          "commits": 4524,
+          "cycles": 16673,
+          "checks": {
+            "commits": true,
+            "ooo": true,
+            "speculation": true
+          },
+          "image_sha256": "cb55a0bbc86377fbd49a1de4fe0dbec250b40c74a407c303f6bba1b391caffae"
+        }
+      ]
+    },
+    "mac_official_faults": {
+      "local_report": "build/v3/mac-faults-final/summary.json",
+      "passed": 27,
+      "total": 27,
+      "commits": 0,
+      "results": [
+        {
+          "case": "illegal_instruction",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 2,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 2,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "illegal_instruction",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 2,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 2,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "illegal_instruction",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 2,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 2,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "load_outside_ram",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "load_outside_ram",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "load_outside_ram",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "store_outside_ram",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 5,
+          "expected_pc": "00000008",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000008"
+            }
+          ]
+        },
+        {
+          "case": "store_outside_ram",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 5,
+          "expected_pc": "00000008",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000008"
+            }
+          ]
+        },
+        {
+          "case": "store_outside_ram",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 5,
+          "expected_pc": "00000008",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000008"
+            }
+          ]
+        },
+        {
+          "case": "read_exit_mmio_x0",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "read_exit_mmio_x0",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "read_exit_mmio_x0",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_lw",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_lw",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_lw",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_sh",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_sh",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_sh",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jal",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jal",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jal",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jalr",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jalr",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jalr",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "fetch_outside_ram",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 1,
+          "expected_pc": "10000000",
+          "diagnostics": [
+            {
+              "fault": 1,
+              "pc": "10000000"
+            }
+          ]
+        },
+        {
+          "case": "fetch_outside_ram",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 1,
+          "expected_pc": "10000000",
+          "diagnostics": [
+            {
+              "fault": 1,
+              "pc": "10000000"
+            }
+          ]
+        },
+        {
+          "case": "fetch_outside_ram",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 1,
+          "expected_pc": "10000000",
+          "diagnostics": [
+            {
+              "fault": 1,
+              "pc": "10000000"
+            }
+          ]
+        }
+      ]
+    },
+    "linux_official_faults": {
+      "local_report": "build/v3/linux-faults-final/summary.json",
+      "passed": 27,
+      "total": 27,
+      "commits": 0,
+      "results": [
+        {
+          "case": "illegal_instruction",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 2,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 2,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "illegal_instruction",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 2,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 2,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "illegal_instruction",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 2,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 2,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "load_outside_ram",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "load_outside_ram",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "load_outside_ram",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "store_outside_ram",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 5,
+          "expected_pc": "00000008",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000008"
+            }
+          ]
+        },
+        {
+          "case": "store_outside_ram",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 5,
+          "expected_pc": "00000008",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000008"
+            }
+          ]
+        },
+        {
+          "case": "store_outside_ram",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 5,
+          "expected_pc": "00000008",
+          "diagnostics": [
+            {
+              "fault": 5,
+              "pc": "00000008"
+            }
+          ]
+        },
+        {
+          "case": "read_exit_mmio_x0",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "read_exit_mmio_x0",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "read_exit_mmio_x0",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 4,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 4,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_lw",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_lw",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_lw",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_sh",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_sh",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_sh",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jal",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jal",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jal",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jalr",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jalr",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "misaligned_jalr",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 3,
+          "expected_pc": "00000004",
+          "diagnostics": [
+            {
+              "fault": 3,
+              "pc": "00000004"
+            }
+          ]
+        },
+        {
+          "case": "fetch_outside_ram",
+          "latency": 1,
+          "passed": true,
+          "expected_fault": 1,
+          "expected_pc": "10000000",
+          "diagnostics": [
+            {
+              "fault": 1,
+              "pc": "10000000"
+            }
+          ]
+        },
+        {
+          "case": "fetch_outside_ram",
+          "latency": 10,
+          "passed": true,
+          "expected_fault": 1,
+          "expected_pc": "10000000",
+          "diagnostics": [
+            {
+              "fault": 1,
+              "pc": "10000000"
+            }
+          ]
+        },
+        {
+          "case": "fetch_outside_ram",
+          "latency": 31,
+          "passed": true,
+          "expected_fault": 1,
+          "expected_pc": "10000000",
+          "diagnostics": [
+            {
+              "fault": 1,
+              "pc": "10000000"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "units": {
+    "execute": {
+      "decoder_checks": 4035,
+      "alu_checks": 6628,
+      "m_operations": 2257,
+      "log": "build/v3/unit-execute-r4.log",
+      "log_sha256": "c83226147dfd616f4686b02aafb6d77aeaec4a817369182de96b575896ce1378"
+    },
+    "frontend": {
+      "configurations": 5,
+      "log": "build/v3/unit-fetch-r5.log",
+      "log_sha256": "7b44570ecd4408d18f6459f02d1d48dadd7ed1e8f6249bed03a863c711cdf7a6"
+    },
+    "write_through_memory": {
+      "configurations": 3,
+      "log": "build/v3/unit-memory-final.log",
+      "log_sha256": "adf9aa2c8d75cdab43bb827a9702552599814a854f7877f20cfefcfbd7c886b0"
+    },
+    "write_back_memory": {
+      "configurations": 7,
+      "log": "build/v3/unit-writeback-final.log",
+      "linux_4way_log": "build/v3/unit-writeback/linux-4way.log",
+      "log_sha256": "2a0a04ac8b487a27960758c3c3a942a596957e4334cf2b992f1ecb465e12391e"
+    },
+    "reference_and_analysis": {
+      "checks": 14,
+      "log": "build/v3/unit-reference-final.log",
+      "log_sha256": "d41f3c846ddc49b0edee5f0cc7d1f92afb009ffd88a2bdac06fe9b8c1e024766"
+    },
+    "gnu_encoding": {
+      "programs": 31,
+      "log": "build/v3/encoding-audit-final.log",
+      "log_sha256": "9c69dfa73b334f8b869c8aa91c69d08d6146db7ddc43f2f1727256d1c9f543ec"
+    }
+  },
+  "build_records": {
+    "v3-trace-r5": {
+      "build_record": "build/verification/v3-trace-r5/build.json",
+      "source_manifest_sha256": "ece8f98c4d3b266ab71bc02766c63d7d5a03c459c2b946b9940e78e9b78847c8",
+      "simulator_sha256": "607b7954bffb57b65eb245dc7b4f7d499f6b747625feafad258f66ac8f337320",
+      "all_sources_match_current": true,
+      "parameters": {
+        "TRACE": "1"
+      }
+    },
+    "v3-trace-small-r5": {
+      "build_record": "build/verification/v3-trace-small-r5/build.json",
+      "source_manifest_sha256": "ece8f98c4d3b266ab71bc02766c63d7d5a03c459c2b946b9940e78e9b78847c8",
+      "simulator_sha256": "39b132fc0cd67984359a837d524bcfee96039018901e2285b19d658b9fd80c6d",
+      "all_sources_match_current": true,
+      "parameters": {
+        "TRACE": "1",
+        "ROB_DEPTH": "5",
+        "PRF_SIZE": "37",
+        "IQ_DEPTH": "3",
+        "LSQ_DEPTH": "3",
+        "ICACHE_BYTES": "128",
+        "DCACHE_BYTES": "128",
+        "CACHE_LINE_BYTES": "8",
+        "DCACHE_WAYS": "1",
+        "FETCH_QUEUE_DEPTH": "5",
+        "FETCH_OUTSTANDING": "3",
+        "BTB_ENTRIES": "5"
+      }
+    },
+    "v3-writeback-fault-trace-r5": {
+      "build_record": "build/verification/v3-writeback-fault-trace-r5/build.json",
+      "source_manifest_sha256": "5b6b0b648e7a7fe97da8fcbe8ca125588f241177a425f2e14f896b71960430d6",
+      "simulator_sha256": "8df2d6b9d2fa35a566f3502f1425c8a1aa6688c3b90c3c79184447aa33b36118",
+      "all_sources_match_current": true,
+      "parameters": {
+        "TRACE": "1"
+      }
+    }
+  },
+  "associativity_ablation": {
+    "local_builds": [
+      "build/v3/two-way/build.json",
+      "build/v3/four-way/build.json"
+    ],
+    "two_way": [
+      {
+        "case": "perf_median",
+        "instructions": 6961,
+        "cycles": 26340,
+        "ipc": 0.2642748671222475,
+        "passed": true
+      },
+      {
+        "case": "perf_multiply",
+        "instructions": 21722,
+        "cycles": 31652,
+        "ipc": 0.6862757487678504,
+        "passed": true
+      },
+      {
+        "case": "perf_qsort",
+        "instructions": 139900,
+        "cycles": 432386,
+        "ipc": 0.32355349155615587,
+        "passed": true
+      },
+      {
+        "case": "perf_rsort",
+        "instructions": 195719,
+        "cycles": 876802,
+        "ipc": 0.22321915324098257,
+        "passed": true
+      },
+      {
+        "case": "perf_towers",
+        "instructions": 5278,
+        "cycles": 21744,
+        "ipc": 0.2427336276674025,
+        "passed": true
+      },
+      {
+        "case": "perf_vvadd",
+        "instructions": 4524,
+        "cycles": 16641,
+        "ipc": 0.2718586623400036,
+        "passed": true
+      }
+    ],
+    "four_way": [
+      {
+        "case": "perf_median",
+        "instructions": 6961,
+        "cycles": 26419,
+        "ipc": 0.2634846133464552,
+        "passed": true
+      },
+      {
+        "case": "perf_multiply",
+        "instructions": 21722,
+        "cycles": 31652,
+        "ipc": 0.6862757487678504,
+        "passed": true
+      },
+      {
+        "case": "perf_qsort",
+        "instructions": 139900,
+        "cycles": 433877,
+        "ipc": 0.3224416136370446,
+        "passed": true
+      },
+      {
+        "case": "perf_rsort",
+        "instructions": 195719,
+        "cycles": 859300,
+        "ipc": 0.2277656231816595,
+        "passed": true
+      },
+      {
+        "case": "perf_towers",
+        "instructions": 5278,
+        "cycles": 21744,
+        "ipc": 0.2427336276674025,
+        "passed": true
+      },
+      {
+        "case": "perf_vvadd",
+        "instructions": 4524,
+        "cycles": 16673,
+        "ipc": 0.2713368919810472,
+        "passed": true
+      }
+    ],
+    "note": "Same pre-final-timing RTL and capacity; only DCACHE_WAYS=2/4 differed. Final cycle-preserving timing edits retain four-way cycles."
+  },
+  "performance_diagnostics": {
+    "local_report": "build/verification/v3-perf-r5-analysis.json",
+    "interpretation": "Summarize committed CPU_TRACE instruction timing without modifying the DUT.\n\nStore COMMIT is the irrevocable D-cache request handshake, not ROB removal.\nConsequently post-store commit gaps measure serialization, not exact B latency.\nThe subset whose successor was already COMPLETE is a conservative confirmed\nserialization lower bound; other gap cycles may also include a slow successor.\nLoad lifetime and commit gaps overlap and must not be added as CPI components.\n",
+    "results": {
+      "perf_median-latency10": {
+        "cycles": 26419,
+        "counts": {
+          "dispatch": 12243,
+          "issue": 9027,
+          "complete": 8291,
+          "commits": 6961,
+          "conditional_branches": 2275,
+          "flushes": 548,
+          "conditional_flushes": 542,
+          "jumps": 265,
+          "jump_flushes": 6,
+          "stores": 403,
+          "store_responses": 402,
+          "store_retires": 402,
+          "stores_with_successor": 402,
+          "stores_with_ready_successor": 402,
+          "load_responses": 1998,
+          "loads": 1996,
+          "wb_stall_source_1": 788,
+          "dropped_loads": 2,
+          "exit_stores": 1
+        },
+        "commit_gaps": {
+          "all_commit_idle_cycles": 17429,
+          "post_store_idle_cycles_upper_bound": 3530,
+          "post_store_ready_successor_idle_lower_bound": 3530,
+          "pre_load_commit_idle_cycles": 8987
+        },
+        "load_issue_to_complete": {
+          "count": 1996,
+          "sum": 10814,
+          "mean": 5.418,
+          "minimum": 3,
+          "median": 3.0,
+          "p90": 22,
+          "p99": 48,
+          "maximum": 48,
+          "histogram": {
+            "3": 1794,
+            "22": 164,
+            "48": 38
+          }
+        },
+        "store_request_to_response": {
+          "count": 402,
+          "sum": 3127,
+          "mean": 7.779,
+          "minimum": 3,
+          "median": 3.0,
+          "p90": 22,
+          "p99": 22,
+          "maximum": 24,
+          "histogram": {
+            "3": 301,
+            "22": 100,
+            "24": 1
+          }
+        },
+        "store_request_to_rob_retire": {
+          "count": 402,
+          "sum": 3529,
+          "mean": 8.779,
+          "minimum": 4,
+          "median": 4.0,
+          "p90": 23,
+          "p99": 23,
+          "maximum": 25,
+          "histogram": {
+            "4": 301,
+            "23": 100,
+            "25": 1
+          }
+        },
+        "exit_request_to_sim_end": 2006
+      },
+      "perf_multiply-latency10": {
+        "cycles": 31652,
+        "counts": {
+          "dispatch": 24946,
+          "issue": 23170,
+          "complete": 23055,
+          "commits": 21722,
+          "conditional_branches": 6701,
+          "flushes": 663,
+          "conditional_flushes": 659,
+          "jumps": 202,
+          "jump_flushes": 4,
+          "stores": 108,
+          "store_responses": 107,
+          "store_retires": 107,
+          "stores_with_successor": 107,
+          "stores_with_ready_successor": 107,
+          "load_responses": 412,
+          "loads": 407,
+          "dropped_loads": 3,
+          "wb_stall_source_1": 232,
+          "exit_stores": 1
+        },
+        "commit_gaps": {
+          "all_commit_idle_cycles": 8881,
+          "post_store_idle_cycles_upper_bound": 946,
+          "post_store_ready_successor_idle_lower_bound": 946,
+          "pre_load_commit_idle_cycles": 2359
+        },
+        "load_issue_to_complete": {
+          "count": 407,
+          "sum": 2671,
+          "mean": 6.563,
+          "minimum": 3,
+          "median": 3,
+          "p90": 22,
+          "p99": 22,
+          "maximum": 25,
+          "histogram": {
+            "3": 331,
+            "22": 74,
+            "25": 2
+          }
+        },
+        "store_request_to_response": {
+          "count": 107,
+          "sum": 836,
+          "mean": 7.813,
+          "minimum": 3,
+          "median": 3,
+          "p90": 22,
+          "p99": 22,
+          "maximum": 24,
+          "histogram": {
+            "3": 80,
+            "22": 26,
+            "24": 1
+          }
+        },
+        "store_request_to_rob_retire": {
+          "count": 107,
+          "sum": 943,
+          "mean": 8.813,
+          "minimum": 4,
+          "median": 4,
+          "p90": 23,
+          "p99": 23,
+          "maximum": 25,
+          "histogram": {
+            "4": 80,
+            "23": 26,
+            "25": 1
+          }
+        },
+        "exit_request_to_sim_end": 1026
+      },
+      "perf_qsort-latency10": {
+        "cycles": 433877,
+        "counts": {
+          "dispatch": 253381,
+          "issue": 188855,
+          "complete": 162956,
+          "commits": 139900,
+          "conditional_branches": 37664,
+          "flushes": 10263,
+          "conditional_flushes": 10010,
+          "jumps": 5327,
+          "jump_flushes": 253,
+          "stores": 13751,
+          "store_responses": 13750,
+          "store_retires": 13750,
+          "stores_with_successor": 13750,
+          "stores_with_ready_successor": 12915,
+          "load_responses": 37353,
+          "loads": 31033,
+          "wb_stall_source_1": 12440,
+          "dropped_loads": 5345,
+          "exit_stores": 1
+        },
+        "commit_gaps": {
+          "all_commit_idle_cycles": 293684,
+          "post_store_idle_cycles_upper_bound": 64025,
+          "post_store_ready_successor_idle_lower_bound": 56398,
+          "pre_load_commit_idle_cycles": 172586
+        },
+        "load_issue_to_complete": {
+          "count": 31033,
+          "sum": 152918,
+          "mean": 4.928,
+          "minimum": 3,
+          "median": 3,
+          "p90": 3,
+          "p99": 48,
+          "maximum": 48,
+          "histogram": {
+            "3": 29021,
+            "22": 1178,
+            "24": 1,
+            "25": 3,
+            "48": 830
+          }
+        },
+        "store_request_to_response": {
+          "count": 13750,
+          "sum": 41792,
+          "mean": 3.039,
+          "minimum": 3,
+          "median": 3.0,
+          "p90": 3,
+          "p99": 3,
+          "maximum": 48,
+          "histogram": {
+            "3": 13734,
+            "22": 5,
+            "24": 2,
+            "48": 9
+          }
+        },
+        "store_request_to_rob_retire": {
+          "count": 13750,
+          "sum": 55542,
+          "mean": 4.039,
+          "minimum": 4,
+          "median": 4.0,
+          "p90": 4,
+          "p99": 4,
+          "maximum": 49,
+          "histogram": {
+            "4": 13734,
+            "23": 5,
+            "25": 2,
+            "49": 9
+          }
+        },
+        "exit_request_to_sim_end": 270
+      },
+      "perf_rsort-latency10": {
+        "cycles": 859300,
+        "counts": {
+          "dispatch": 196003,
+          "issue": 195857,
+          "complete": 167139,
+          "commits": 195719,
+          "conditional_branches": 11794,
+          "stores": 28683,
+          "store_responses": 28682,
+          "store_retires": 28682,
+          "stores_with_successor": 28682,
+          "stores_with_ready_successor": 24580,
+          "jumps": 2055,
+          "flushes": 33,
+          "jump_flushes": 6,
+          "conditional_flushes": 27,
+          "load_responses": 37912,
+          "dropped_loads": 9,
+          "loads": 37902,
+          "wb_stall_source_1": 12481,
+          "exit_stores": 1
+        },
+        "commit_gaps": {
+          "all_commit_idle_cycles": 663288,
+          "post_store_idle_cycles_upper_bound": 345946,
+          "post_store_ready_successor_idle_lower_bound": 295509,
+          "pre_load_commit_idle_cycles": 336949
+        },
+        "load_issue_to_complete": {
+          "count": 37902,
+          "sum": 326245,
+          "mean": 8.608,
+          "minimum": 3,
+          "median": 3.0,
+          "p90": 22,
+          "p99": 48,
+          "maximum": 48,
+          "histogram": {
+            "3": 31452,
+            "22": 2988,
+            "25": 1,
+            "48": 3461
+          }
+        },
+        "store_request_to_response": {
+          "count": 28682,
+          "sum": 282953,
+          "mean": 9.865,
+          "minimum": 3,
+          "median": 3.0,
+          "p90": 48,
+          "p99": 48,
+          "maximum": 48,
+          "histogram": {
+            "3": 23271,
+            "22": 1790,
+            "23": 1,
+            "25": 1,
+            "48": 3619
+          }
+        },
+        "store_request_to_rob_retire": {
+          "count": 28682,
+          "sum": 311635,
+          "mean": 10.865,
+          "minimum": 4,
+          "median": 4.0,
+          "p90": 49,
+          "p99": 49,
+          "maximum": 49,
+          "histogram": {
+            "4": 23271,
+            "23": 1790,
+            "24": 1,
+            "26": 1,
+            "49": 3619
+          }
+        },
+        "exit_request_to_sim_end": 270
+      },
+      "perf_towers-latency10": {
+        "cycles": 21744,
+        "counts": {
+          "dispatch": 6691,
+          "issue": 6091,
+          "complete": 4380,
+          "commits": 5278,
+          "conditional_branches": 195,
+          "stores": 1621,
+          "store_responses": 1620,
+          "store_retires": 1620,
+          "stores_with_successor": 1620,
+          "stores_with_ready_successor": 1166,
+          "jumps": 188,
+          "flushes": 134,
+          "jump_flushes": 19,
+          "conditional_flushes": 115,
+          "wb_stall_source_1": 91,
+          "load_responses": 1610,
+          "loads": 1547,
+          "dropped_loads": 41,
+          "exit_stores": 1
+        },
+        "commit_gaps": {
+          "all_commit_idle_cycles": 15557,
+          "post_store_idle_cycles_upper_bound": 10081,
+          "post_store_ready_successor_idle_lower_bound": 5995,
+          "pre_load_commit_idle_cycles": 7781
+        },
+        "load_issue_to_complete": {
+          "count": 1547,
+          "sum": 4641,
+          "mean": 3,
+          "minimum": 3,
+          "median": 3,
+          "p90": 3,
+          "p99": 3,
+          "maximum": 3,
+          "histogram": {
+            "3": 1547
+          }
+        },
+        "store_request_to_response": {
+          "count": 1620,
+          "sum": 5281,
+          "mean": 3.26,
+          "minimum": 3,
+          "median": 3.0,
+          "p90": 3,
+          "p99": 22,
+          "maximum": 24,
+          "histogram": {
+            "3": 1598,
+            "22": 20,
+            "23": 1,
+            "24": 1
+          }
+        },
+        "store_request_to_rob_retire": {
+          "count": 1620,
+          "sum": 6901,
+          "mean": 4.26,
+          "minimum": 4,
+          "median": 4.0,
+          "p90": 4,
+          "p99": 23,
+          "maximum": 25,
+          "histogram": {
+            "4": 1598,
+            "23": 20,
+            "24": 1,
+            "25": 1
+          }
+        },
+        "exit_request_to_sim_end": 886
+      },
+      "perf_vvadd-latency10": {
+        "cycles": 16673,
+        "counts": {
+          "dispatch": 4584,
+          "issue": 4561,
+          "complete": 4256,
+          "commits": 4524,
+          "conditional_branches": 901,
+          "flushes": 7,
+          "conditional_flushes": 5,
+          "jumps": 2,
+          "jump_flushes": 2,
+          "load_responses": 1203,
+          "loads": 1200,
+          "stores": 301,
+          "store_responses": 300,
+          "store_retires": 300,
+          "stores_with_successor": 300,
+          "stores_with_ready_successor": 300,
+          "dropped_loads": 3,
+          "wb_stall_source_1": 303,
+          "exit_stores": 1
+        },
+        "commit_gaps": {
+          "all_commit_idle_cycles": 10092,
+          "pre_load_commit_idle_cycles": 7002,
+          "post_store_idle_cycles_upper_bound": 2625,
+          "post_store_ready_successor_idle_lower_bound": 2625
+        },
+        "load_issue_to_complete": {
+          "count": 1200,
+          "sum": 8161,
+          "mean": 6.801,
+          "minimum": 3,
+          "median": 3.0,
+          "p90": 22,
+          "p99": 22,
+          "maximum": 48,
+          "histogram": {
+            "3": 975,
+            "22": 214,
+            "48": 11
+          }
+        },
+        "store_request_to_response": {
+          "count": 300,
+          "sum": 2325,
+          "mean": 7.75,
+          "minimum": 3,
+          "median": 3.0,
+          "p90": 22,
+          "p99": 22,
+          "maximum": 22,
+          "histogram": {
+            "3": 225,
+            "22": 75
+          }
+        },
+        "store_request_to_rob_retire": {
+          "count": 300,
+          "sum": 2625,
+          "mean": 8.75,
+          "minimum": 4,
+          "median": 4.0,
+          "p90": 23,
+          "p99": 23,
+          "maximum": 23,
+          "histogram": {
+            "4": 225,
+            "23": 75
+          }
+        },
+        "exit_request_to_sim_end": 2034
+      }
+    }
+  },
+  "unchanged_official_files": true,
+  "limitations": [
+    "Single CPU LSU context; Loads cannot pass older Stores; no Store Buffer or forwarding.",
+    "Writeback faults belong to triggering request, not already-retired Store. Dirty line remains for retry.",
+    "All uncached/MMIO data accesses flush all dirty lines; exit drain cost included in cycles.",
+    "Cold full-system reset; no retained dirty data on reset, no self-modifying code/cache coherence.",
+    "Frequency is course ideal-clock/no-parasitics synthesis estimate; 2ns/500MHz timing target is not met.",
+    "IPC remains below course performance-tier minimum 0.6000."
+  ],
+  "synthesis_audit": {
+    "V2": {
+      "standard_cell_library_hashes_match_V2": true,
+      "constraints_semantically_identical_V2": true,
+      "constraint_semantic_sha256": "d79b6fdd3004710003acf5567cc5aeab24749deb32a647c1bbc5daef791cd520",
+      "tools_match_V2": true,
+      "sram_model_matches_V2": true,
+      "abc_target_unchanged": true
+    },
+    "V3-r1": {
+      "standard_cell_library_hashes_match_V2": true,
+      "constraints_semantically_identical_V2": true,
+      "constraint_semantic_sha256": "d79b6fdd3004710003acf5567cc5aeab24749deb32a647c1bbc5daef791cd520",
+      "tools_match_V2": true,
+      "sram_model_matches_V2": true,
+      "abc_target_unchanged": true
+    },
+    "V3-r2": {
+      "standard_cell_library_hashes_match_V2": true,
+      "constraints_semantically_identical_V2": true,
+      "constraint_semantic_sha256": "d79b6fdd3004710003acf5567cc5aeab24749deb32a647c1bbc5daef791cd520",
+      "tools_match_V2": true,
+      "sram_model_matches_V2": true,
+      "abc_target_unchanged": true
+    },
+    "V3-r3": {
+      "standard_cell_library_hashes_match_V2": true,
+      "constraints_semantically_identical_V2": true,
+      "constraint_semantic_sha256": "d79b6fdd3004710003acf5567cc5aeab24749deb32a647c1bbc5daef791cd520",
+      "tools_match_V2": true,
+      "sram_model_matches_V2": true,
+      "abc_target_unchanged": true
+    },
+    "V3-r4": {
+      "standard_cell_library_hashes_match_V2": true,
+      "constraints_semantically_identical_V2": true,
+      "constraint_semantic_sha256": "d79b6fdd3004710003acf5567cc5aeab24749deb32a647c1bbc5daef791cd520",
+      "tools_match_V2": true,
+      "sram_model_matches_V2": true,
+      "abc_target_unchanged": true
+    },
+    "V3-r5": {
+      "standard_cell_library_hashes_match_V2": true,
+      "constraints_semantically_identical_V2": true,
+      "constraint_semantic_sha256": "d79b6fdd3004710003acf5567cc5aeab24749deb32a647c1bbc5daef791cd520",
+      "tools_match_V2": true,
+      "sram_model_matches_V2": true,
+      "abc_target_unchanged": true
+    },
+    "final_source_audit": {
+      "start_equals_end": true,
+      "report_matches_start": true,
+      "framework_diff_vs_V2_empty": true,
+      "sram_wrapper_matches_V2": true
+    },
+    "final_key_paths": {
+      "critical_start": "core.frontend.queue_head[1]",
+      "critical_end": "core.frontend.request_pc[3][0]",
+      "critical_chain": [
+        "queue head one-hot data selection",
+        "RV32 instruction decode / dec_has_dst",
+        "dispatch / instruction_fire",
+        "fetch reservation availability / request_fire",
+        "request slot 3 metadata write enable"
+      ],
+      "high_fanout_gates": {
+        "_072190_": {
+          "meaning": "queue head row decode",
+          "fanout": 98,
+          "delay_ns": 0.5723
+        },
+        "_112767_": {
+          "meaning": "request slot 3 write enable (request_fire and request_tail==3)",
+          "fanout": 129,
+          "delay_ns": 0.6678
+        }
+      },
+      "timing_margin_at_300mhz_ns": 0.3831380208333335,
+      "limits": "Course synthesis estimate with ideal clock, no interconnect parasitics, original ASAP7 libraries and FakeRAM model."
+    },
+    "r4_snapshot_note": "End source audit saw frontend change after report completed; official report input hashes match all r4 start hashes. The synthesized prepared.json and mapped.v are preserved."
+  },
+  "timing_bank_analysis": [
+    {
+      "group": "core_frontend_request",
+      "required_period_ns": 2.9497999999999998,
+      "start": [
+        "core.frontend.queue_head[1]"
+      ],
+      "end": [
+        "core.frontend.request_pc[3][0]"
+      ]
+    },
+    {
+      "group": "core_prf",
+      "required_period_ns": 2.7472,
+      "start": [
+        "core.flush",
+        "core.frontend.redirect_valid",
+        "core.mdu.flush",
+        "core.recovery_pending"
+      ],
+      "end": [
+        "core.prf[27][31]"
+      ]
+    },
+    {
+      "group": "core_prf_ready",
+      "required_period_ns": 2.6997999999999998,
+      "start": [
+        "core.flush",
+        "core.frontend.redirect_valid",
+        "core.mdu.flush",
+        "core.recovery_pending"
+      ],
+      "end": [
+        "core.prf_ready[27]"
+      ]
+    },
+    {
+      "group": "core_recovery",
+      "required_period_ns": 2.6494999999999997,
+      "start": [
+        "core.rob_head[3]"
+      ],
+      "end": [
+        "core.frontend.redirect_pc[6]",
+        "core.recovery_pc[6]"
+      ]
+    },
+    {
+      "group": "core_rob",
+      "required_period_ns": 2.6452,
+      "start": [
+        "core.flush",
+        "core.frontend.redirect_valid",
+        "core.mdu.flush",
+        "core.recovery_pending"
+      ],
+      "end": [
+        "core.rob_done[3]"
+      ]
+    },
+    {
+      "group": "core_free_regs",
+      "required_period_ns": 2.5872,
+      "start": [
+        "core.rob_head[3]"
+      ],
+      "end": [
+        "core.free_regs[33]"
+      ]
+    },
+    {
+      "group": "core_frontend_next_pc",
+      "required_period_ns": 2.5796,
+      "start": [
+        "core.frontend.queue_head[1]"
+      ],
+      "end": [
+        "core.frontend.i_req_addr[31]",
+        "core.frontend.next_pc[31]",
+        "core.i_req_addr[31]",
+        "memory.i_req_addr[31]",
+        "memory.instruction_cache.req_addr[31]"
+      ]
+    },
+    {
+      "group": "core_recovery_pending",
+      "required_period_ns": 2.5587999999999997,
+      "start": [
+        "core.rob_head[3]"
+      ],
+      "end": [
+        "core.flush",
+        "core.frontend.redirect_valid",
+        "core.mdu.flush",
+        "core.recovery_pending"
+      ]
+    },
+    {
+      "group": "sram",
+      "required_period_ns": 2.5055,
+      "start": [
+        "core.frontend.queue_head[1]"
+      ],
+      "end": [
+        "memory.instruction_cache.data_array.lane_0/ce_in"
+      ]
+    },
+    {
+      "group": "core_committed_regs",
+      "required_period_ns": 2.5033,
+      "start": [
+        "core.rob_head[3]"
+      ],
+      "end": [
+        "core.committed_regs[18]"
+      ]
+    },
+    {
+      "group": "core_rrat",
+      "required_period_ns": 2.4528,
+      "start": [
+        "core.rob_head[3]"
+      ],
+      "end": [
+        "core.rrat[9][2]"
+      ]
+    },
+    {
+      "group": "core_frontend_queue",
+      "required_period_ns": 2.4435000000000002,
+      "start": [
+        "core.flush",
+        "core.frontend.redirect_valid",
+        "core.mdu.flush",
+        "core.recovery_pending"
+      ],
+      "end": [
+        "core.frontend.queue_tail[2]"
+      ]
+    },
+    {
+      "group": "memory_write_back_data_cache",
+      "required_period_ns": 2.4281,
+      "start": [
+        "memory.write_back.data_cache.address[4]",
+        "memory.write_back.data_cache.replacement_line[0]",
+        "memory.write_back.data_cache.request_line[0]",
+        "memory.write_back.data_cache.request_set[0]",
+        "memory.write_back.data_cache.request_word[2]"
+      ],
+      "end": [
+        "memory.write_back.data_cache.valid_bits[77]"
+      ]
+    },
+    {
+      "group": "core_rob_count",
+      "required_period_ns": 2.422,
+      "start": [
+        "core.rob_head[3]"
+      ],
+      "end": [
+        "core.rob_count[4]"
+      ]
+    },
+    {
+      "group": "memory_instruction_cache",
+      "required_period_ns": 2.3632999999999997,
+      "start": [
+        "core.frontend.queue_head[1]"
+      ],
+      "end": [
+        "memory.instruction_cache.lookup_address[9]",
+        "memory.instruction_cache.lookup_set[5]"
+      ]
+    },
+    {
+      "group": "core_iq",
+      "required_period_ns": 2.3559,
+      "start": [
+        "core.flush",
+        "core.frontend.redirect_valid",
+        "core.mdu.flush",
+        "core.recovery_pending"
+      ],
+      "end": [
+        "core.iq_ready1[0]"
+      ]
+    },
+    {
+      "group": "core_mem",
+      "required_period_ns": 2.3025,
+      "start": [
+        "core.rob_head[3]"
+      ],
+      "end": [
+        "core.d_req_addr[31]",
+        "core.mem_addr[31]",
+        "memory.d_req_addr[31]",
+        "memory.write_back.data_cache.req_addr[31]"
+      ]
+    },
+    {
+      "group": "core_lsq_count",
+      "required_period_ns": 2.2889,
+      "start": [
+        "core.rob_head[3]"
+      ],
+      "end": [
+        "core.lsq_count[2]"
+      ]
+    },
+    {
+      "group": "other",
+      "required_period_ns": 2.2517,
+      "start": [
+        "core.rob_head[3]"
+      ],
+      "end": [
+        "core.frontend.train_enable[50]"
+      ]
+    },
+    {
+      "group": "core_rat",
+      "required_period_ns": 2.2297,
+      "start": [
+        "core.frontend.queue_head[1]"
+      ],
+      "end": [
+        "core.rat[1][0]"
+      ]
+    },
+    {
+      "group": "core_rob_head",
+      "required_period_ns": 2.2101,
+      "start": [
+        "core.rob_head[3]"
+      ],
+      "end": [
+        "core.rob_head[1]"
+      ]
+    },
+    {
+      "group": "core_rob_tail",
+      "required_period_ns": 2.1511,
+      "start": [
+        "core.frontend.queue_head[1]"
+      ],
+      "end": [
+        "core.rob_tail[3]"
+      ]
+    },
+    {
+      "group": "core_issue",
+      "required_period_ns": 1.91996,
+      "start": [
+        "core.integer_alu.op[2]",
+        "core.issue_op[2]"
+      ],
+      "end": [
+        "core.issue_predicted[8]"
+      ]
+    },
+    {
+      "group": "core_mdu",
+      "required_period_ns": 1.8791,
+      "start": [
+        "core.flush",
+        "core.frontend.redirect_valid",
+        "core.mdu.flush",
+        "core.recovery_pending"
+      ],
+      "end": [
+        "core.mdu.req_available",
+        "core.mdu.state[0]",
+        "core.mdu_req_available"
+      ]
+    },
+    {
+      "group": "core_ex_valid",
+      "required_period_ns": 1.6975,
+      "start": [
+        "core.flush",
+        "core.frontend.redirect_valid",
+        "core.mdu.flush",
+        "core.recovery_pending"
+      ],
+      "end": [
+        "core.ex_valid"
+      ]
+    },
+    {
+      "group": "memory_bridge",
+      "required_period_ns": 1.3605,
+      "start": [
+        "memory.write_back.data_cache.state[1]"
+      ],
+      "end": [
+        "memory.bridge.write_tail[1]"
+      ]
+    },
+    {
+      "group": "core_frontend_btb",
+      "required_period_ns": 1.0456,
+      "start": [
+        "core.frontend.train_taken"
+      ],
+      "end": [
+        "core.frontend.btb_counter[62][1]"
+      ]
+    },
+    {
+      "group": "outputs",
+      "required_period_ns": 0.738,
+      "start": [
+        "memory.write_back.data_cache.request_write"
+      ],
+      "end": [
+        "rready"
+      ]
+    }
+  ],
+  "verification_sha256": {
+    "verification/directed/README.md": "e2683409b87dfc238b146ff26b94a7dddde552aa44f50097032eadf39e3fa24e",
+    "verification/directed/generate.py": "2cf7b22925291890f4d6aa88fa93426aa21087450907a0be6660d59888063e82",
+    "verification/environment/README.md": "92d4716abd16e161ec4d35dcafdd751c88bfa225b7ae4f5b42077d4e3bef5cdf",
+    "verification/environment/student_top.sv": "9456333481279311ffe3bfa8c63083c28d27e819160d53ed9cab35ad7048666e",
+    "verification/runners/analyze_trace.py": "c38dc48094cface1e65bf72990e78bd6495d97ea9b1a681e63a20eee6f0efaf5",
+    "verification/runners/audit_cases.py": "f2a16c78200cd653ba08a48dff0b844ea8ea39557c9b92c509b6c8097f8c21e9",
+    "verification/runners/build_trace.py": "b863546b5deb9e346a1f17a1f86c7d08d1d19a36673e5f6bd9efdf406e06bd5c",
+    "verification/runners/run_cpu.py": "be8c871b66615d9c4b5853f7870479a383983fe8d53823e6515d17347fb9f830",
+    "verification/runners/run_faults.py": "362c53f01cccb857ed750740d6e764aebaf690a13483c1d5b9583235c9124ae5",
+    "verification/runners/run_writeback_faults.py": "9a318d4360602e2c003277b41847afed6760315130b139c2712a0263a9c0bbf7",
+    "verification/runners/rv32_reference.py": "fb8ca2e0d7ffdcf332ca33488ea2fb21aece85ec9bcacd40f2cb23d12e0cd115",
+    "verification/runners/test_analysis.py": "099f9c10bc2f2005387ad6fb3fcd54560778aae992208b256a74243de6298ccd",
+    "verification/runners/test_reference.py": "d2a62b8993e37eba9aeed5aeb82c805d6e0489da684368fc26a38fd30ce65104",
+    "verification/runners/writeback_fault_sim.cpp": "b92815dba107b20d95ccc0e56e9ba3931c15b363efce646b23e70b5d59d3e949",
+    "verification/unit/EXECUTE.md": "2fabb762d2aa2da7125a6571db34446fca997695074845a4a7d396ccd56a9d20",
+    "verification/unit/execute_decode_alu_tb.sv": "289d0f0a7dd37e093da995109b331ba2db475cd6d5e306c2f06297fe1edb741b",
+    "verification/unit/execute_muldiv_tb.sv": "f8201c2360f0ff7ffc700a23640766d88df5e3a672706ffd52258ec553faa091",
+    "verification/unit/fetch_frontend_tb.sv": "561f6e8f6ba47c191a11bc617fc8d3213bac81d3a08b3861e8b81715f2ce4542",
+    "verification/unit/memory_system_tb.sv": "277cb34a2959caa9a93f9d6415b935c32d6dd368f4304131eea9a648f93b2b98",
+    "verification/unit/run_execute.sh": "b35aca883cbf776edcf13bd30ab49c1e7827a79e3976a855f8ea03449e306a1d",
+    "verification/unit/run_fetch.sh": "138f1a581b91ea40a71378074af6ff060a87f2776cfdf0d1c9ecbf926ba86c32",
+    "verification/unit/run_memory_system.sh": "b601ccf11ebaea05ef37bc63803faec1a87ba15420b0afc07d0e557cdacb1b2e",
+    "verification/unit/run_writeback_memory.sh": "abb418e784f82ba84f838eeaa0c71cd449c67b8a8fbaceb7fc1f8275f800aab4",
+    "verification/unit/writeback_memory_tb.sv": "10b96da10baa1613797b96a4be84035d153493f9da8bc5eeabb57e657062bddb"
+  }
+}
