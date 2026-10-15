@@ -6,7 +6,8 @@ module fetch_frontend #(
     parameter integer PREDICT_ENABLE = 1,
     parameter integer BTB_ENTRIES = 64,
     parameter integer FETCH_QUEUE_DEPTH = 8,
-    parameter integer FETCH_OUTSTANDING = 4
+    parameter integer FETCH_OUTSTANDING = 4,
+    parameter integer RAS_DEPTH = 16
 ) (
     input logic clock,
     input logic reset,
@@ -30,6 +31,7 @@ module fetch_frontend #(
 
     input logic update_valid,
     input logic [31:0] update_pc,
+    input logic [31:0] update_insn,
     input logic [31:0] update_target,
     input logic update_conditional,
     input logic update_taken
@@ -40,6 +42,9 @@ module fetch_frontend #(
     localparam integer OCW = $clog2(FETCH_OUTSTANDING + 1);
     localparam integer TOTAL_W = $clog2(FETCH_QUEUE_DEPTH + FETCH_OUTSTANDING + 1);
     localparam integer BW = (BTB_ENTRIES > 1) ? $clog2(BTB_ENTRIES) : 1;
+    localparam integer RS = RAS_DEPTH > 0 ? RAS_DEPTH : 1;
+    localparam integer RW = RS > 1 ? $clog2(RS) : 1;
+    localparam integer RCW = $clog2(RS + 1);
 
     logic [31:0] next_pc, predicted_next;
     logic draining;
@@ -59,14 +64,30 @@ module fetch_frontend #(
     logic [31:0] btb_pc [0:BTB_ENTRIES-1];
     logic [31:0] btb_target [0:BTB_ENTRIES-1];
     logic [1:0] btb_counter [0:BTB_ENTRIES-1];
+    logic [1:0] btb_ras_action [0:BTB_ENTRIES-1];
     logic [BW-1:0] lookup_index, update_index;
     logic [BTB_ENTRIES-1:0] train_enable;
     logic [31:0] train_pc, train_target;
     logic train_conditional, train_taken;
+    logic [1:0] train_ras_action, update_ras_action, prediction_ras_action;
     logic [31:0] response_pc, response_prediction;
     logic prediction_hit;
     logic [BTB_ENTRIES-1:0] prediction_match;
     logic [31:0] prediction_target;
+
+    // The committed stack is the recovery base. Speculative pushes shadow
+    // individual slots; recovery only clears these small valid bits, avoiding
+    // a global flush mux on every return-address payload register.
+    logic [31:0] ras_committed [0:RS-1];
+    logic [31:0] ras_shadow [0:RS-1];
+    logic [RS-1:0] ras_shadow_valid;
+    logic [RW-1:0] ras_commit_pointer, ras_spec_pointer;
+    logic [RCW-1:0] ras_commit_count, ras_spec_count;
+    logic [RW-1:0] ras_commit_next_pointer, ras_spec_next_pointer;
+    logic [RCW-1:0] ras_commit_next_count, ras_spec_next_count;
+    logic [RW-1:0] ras_commit_write_slot, ras_spec_write_slot, ras_top_slot;
+    logic ras_commit_write, ras_spec_write;
+    logic [31:0] ras_top;
 
     logic instruction_fire, request_fire, response_fire, queue_push;
     logic [TOTAL_W-1:0] reserved_slots;
@@ -77,6 +98,29 @@ module fetch_frontend #(
 
     function automatic [OW-1:0] next_request(input [OW-1:0] pointer);
         next_request = pointer == OW'(FETCH_OUTSTANDING-1) ? '0 : pointer + 1'b1;
+    endfunction
+
+    function automatic [RW-1:0] next_ras(input [RW-1:0] pointer);
+        next_ras = pointer == RW'(RS-1) ? '0 : pointer + 1'b1;
+    endfunction
+
+    function automatic [RW-1:0] previous_ras(input [RW-1:0] pointer);
+        previous_ras = pointer == 0 ? RW'(RS-1) : pointer - 1'b1;
+    endfunction
+
+    // RISC-V implicit hints: bit 1 pushes, bit 0 pops. Different link
+    // registers in JALR pop then push (coroutines); identical ones only push.
+    function automatic [1:0] ras_action(input [31:0] insn);
+        logic rd_link, rs1_link;
+        begin
+            rd_link = insn[11:7] == 5'd1 || insn[11:7] == 5'd5;
+            rs1_link = insn[19:15] == 5'd1 || insn[19:15] == 5'd5;
+            ras_action = 2'b00;
+            if (insn[6:0] == 7'b1101111)
+                ras_action = {rd_link, 1'b0};
+            else if (insn[6:0] == 7'b1100111 && insn[14:12] == 3'b000)
+                ras_action = {rd_link, rs1_link && (!rd_link || insn[11:7] != insn[19:15])};
+        end
     endfunction
 
     // Fold unused binary indices once for non-power-of-two BTBs. Store the
@@ -92,7 +136,7 @@ module fetch_frontend #(
 
     generate
         if (FETCH_QUEUE_DEPTH < 1 || FETCH_OUTSTANDING < 1
-            || BTB_ENTRIES < 1 || BTB_ENTRIES > 65536) begin : invalid_parameters
+            || BTB_ENTRIES < 1 || BTB_ENTRIES > 65536 || RAS_DEPTH < 0) begin : invalid_parameters
             fetch_frontend_requires_positive_supported_sizes invalid_configuration();
         end
     endgenerate
@@ -103,14 +147,18 @@ module fetch_frontend #(
         // Compare tags locally and OR one-hot target words. Dynamic array
         // reads would fan each PC index bit across all tag/target data muxes.
         prediction_target = 32'b0;
+        prediction_ras_action = 2'b00;
         for (integer b = 0; b < BTB_ENTRIES; b = b + 1) begin
             prediction_match[b] = PREDICT_ENABLE != 0 && lookup_index == BW'(b) && btb_valid[b]
                 && btb_pc[b] == next_pc
                 && (!btb_conditional[b] || btb_counter[b][1]);
             prediction_target = prediction_target | (btb_target[b] & {32{prediction_match[b]}});
+            prediction_ras_action = prediction_ras_action | (btb_ras_action[b] & {2{prediction_match[b]}});
         end
         prediction_hit = |prediction_match;
         predicted_next = prediction_hit ? prediction_target : next_pc + 32'd4;
+        if (RAS_DEPTH > 0 && prediction_ras_action[0] && ras_spec_count != 0)
+            predicted_next = ras_top;
 
         instruction_valid = !reset && !redirect_valid && queue_count != 0;
         // Decode a row once; a binary pointer must not drive every data mux.
@@ -147,6 +195,81 @@ module fetch_frontend #(
                    && (reserved_slots < TOTAL_W'(FETCH_QUEUE_DEPTH) || instruction_fire);
         request_fire = i_req_valid && i_req_ready;
     end
+
+    always_comb begin
+        update_ras_action = ras_action(update_insn);
+        ras_commit_next_pointer = ras_commit_pointer;
+        ras_commit_next_count = ras_commit_count;
+        if (PREDICT_ENABLE != 0 && RAS_DEPTH > 0 && update_valid && update_ras_action[0]
+            && ras_commit_count != 0) begin
+            ras_commit_next_pointer = previous_ras(ras_commit_pointer);
+            ras_commit_next_count = ras_commit_count - 1'b1;
+        end
+        ras_commit_write_slot = ras_commit_next_pointer;
+        ras_commit_write = PREDICT_ENABLE != 0 && RAS_DEPTH > 0 && !reset
+                         && update_valid && update_ras_action[1];
+        if (ras_commit_write) begin
+            ras_commit_next_pointer = next_ras(ras_commit_write_slot);
+            if (ras_commit_next_count < RCW'(RS))
+                ras_commit_next_count = ras_commit_next_count + 1'b1;
+        end
+
+        ras_spec_next_pointer = ras_spec_pointer;
+        ras_spec_next_count = ras_spec_count;
+        if (RAS_DEPTH > 0 && prediction_ras_action[0] && ras_spec_count != 0) begin
+            ras_spec_next_pointer = previous_ras(ras_spec_pointer);
+            ras_spec_next_count = ras_spec_count - 1'b1;
+        end
+        ras_spec_write_slot = ras_spec_next_pointer;
+        ras_spec_write = RAS_DEPTH > 0 && request_fire && prediction_ras_action[1];
+        if (RAS_DEPTH > 0 && prediction_ras_action[1]) begin
+            ras_spec_next_pointer = next_ras(ras_spec_write_slot);
+            if (ras_spec_next_count < RCW'(RS))
+                ras_spec_next_count = ras_spec_next_count + 1'b1;
+        end
+    end
+
+    always_comb begin
+        ras_top_slot = previous_ras(ras_spec_pointer);
+        ras_top = 32'b0;
+        for (integer r = 0; r < RS; r = r + 1)
+            ras_top = ras_top | ((ras_shadow_valid[r] ? ras_shadow[r] : ras_committed[r])
+                                 & {32{ras_top_slot == RW'(r)}});
+    end
+
+    always_ff @(posedge clock) begin
+        if (reset) begin
+            ras_commit_pointer <= '0;
+            ras_commit_count <= '0;
+            ras_spec_pointer <= '0;
+            ras_spec_count <= '0;
+        end else begin
+            ras_commit_pointer <= ras_commit_next_pointer;
+            ras_commit_count <= ras_commit_next_count;
+            if (redirect_valid) begin
+                // Include a retirement on this same edge before recovery.
+                ras_spec_pointer <= ras_commit_next_pointer;
+                ras_spec_count <= ras_commit_next_count;
+            end else if (request_fire) begin
+                ras_spec_pointer <= ras_spec_next_pointer;
+                ras_spec_count <= ras_spec_next_count;
+            end
+        end
+    end
+    generate
+        for (genvar r = 0; r < RS; r = r + 1) begin : return_stack_rows
+            always_ff @(posedge clock) begin
+                if (ras_commit_write && ras_commit_write_slot == RW'(r))
+                    ras_committed[r] <= update_pc + 32'd4;
+                if (ras_spec_write && ras_spec_write_slot == RW'(r))
+                    ras_shadow[r] <= next_pc + 32'd4;
+                if (reset || redirect_valid)
+                    ras_shadow_valid[r] <= 1'b0;
+                else if (ras_spec_write && ras_spec_write_slot == RW'(r))
+                    ras_shadow_valid[r] <= 1'b1;
+            end
+        end
+    endgenerate
 
     always_ff @(posedge clock) begin
         if (reset) begin
@@ -213,6 +336,7 @@ module fetch_frontend #(
         train_target <= update_target;
         train_conditional <= update_conditional;
         train_taken <= update_taken;
+        train_ras_action <= update_ras_action;
     end
     generate
         for (genvar b = 0; b < BTB_ENTRIES; b = b + 1) begin : predictor_rows
@@ -231,6 +355,7 @@ module fetch_frontend #(
                 if (train_enable[b]) begin
                     btb_pc[b] <= train_pc;
                     btb_target[b] <= train_target;
+                    btb_ras_action[b] <= train_ras_action;
                     if (!train_conditional)
                         btb_counter[b] <= 2'b11;
                     else if (btb_valid[b] && btb_pc[b] == train_pc && btb_conditional[b]) begin
@@ -250,7 +375,7 @@ module fetch_frontend #(
     logic [31:0] held_instruction_prediction;
     logic held_instruction_error;
     initial begin
-        if (FETCH_QUEUE_DEPTH < 1 || FETCH_OUTSTANDING < 1 || BTB_ENTRIES < 1 || BTB_ENTRIES > 65536)
+        if (FETCH_QUEUE_DEPTH < 1 || FETCH_OUTSTANDING < 1 || BTB_ENTRIES < 1 || BTB_ENTRIES > 65536 || RAS_DEPTH < 0)
             $fatal(1, "Unsupported fetch frontend parameters");
     end
     always @(posedge clock) begin
@@ -261,6 +386,7 @@ module fetch_frontend #(
             assert (int'(queue_count) <= FETCH_QUEUE_DEPTH);
             assert (int'(request_count) <= FETCH_OUTSTANDING);
             assert (int'(reserved_slots) <= FETCH_QUEUE_DEPTH);
+            assert (int'(ras_commit_count) <= RS && int'(ras_spec_count) <= RS);
             if (stalled_request && !redirect_valid)
                 assert (i_req_valid && i_req_addr == held_request_addr);
             if (stalled_instruction && !redirect_valid)

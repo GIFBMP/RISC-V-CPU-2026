@@ -1,7 +1,7 @@
 // Pipelined I/D AXI reads. A registered AR slot reserves one of 16 credits;
 // accepted AR owners are queued until their ordered R response is consumed.
 // Fair arbitration happens at each internal request acceptance. Writes are
-// independent, with four ordered write credits and separate AW/W progress.
+// independent, with sixteen ordered write credits and separate AW/W progress.
 module axi_lite_bridge (
     input  wire        clock,
     input  wire        reset,
@@ -52,10 +52,10 @@ module axi_lite_bridge (
     reg [4:0] read_count;
     reg prefer_d;
     reg [31:0] read_address;
-    reg [31:0] write_address [0:3], write_data [0:3];
-    reg [3:0] write_strobe [0:3];
-    reg [1:0] write_tail, aw_head, w_head;
-    reg [2:0] write_count, aw_count, w_count;
+    reg [31:0] write_address [0:15], write_data [0:15];
+    reg [3:0] write_strobe [0:15];
+    reg [3:0] write_tail, aw_head, w_head;
+    reg [4:0] write_count, aw_count, w_count;
     wire aw_fire = awvalid && awready;
     wire w_fire = wvalid && wready;
     wire b_fire = bvalid && bready;
@@ -84,7 +84,7 @@ module axi_lite_bridge (
     assign i_rd_rsp_error = rresp != 2'b00;
     assign d_rd_rsp_error = rresp != 2'b00;
 
-    assign d_wr_ready = !reset && (write_count < 3'd4 || b_fire);
+    assign d_wr_ready = !reset && (write_count < 5'd16 || b_fire);
     assign awvalid = !reset && aw_count != 0;
     assign wvalid = !reset && w_count != 0;
     assign awaddr = selected_awaddr;
@@ -97,16 +97,16 @@ module axi_lite_bridge (
         selected_awaddr = 0;
         selected_wdata = 0;
         selected_wstrb = 0;
-        for (integer slot = 0; slot < 4; slot = slot + 1) begin
-            selected_awaddr = selected_awaddr | (write_address[slot] & {32{aw_head == 2'(slot)}});
-            selected_wdata = selected_wdata | (write_data[slot] & {32{w_head == 2'(slot)}});
-            selected_wstrb = selected_wstrb | (write_strobe[slot] & {4{w_head == 2'(slot)}});
+        for (integer slot = 0; slot < 16; slot = slot + 1) begin
+            selected_awaddr = selected_awaddr | (write_address[slot] & {32{aw_head == 4'(slot)}});
+            selected_wdata = selected_wdata | (write_data[slot] & {32{w_head == 4'(slot)}});
+            selected_wstrb = selected_wstrb | (write_strobe[slot] & {4{w_head == 4'(slot)}});
         end
     end
     generate
-        for (genvar slot = 0; slot < 4; slot = slot + 1) begin : write_slots
+        for (genvar slot = 0; slot < 16; slot = slot + 1) begin : write_slots
             always @(posedge clock) begin
-                if (write_push && write_tail == 2'(slot)) begin
+                if (write_push && write_tail == 4'(slot)) begin
                     write_address[slot] <= d_wr_addr;
                     write_data[slot] <= d_wr_data;
                     write_strobe[slot] <= d_wr_strb;
@@ -182,7 +182,7 @@ module axi_lite_bridge (
     end
 `ifndef SYNTHESIS
     always @(posedge clock) if (!reset) begin
-        assert (write_count <= 4 && aw_count <= write_count && w_count <= write_count);
+        assert (write_count <= 16 && aw_count <= write_count && w_count <= write_count);
         assert (read_count <= 16 && reserved_reads <= 16);
     end
 `endif

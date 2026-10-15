@@ -1,12 +1,13 @@
-// Course interface. Defaults describe the V3 single-issue CPU.
+// Course interface. Defaults describe the V4 single-issue CPU.
 module student_top #(
     parameter integer ROB_DEPTH = 16,
     parameter integer PRF_SIZE = 48,
     parameter integer IQ_DEPTH = 8,
     parameter integer LSQ_DEPTH = 8,
+    parameter integer MEM_QUEUE_DEPTH = 8,
     parameter integer ICACHE_BYTES = 2048,
-    parameter integer DCACHE_BYTES = 4096,
-    parameter integer CACHE_LINE_BYTES = 16,
+    parameter integer DCACHE_BYTES = 16384,
+    parameter integer CACHE_LINE_BYTES = 128,
     parameter integer ICACHE_WAYS = 1,
     parameter integer DCACHE_WAYS = 4,
     parameter integer DCACHE_WRITE_BACK = 1,
@@ -14,6 +15,8 @@ module student_top #(
     parameter integer FETCH_QUEUE_DEPTH = 8,
     parameter integer FETCH_OUTSTANDING = 4,
     parameter integer BTB_ENTRIES = 64,
+    parameter integer RAS_DEPTH = 0,
+    parameter integer EARLY_FETCH = 1,
     parameter integer PREDICT_ENABLE = 1,
     parameter integer TRACE = 0
 ) (
@@ -46,9 +49,9 @@ module student_top #(
 
     cpu_core #(
         .ROB_DEPTH(ROB_DEPTH), .PRF_SIZE(PRF_SIZE), .IQ_DEPTH(IQ_DEPTH),
-        .LSQ_DEPTH(LSQ_DEPTH), .ISSUE_WIDTH(ISSUE_WIDTH), .TRACE(TRACE),
+        .LSQ_DEPTH(LSQ_DEPTH), .MEM_QUEUE_DEPTH(MEM_QUEUE_DEPTH), .ISSUE_WIDTH(ISSUE_WIDTH), .TRACE(TRACE),
         .FETCH_QUEUE_DEPTH(FETCH_QUEUE_DEPTH), .FETCH_OUTSTANDING(FETCH_OUTSTANDING),
-        .BTB_ENTRIES(BTB_ENTRIES), .PREDICT_ENABLE(PREDICT_ENABLE)
+        .BTB_ENTRIES(BTB_ENTRIES), .EARLY_FETCH(EARLY_FETCH), .RAS_DEPTH(RAS_DEPTH), .PREDICT_ENABLE(PREDICT_ENABLE)
     ) core (
         .clock(clock), .reset(reset),
         .i_req_valid(i_req_valid), .i_req_ready(i_req_ready), .i_req_addr(i_req_addr),

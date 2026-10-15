@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Summarize committed CPU_TRACE instruction timing without modifying the DUT.
 
-Store COMMIT is the irrevocable D-cache request handshake, not ROB removal.
-Consequently post-store commit gaps measure serialization, not exact B latency.
-The subset whose successor was already COMPLETE is a conservative confirmed
-serialization lower bound; other gap cycles may also include a slow successor.
+V1-V3 Store COMMIT is the irrevocable D-cache request handshake. V4 buffered
+Store COMMIT is queue insertion/ROB retirement and may precede MEM_REQUEST.
+Use explicit MEM_REQUEST when available, falling back to COMMIT only for older
+traces. Post-Store gaps describe retirement intervals, not causal Store stalls.
 Load lifetime and commit gaps overlap and must not be added as CPI components.
 """
 from __future__ import annotations
@@ -35,11 +35,12 @@ def distribution(values: list[int]) -> dict:
 def analyze(path: Path) -> dict:
     lifecycle: dict[int, dict] = {}
     committed_controls: dict[int, int] = {}
-    store_requests: dict[int, int] = {}
+    store_records: dict[int, dict] = {}
     counts: Counter = Counter()
     gaps: Counter = Counter()
     loads, load_queue, store_queue, branch_recovery = [], [], [], []
     store_response_latency, store_retire_latency = [], []
+    load_accept_wait, load_response_latency, forwarding_masks = [], [], Counter()
     previous = None
     pending_flush = None
     cycles = None
@@ -61,15 +62,22 @@ def analyze(path: Path) -> dict:
                 counts[kind.lower()] += 1
             elif kind == "DROP_LOAD":
                 counts["dropped_loads"] += 1
+            elif kind == "LOAD_QUEUE":
+                state["LOAD_QUEUE"] = event["cycle"]
+                state["mask"] = event["mask"]
+            elif kind == "MEM_REQUEST":
+                counts["explicit_memory_requests"] += 1
+                state["MEM_REQUEST"] = event["cycle"]
+                if event["write"]:
+                    store_records.setdefault(identity, {})["request"] = event["cycle"]
             elif kind == "MEM_RESPONSE":
                 counts["store_responses" if event["write"] else "load_responses"] += 1
-                if event["write"] and identity in store_requests:
-                    store_response_latency.append(event["cycle"] - store_requests[identity])
+                state["MEM_RESPONSE"] = event["cycle"]
+                if event["write"]:
+                    store_records.setdefault(identity, {})["response"] = event["cycle"]
             elif kind == "STORE_RETIRE":
                 counts["store_retires"] += 1
-                if identity in store_requests:
-                    store_retire_latency.append(event["cycle"] - store_requests.pop(identity))
-                lifecycle.pop(identity, None)
+                store_records.setdefault(identity, {})["retire"] = event["cycle"]
             elif kind == "FLUSH":
                 counts["flushes"] += 1
                 opcode = committed_controls.get(identity)
@@ -87,10 +95,15 @@ def analyze(path: Path) -> dict:
                     counts["loads"] += 1
                     loads.append(state["COMPLETE"] - state["ISSUE"])
                     load_queue.append(state["ISSUE"] - state["DISPATCH"])
+                    if "MEM_REQUEST" in state and "MEM_RESPONSE" in state:
+                        load_accept_wait.append(state["MEM_REQUEST"] - state.get("LOAD_QUEUE", state["ISSUE"]))
+                        load_response_latency.append(state["MEM_RESPONSE"] - state["MEM_REQUEST"])
+                    if "mask" in state:
+                        forwarding_masks[state["mask"]] += 1
                 if opcode == 0x23:
                     counts["stores"] += 1
-                    store_requests[identity] = event["cycle"]
-                    store_queue.append(event["cycle"] - state["ISSUE"])
+                    store_records.setdefault(identity, {}).update({"commit": event["cycle"], "issue": state["ISSUE"],
+                                                                   "address": event["addr"]})
                     if event["addr"] == 0x80000000:
                         counts["exit_stores"] += 1
                         exit_request_cycle = event["cycle"]
@@ -113,6 +126,24 @@ def analyze(path: Path) -> dict:
                 lifecycle.pop(identity, None)
     if cycles is None:
         raise ValueError(f"{path}: simulator did not report PASS")
+    store_commit_to_request, store_commit_to_retire, store_issue_to_commit = [], [], []
+    for record in store_records.values():
+        if "commit" not in record:
+            continue
+        request = record.get("request", record["commit"])
+        store_queue.append(request - record["issue"])
+        store_issue_to_commit.append(record["commit"] - record["issue"])
+        store_commit_to_request.append(request - record["commit"])
+        if "response" in record:
+            store_response_latency.append(record["response"] - request)
+        if "retire" in record:
+            store_commit_to_retire.append(record["retire"] - record["commit"])
+            if record["retire"] >= request:
+                store_retire_latency.append(record["retire"] - request)
+            else:
+                counts["stores_retired_before_request"] += 1
+        if record["address"] == 0x80000000:
+            exit_request_cycle = request
     controls = counts["conditional_branches"] + counts["jumps"]
     return {"trace": str(path.resolve()), "cycles": cycles, "counts": dict(counts),
             "commit_gaps": dict(gaps),
@@ -121,10 +152,16 @@ def analyze(path: Path) -> dict:
             "control_mispredict_fraction": round(counts["flushes"] / controls, 6) if controls else 0,
             "load_issue_to_complete": distribution(loads),
             "load_dispatch_to_issue": distribution(load_queue),
+            "load_queue_to_request": distribution(load_accept_wait),
+            "load_request_to_response": distribution(load_response_latency),
+            "committed_load_forwarding_masks": dict(sorted(forwarding_masks.items())),
             "store_issue_to_request": distribution(store_queue),
+            "store_issue_to_commit": distribution(store_issue_to_commit),
+            "store_commit_to_request": distribution(store_commit_to_request),
+            "store_commit_to_rob_retire": distribution(store_commit_to_retire),
             "store_request_to_response": distribution(store_response_latency),
             "store_request_to_rob_retire": distribution(store_retire_latency),
-            "stores_without_retire_event": len(store_requests),
+            "stores_without_retire_event": sum("retire" not in record for record in store_records.values()),
             # Official Memory.cycle starts at 1 where CPU_TRACE cycle starts at
             # 0. The simulator stops at exit B before the CPU response/retire.
             "exit_request_to_sim_end": None if exit_request_cycle is None else cycles - exit_request_cycle - 1,

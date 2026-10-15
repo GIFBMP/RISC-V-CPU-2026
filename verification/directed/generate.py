@@ -35,6 +35,8 @@ class Program:
         self.speculation: list[dict] = []
         self.prediction: list[dict] = []
         self.pipeline: dict = {}
+        self.lsu: list[dict] = []
+        self.recovery: list[dict] = []
         self.li(28, 0x12345678)
         self.li(31, 0x10000)
 
@@ -672,6 +674,14 @@ def save(program: Program, output: Path) -> dict:
                                 "target_pcs": [program.labels[target] for target in probe["targets"]]}
                                for probe in program.prediction]
     metadata["pipeline"] = program.pipeline
+    metadata["lsu"] = [{**probe, **{key[:-6] + "_pc": program.labels[value]
+                                  for key, value in probe.items() if key.endswith("_label")},
+                       **{key[:-7] + "_pcs": [program.labels[label] for label in value]
+                          for key, value in probe.items() if key.endswith("_labels")}}
+                      for probe in program.lsu]
+    metadata["recovery"] = [{**probe, **{key[:-6] + "_pc": program.labels[value]
+                                       for key, value in probe.items() if key.endswith("_label")}}
+                           for probe in program.recovery]
     (folder / "meta.json").write_text(json.dumps(metadata, indent=2) + "\n")
     return metadata
 
@@ -690,6 +700,10 @@ def main() -> None:
                  pipeline_contention(), memory_order_wrap()]
     programs += [cache_conflict_dirty(), cache_partial_allocate(), cache_exit_dirty(),
                  wrong_path("dirty_store"), wrong_path("writeback_load")]
+    from lsu_cases import build_lsu_programs
+    programs += build_lsu_programs(Program)
+    from control_cases import build_control_programs
+    programs += build_control_programs(Program)
     programs += [random_program(int(seed, 0), args.random_count) for seed in args.seeds.split(",") if seed]
     if args.case:
         programs = [p for p in programs if p.name == args.case]

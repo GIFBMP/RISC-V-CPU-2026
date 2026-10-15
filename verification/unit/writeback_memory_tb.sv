@@ -3,6 +3,9 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
     parameter integer DCACHE_BYTES = 256, parameter integer DCACHE_WAYS = 2);
     localparam integer WAY_BYTES = DCACHE_BYTES / DCACHE_WAYS;
     localparam integer LINE_WORDS = CACHE_LINE_BYTES / 4;
+    localparam integer WRITE_CREDITS = 16;
+    localparam integer CACHE_LINES = DCACHE_BYTES / CACHE_LINE_BYTES;
+    localparam integer FLUSH_GROUP_SIZE = CACHE_LINES >= 8 ? 8 : CACHE_LINES;
     reg clock = 1'b0;
     always #5 clock = !clock;
     reg reset = 1'b1;
@@ -57,7 +60,8 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
     reg [1:0] write_responses [0:31];
     integer write_due [0:31];
     integer paired_writes = 0, max_write_outstanding = 0;
-    integer write_latency = 32;
+    integer write_latency = 80;
+    reg stall_write = 1'b1;
     // 0: simultaneous; 1: every AW precedes its W; 2: every W precedes AW.
     integer write_order = 0;
     reg read_fault = 1'b0, write_fault = 1'b0;
@@ -66,9 +70,9 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
     integer exit_count = 0;
 
     assign arready = !reset && read_count < 16 && (!stall_ar || cycle % 4 == 0);
-    assign awready = !reset && aw_count - b_count < 8 && cycle % 3 == 0 &&
+    assign awready = !reset && aw_count - b_count < 32 && (!stall_write || cycle % 3 == 0) &&
         (write_order != 2 || w_count > aw_count);
-    assign wready = !reset && w_count - b_count < 8 && cycle % 3 == 0 &&
+    assign wready = !reset && w_count - b_count < 32 && (!stall_write || cycle % 3 == 0) &&
         (write_order != 1 || aw_count > w_count);
     assign bvalid = !reset && paired_writes > b_count && write_due[b_count % 32] <= cycle;
     assign bresp = write_responses[b_count % 32];
@@ -102,8 +106,8 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
             if (read_count > max_read_outstanding) max_read_outstanding <= read_count;
             if (aw_count - b_count > max_write_outstanding)
                 max_write_outstanding <= aw_count - b_count;
-            if (aw_count - b_count > 4 || w_count - b_count > 4)
-                $fatal(1, "Bridge exceeded four outstanding write credits");
+            if (aw_count - b_count > WRITE_CREDITS || w_count - b_count > WRITE_CREDITS)
+                $fatal(1, "Bridge exceeded sixteen outstanding write credits");
             if (bvalid && bready) b_count <= b_count + 1;
             if (arvalid && arready) begin
                 if (araddr[1:0] != 0) $fatal(1, "Unaligned external read address");
@@ -159,10 +163,16 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
 
     reg held_ar = 1'b0, held_aw = 1'b0, held_w = 1'b0;
     reg held_i_rsp = 1'b0, held_d_rsp = 1'b0;
+    reg held_internal_write = 1'b0;
     reg [31:0] last_araddr, last_awaddr, last_wdata, last_i_data, last_d_data;
+    reg [31:0] last_internal_addr, last_internal_data;
+    reg [3:0] last_internal_mask;
     reg [3:0] last_wstrb;
     reg last_i_error, last_d_error;
     integer cpu_i_outstanding = 0;
+    integer cpu_d_outstanding = 0, max_cpu_d_outstanding = 0;
+    integer previous_writeback_accept = -1, writeback_streams = 0;
+    integer flush_scan_cycles = 0;
     always @(posedge clock) begin
         if (reset) begin
             held_ar <= 1'b0;
@@ -170,8 +180,34 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
             held_w <= 1'b0;
             held_i_rsp <= 1'b0;
             held_d_rsp <= 1'b0;
+            held_internal_write <= 1'b0;
             cpu_i_outstanding <= 0;
+            cpu_d_outstanding <= 0;
+            max_cpu_d_outstanding <= 0;
+            previous_writeback_accept <= -1;
+            writeback_streams <= 0;
+            flush_scan_cycles <= 0;
         end else begin
+            if (dut.write_back.data_cache.state == 4'd10) flush_scan_cycles <= flush_scan_cycles + 1;
+            if (held_internal_write && (!dut.d_wr_valid || dut.d_wr_addr !== last_internal_addr ||
+                dut.d_wr_data !== last_internal_data || dut.d_wr_strb !== last_internal_mask))
+                $fatal(1, "Cache writeback payload changed while bridge was full");
+            held_internal_write <= dut.d_wr_valid && !dut.d_wr_ready;
+            last_internal_addr <= dut.d_wr_addr;
+            last_internal_data <= dut.d_wr_data;
+            last_internal_mask <= dut.d_wr_strb;
+            if (dut.d_wr_valid && dut.d_wr_ready && dut.d_wr_addr < 65536) begin
+                if (dut.d_wr_data !== expected_memory[dut.d_wr_addr >> 2] || dut.d_wr_strb !== 4'hf)
+                    $fatal(1, "Writeback SRAM pipeline lost a word or byte mask at %h", dut.d_wr_addr);
+                // Each line starts only after all previous B responses. The
+                // bridge has all sixteen credits independent of AW/W stalls.
+                if ((dut.d_wr_addr & 32'(CACHE_LINE_BYTES - 1)) == 0)
+                    writeback_streams <= writeback_streams + 1;
+                else if ((dut.d_wr_addr & 32'(CACHE_LINE_BYTES - 1)) < 4 * WRITE_CREDITS &&
+                    cycle != previous_writeback_accept + 1)
+                    $fatal(1, "Initial writeback credit burst was not accepted one word per cycle");
+                previous_writeback_accept <= cycle;
+            end
             if (cpu_i_outstanding < 0 || cpu_i_outstanding > 4 ||
                 (i_rsp_valid && cpu_i_outstanding == 0))
                 $fatal(1, "I cache violated its four-request ordered response contract");
@@ -180,6 +216,16 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
                 2'b01: cpu_i_outstanding <= cpu_i_outstanding - 1;
                 default: begin end
             endcase
+            if (cpu_d_outstanding < 0 || cpu_d_outstanding > 4 ||
+                (d_rsp_valid && cpu_d_outstanding == 0))
+                $fatal(1, "D cache violated its four-request ordered response contract");
+            case ({d_req_valid && d_req_ready, d_rsp_valid && d_rsp_ready})
+                2'b10: cpu_d_outstanding <= cpu_d_outstanding + 1;
+                2'b01: cpu_d_outstanding <= cpu_d_outstanding - 1;
+                default: begin end
+            endcase
+            if (cpu_d_outstanding > max_cpu_d_outstanding)
+                max_cpu_d_outstanding <= cpu_d_outstanding;
             if (held_ar && (!arvalid || araddr !== last_araddr))
                 $fatal(1, "AR payload/VALID changed under backpressure");
             if (held_aw && (!awvalid || awaddr !== last_awaddr))
@@ -229,6 +275,19 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
             @(posedge clock);
             @(negedge clock);
             i_rsp_ready = 1'b0;
+        end
+    endtask
+
+    task automatic check_clean_flush;
+        integer scan_before, aw_before;
+        begin
+            scan_before = flush_scan_cycles;
+            aw_before = aw_count;
+            d_access(0, 32'h10000000, 0, 0, 0, 1, 0);
+            if (aw_count != aw_before)
+                $fatal(1, "Fully clean cache unexpectedly wrote back a line");
+            if (flush_scan_cycles - scan_before != CACHE_LINES / FLUSH_GROUP_SIZE)
+                $fatal(1, "Clean-group flush did not skip every complete group, including final group");
         end
     endtask
 
@@ -286,6 +345,79 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
         end
     endtask
 
+    // mode 0=Loads, 1=Stores, 2=alternating Store/Load to exercise RAW ordering.
+    // Expected data is snapshotted at request acceptance, never read from the
+    // evolving oracle at response time; otherwise an ordering bug could hide.
+    task automatic d_stream(input [31:0] base, input integer length,
+                            input integer wrap_words, input integer mode,
+                            input bit stall_response, input bit require_full_rate);
+        integer sent, received, previous_accept, previous_response, ticks, byte_lane;
+        integer accept_interval, response_interval;
+        reg [31:0] expected_data [0:127];
+        reg expected_error [0:127];
+        reg [31:0] current_address, current_data;
+        reg [3:0] current_mask;
+        reg current_write;
+        begin
+            fork
+                begin
+                    previous_accept = -1;
+                    for (sent = 0; sent < length; sent = sent + 1) begin
+                        @(negedge clock);
+                        current_address = base + 4 * (wrap_words == 0 ? sent : sent % wrap_words);
+                        current_write = mode == 1 || (mode == 2 && sent % 2 == 0);
+                        current_data = 32'hd7012345 ^ (32'(sent) * 32'h010a3051);
+                        current_mask = 4'b0001 << (sent % 4);
+                        d_req_valid = 1;
+                        d_req_addr = current_address;
+                        d_req_write = current_write;
+                        d_req_wdata = current_data;
+                        d_req_wstrb = current_mask;
+                        do @(posedge clock); while (!d_req_ready);
+                        expected_error[sent] = !current_write && read_fault &&
+                            ((current_address & ~32'(CACHE_LINE_BYTES - 1)) ==
+                             (read_fault_address & ~32'(CACHE_LINE_BYTES - 1)));
+                        expected_data[sent] = current_write ? 32'b0 : expected_memory[current_address >> 2];
+                        if (current_write)
+                            for (byte_lane = 0; byte_lane < 4; byte_lane = byte_lane + 1)
+                                if (current_mask[byte_lane])
+                                    expected_memory[current_address >> 2][byte_lane*8 +: 8] = current_data[byte_lane*8 +: 8];
+                        accept_interval = mode == 0 ? 1 : (mode == 1 ? 2 : (sent % 2 == 1 ? 2 : 1));
+                        if (require_full_rate && previous_accept >= 0 && cycle != previous_accept + accept_interval)
+                            $fatal(1, "D hit stream mode=%0d accept spacing=%0d expected=%0d", mode, cycle-previous_accept, accept_interval);
+                        previous_accept = cycle;
+                    end
+                    @(negedge clock);
+                    d_req_valid = 0;
+                end
+                begin
+                    received = 0;
+                    ticks = 0;
+                    previous_response = -1;
+                    while (received < length) begin
+                        @(negedge clock);
+                        d_rsp_ready = !stall_response || ticks % 17 >= 10;
+                        @(posedge clock);
+                        if (d_rsp_valid && d_rsp_ready) begin
+                            if (d_rsp_error !== expected_error[received] ||
+                                (!expected_error[received] && d_rsp_data !== expected_data[received]))
+                                $fatal(1, "D stream response %0d wrong/out of order: data=%h expected=%h error=%b expected=%b",
+                                    received, d_rsp_data, expected_data[received], d_rsp_error, expected_error[received]);
+                            response_interval = mode == 0 ? 1 : (mode == 1 ? 2 : (received % 2 == 1 ? 2 : 1));
+                            if (require_full_rate && previous_response >= 0 && cycle != previous_response + response_interval)
+                                $fatal(1, "D hit stream mode=%0d response spacing=%0d expected=%0d", mode, cycle-previous_response, response_interval);
+                            previous_response = cycle;
+                            received = received + 1;
+                        end
+                        ticks = ticks + 1;
+                    end
+                    @(negedge clock);
+                    d_rsp_ready = 0;
+                end
+            join
+        end
+    endtask
+
     task automatic d_access(input bit write_request, input [31:0] address,
                             input [31:0] data, input [3:0] strobe,
                             input [31:0] expected, input bit expected_error,
@@ -318,8 +450,8 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
         end
     endtask
 
-    // Present a Store while a same-line Load is still filling. It must wait
-    // until that Load response has been consumed, then update the installed row.
+    // A Store offered during refill waits for installation, then may execute
+    // while the older Load response remains blocked in the ordered FIFO.
     task automatic conflicting_store;
         begin
             @(negedge clock);
@@ -333,22 +465,19 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
             d_req_write = 1'b1;
             d_req_wdata = 32'hcafefeed;
             d_req_wstrb = 4'hf;
-            do begin
-                @(posedge clock);
-                if (d_req_ready)
-                    $fatal(1, "Conflicting Store accepted during refill/blocked response");
-            end while (!d_rsp_valid);
+            do @(posedge clock); while (!d_req_ready);
             if (d_rsp_error || d_rsp_data !== memory[32'h904 >> 2])
                 $fatal(1, "Load preceding conflicting Store returned wrong data");
+            @(negedge clock);
+            d_req_valid = 1'b0;
             repeat (3) @(posedge clock);
+            if (!d_rsp_valid || d_rsp_error || d_rsp_data !== memory[32'h904 >> 2])
+                $fatal(1, "Younger Store changed the blocked older Load response");
             @(negedge clock);
             d_rsp_ready = 1'b1;
             @(posedge clock);
             @(negedge clock);
             d_rsp_ready = 1'b0;
-            do @(posedge clock); while (!d_req_ready);
-            @(negedge clock);
-            d_req_valid = 1'b0;
             do @(posedge clock); while (!d_rsp_valid);
             if (d_rsp_error)
                 $fatal(1, "Queued conflicting Store failed");
@@ -395,6 +524,10 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
     reg [31:0] a, b, c, failed_word_before;
     initial begin
         if ($value$plusargs("READ_LATENCY=%d", read_latency)) begin end
+        if ($test$plusargs("FAST_WRITE")) begin
+            stall_write = 0;
+            write_latency = 1;
+        end
         for (index = 0; index < 16384; index = index + 1) begin
             memory[index] = 32'h9e3779b9 ^ (32'(index) * 32'h01020408);
             expected_memory[index] = memory[index];
@@ -402,6 +535,7 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
         repeat (5) @(posedge clock);
         @(negedge clock);
         reset = 0;
+        check_clean_flush();
         a = 32'h1000;
         b = a + 32'(WAY_BYTES);
         c = a + 32'(DCACHE_WAYS * WAY_BYTES);
@@ -433,7 +567,9 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
             $fatal(1, "Dirty eviction did not write each word exactly once (AW first)");
         if (memory[(a + 4) >> 2] !== expected_memory[(a + 4) >> 2])
             $fatal(1, "Dirty eviction lost partial byte updates");
-        if (max_write_outstanding < 4) $fatal(1, "Writeback did not use all four credits before B responses");
+        if (stall_write && max_write_outstanding < (LINE_WORDS < WRITE_CREDITS ? LINE_WORDS : WRITE_CREDITS))
+            $fatal(1, "Writeback did not use every line/bridge credit before B responses");
+        if (writeback_streams < 1) $fatal(1, "Writeback streaming coverage was not exercised");
         flush_and_reset();
 
         // Fail the second writeback word after the first has become visible.
@@ -544,6 +680,7 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
         if (exit_count != 1 || aw_count != writes_before + LINE_WORDS + 1)
             $fatal(1, "Last-row retry did not preserve exactly the failed dirty line");
         verify_external();
+        check_clean_flush();
 
         count_before = ar_count;
         writes_before = aw_count;
@@ -567,6 +704,29 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
         conflicting_store();
         expected_memory[32'h904 >> 2] = 32'hcafefeed;
         d_access(0, 32'h904, 0, 0, 32'hcafefeed, 0, 2);
+        d_access(0, 32'h8000, 0, 0, expected_memory[32'h8000 >> 2], 0, 0);
+        d_access(0, 32'h8010, 0, 0, expected_memory[32'h8010 >> 2], 0, 0);
+        count_before = ar_count;
+        writes_before = aw_count;
+        d_stream(32'h8000, 64, 8, 0, 0, 1);
+        d_stream(32'h8000, 64, 8, 0, 1, 0);
+        if (max_cpu_d_outstanding != 4) $fatal(1, "D response backpressure failed to exercise all four credits");
+        d_stream(32'h8004, 32, 1, 1, 0, 1);
+        d_stream(32'h8004, 64, 1, 2, 0, 1);
+        d_stream(32'h8004, 64, 1, 2, 1, 0);
+        if (ar_count != count_before || aw_count != writes_before)
+            $fatal(1, "Warm D Load/Store stream unexpectedly used AXI");
+        d_access(0, 32'h8004, 0, 0, expected_memory[32'h8004 >> 2], 0, 0);
+        // Cross-line misses and a faulting line must not lose/reorder already
+        // accepted old hits, even while responses repeatedly fill the FIFO.
+        d_stream(32'h9000, 32, 0, 0, 1, 0);
+        read_fault = 1;
+        read_fault_address = 32'ha008;
+        d_stream(32'h9ff0, 12, 0, 0, 1, 0);
+        read_fault = 0;
+        count_before = ar_count;
+        d_access(0, 32'ha004, 0, 0, expected_memory[32'ha004 >> 2], 0, 0);
+        if (ar_count != count_before + LINE_WORDS) $fatal(1, "Faulting D stream line was installed");
         i_read(32'h7000, memory[32'h7000 >> 2], 0, 0);
         i_read(32'h7010, memory[32'h7010 >> 2], 0, 0);
         count_before = ar_count;
@@ -584,7 +744,7 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
         flush_and_reset();
         d_access(0, 32'h904, 0, 0, expected_memory[32'h904 >> 2], 0, 0);
         if (ar_count != LINE_WORDS) $fatal(1, "Reset did not invalidate SRAM tags");
-        $display("PASS writeback_memory: ways=%0d bytes=%0d line=%0d dirty eviction/retry, MMIO visibility, SRAM/AXI/backpressure", DCACHE_WAYS, DCACHE_BYTES, CACHE_LINE_BYTES);
+        $display("PASS writeback_memory: ways=%0d bytes=%0d line=%0d D Load=1/cycle Store=1/2cycles WB=1word/cycle, ordered four-credit streams, dirty retry/MMIO/SRAM/AXI", DCACHE_WAYS, DCACHE_BYTES, CACHE_LINE_BYTES);
         $finish;
     end
 

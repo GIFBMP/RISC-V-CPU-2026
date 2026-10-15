@@ -2,7 +2,7 @@
 set -eu
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)
 cd "$repo_root"
-unit_out=${CPU2026_WB_UNIT_BUILD:-build/v3/unit-writeback}
+unit_out=${CPU2026_WB_UNIT_BUILD:-build/v4/unit-writeback}
 mkdir -p "$unit_out"
 
 run_configuration() {
@@ -11,6 +11,7 @@ run_configuration() {
     bytes=$3
     line=$4
     latency=$5
+    write_mode=${6:-normal}
     iverilog -g2012 -s writeback_memory_tb \
         "-Pwriteback_memory_tb.DCACHE_WAYS=$ways" \
         "-Pwriteback_memory_tb.DCACHE_BYTES=$bytes" \
@@ -20,16 +21,29 @@ run_configuration() {
         verilog/memory/dcache_writeback.sv verilog/bus/axi_lite_bridge.sv \
         verilog/memory/memory_system.sv verification/unit/writeback_memory_tb.sv \
         >"$unit_out/$name.compile.log" 2>&1
-    vvp "$unit_out/$name.vvp" "+READ_LATENCY=$latency"
+    if [ "$write_mode" = fast ]; then
+        vvp "$unit_out/$name.vvp" "+READ_LATENCY=$latency" +FAST_WRITE
+    else
+        vvp "$unit_out/$name.vvp" "+READ_LATENCY=$latency"
+    fi
 }
 
 run_configuration direct 1 256 16 64
 run_configuration two_way 2 256 16 64
 run_configuration four_way 4 256 16 64
 run_configuration low_latency 4 256 16 1
+run_configuration fast_write 4 256 16 1 fast
 run_configuration long_line 4 256 64 64
+run_configuration long_line_fast 4 256 64 1 fast
+# More than sixteen words forces the writeback SRAM FIFO to stop/restart while
+# all bridge write credits are occupied; 64B lines alone cannot cover that now.
+run_configuration beyond_write_credits 4 1024 128 64
 run_configuration production_two_way 2 4096 16 64
 run_configuration production_four_way 4 4096 16 64
+run_configuration production_large 4 16384 64 64
+run_configuration production_large_fast 4 16384 64 1 fast
+run_configuration production_128 4 16384 128 64
+run_configuration production_128_fast 4 16384 128 1 fast
 
 # Narrow indices and one-word lines must elaborate. Unsupported shapes must fail.
 iverilog -g2012 -s dcache_writeback -Pdcache_writeback.CACHE_BYTES=4 \

@@ -9,12 +9,15 @@
 struct FaultMemory : Memory {
     uint32_t fault_address = 0;
     bool fault_used = false;
+    uint64_t fault_extra_delay = 0;
     std::vector<std::pair<uint32_t, uint8_t>> expected_bytes;
 
     void configure() {
         const char *fault = std::getenv("CPU_TEST_FAULT_WRITE");
         if (!fault) throw std::runtime_error("CPU_TEST_FAULT_WRITE is required");
         fault_address = uint32_t(std::stoull(fault, nullptr, 0));
+        if (const char *delay = std::getenv("CPU_TEST_FAULT_EXTRA_DELAY"))
+            fault_extra_delay = std::stoull(delay, nullptr, 0);
         if (const char *filename = std::getenv("CPU_TEST_EXPECT_MEMORY")) {
             std::ifstream input(filename);
             if (!input) throw std::runtime_error("cannot open expected memory");
@@ -32,7 +35,7 @@ struct FaultMemory : Memory {
             uint32_t address = aw.front();
             aw.pop_front();
             w.pop_front();
-            b.push_back({2, 0, cycle + latency, false});
+            b.push_back({2, 0, cycle + latency + fault_extra_delay, false});
             fault_used = true;
             std::cout << "CPU_BUS WRITE_ERROR cycle=" << cycle << " addr="
                       << std::hex << address << std::dec << std::endl;

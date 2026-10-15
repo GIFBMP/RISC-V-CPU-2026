@@ -1,0 +1,483 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-15",
+  "version": "V4 single-issue RV32IM OoO, pipelined memory, byte forwarding, committed stores and early fetch",
+  "baseline_commit": "f1a7ace8b002d8d6bd317d995369213cff51290a",
+  "framework_commit": "54fc150ffc290f52aa024209ffb9a29d43856f6d",
+  "testcases_commit": "29f980727f7d99a1842a58f34091c7579ba3fe85",
+  "rtl_sha256": {
+    "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+    "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+    "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+    "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+    "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+    "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+    "verilog/memory/icache_pipeline.sv": "1d24f1ae8b61d5508932c7d44979c74db7a84663191a8d16c2c7c193af3cae7c",
+    "verilog/memory/dcache_writeback.sv": "afe3c0b8fc2ccabd245627f8b6f11225c7a9fe10654cad85467fd71cd05778fc",
+    "verilog/memory/memory_system.sv": "3c456dd17258c222a9848c4b6f93e18b69cad3c641075096316d5e520aa6b163",
+    "verilog/frontend/fetch_frontend.sv": "d056de2a132b38970ad83847f4e14775e6fec6c19fd65fcdefd66895434d7542",
+    "verilog/cpu_core.sv": "8b93e46342062476e2c2e31c17a422f9dd12f56a72470c83f44a812455c2aafe",
+    "verilog/student_top.sv": "563bb80305349b1309526a36f91ac2cd869607c739506dd5ae1f2cd85af0a4aa",
+    "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+  },
+  "parameters": {
+    "ROB_DEPTH": 16,
+    "PRF_SIZE": 48,
+    "IQ_DEPTH": 8,
+    "LSQ_DEPTH": 8,
+    "MEM_QUEUE_DEPTH": 8,
+    "ICACHE_BYTES": 2048,
+    "DCACHE_BYTES": 16384,
+    "CACHE_LINE_BYTES": 128,
+    "ICACHE_WAYS": 1,
+    "DCACHE_WAYS": 4,
+    "DCACHE_WRITE_BACK": 1,
+    "ISSUE_WIDTH": 1,
+    "FETCH_QUEUE_DEPTH": 8,
+    "FETCH_OUTSTANDING": 4,
+    "BTB_ENTRIES": 64,
+    "RAS_DEPTH": 0,
+    "EARLY_FETCH": 1,
+    "PREDICT_ENABLE": 1,
+    "TRACE": 0
+  },
+  "official": {
+    "latency": 10,
+    "max_cycles": 100000000,
+    "platforms": [
+      "macOS arm64, Verilator 5.052",
+      "Linux arm64, Verilator 5.020"
+    ],
+    "cycles_identical": true,
+    "correctness": [
+      {
+        "case": "correctness_add_to_100",
+        "cycles": 646,
+        "passed": true
+      },
+      {
+        "case": "correctness_array_test1",
+        "cycles": 654,
+        "passed": true
+      },
+      {
+        "case": "correctness_array_test2",
+        "cycles": 696,
+        "passed": true
+      },
+      {
+        "case": "correctness_basicopt1",
+        "cycles": 752195,
+        "passed": true
+      },
+      {
+        "case": "correctness_bulgarian",
+        "cycles": 374716,
+        "passed": true
+      },
+      {
+        "case": "correctness_expr",
+        "cycles": 735,
+        "passed": true
+      },
+      {
+        "case": "correctness_gcd",
+        "cycles": 731,
+        "passed": true
+      },
+      {
+        "case": "correctness_hanoi",
+        "cycles": 6821,
+        "passed": true
+      },
+      {
+        "case": "correctness_lvalue2",
+        "cycles": 408,
+        "passed": true
+      },
+      {
+        "case": "correctness_magic",
+        "cycles": 650992,
+        "passed": true
+      },
+      {
+        "case": "correctness_manyarguments",
+        "cycles": 464,
+        "passed": true
+      },
+      {
+        "case": "correctness_multiarray",
+        "cycles": 2901,
+        "passed": true
+      },
+      {
+        "case": "correctness_naive",
+        "cycles": 400,
+        "passed": true
+      },
+      {
+        "case": "correctness_pi",
+        "cycles": 39431654,
+        "passed": true
+      },
+      {
+        "case": "correctness_qsort",
+        "cycles": 1516306,
+        "passed": true
+      },
+      {
+        "case": "correctness_queens",
+        "cycles": 458928,
+        "passed": true
+      },
+      {
+        "case": "correctness_statement_test",
+        "cycles": 1957,
+        "passed": true
+      },
+      {
+        "case": "correctness_superloop",
+        "cycles": 552531,
+        "passed": true
+      },
+      {
+        "case": "correctness_tak",
+        "cycles": 1817731,
+        "passed": true
+      }
+    ],
+    "performance": [
+      {
+        "case": "perf_median",
+        "instructions": 6961,
+        "cycles": 15261,
+        "ipc": 0.4561300045868554,
+        "passed": true
+      },
+      {
+        "case": "perf_multiply",
+        "instructions": 21722,
+        "cycles": 27737,
+        "ipc": 0.7831416519450554,
+        "passed": true
+      },
+      {
+        "case": "perf_qsort",
+        "instructions": 139900,
+        "cycles": 263115,
+        "ipc": 0.5317066681869145,
+        "passed": true
+      },
+      {
+        "case": "perf_rsort",
+        "instructions": 195719,
+        "cycles": 259045,
+        "ipc": 0.7555405431488738,
+        "passed": true
+      },
+      {
+        "case": "perf_towers",
+        "instructions": 5278,
+        "cycles": 8402,
+        "ipc": 0.6281837657700547,
+        "passed": true
+      },
+      {
+        "case": "perf_vvadd",
+        "instructions": 4524,
+        "cycles": 8053,
+        "ipc": 0.5617782192971563,
+        "passed": true
+      }
+    ],
+    "performance_geomean_ipc": 0.6082541422226553,
+    "baseline_geomean_ipc": 0.3092468806761621,
+    "geomean_improvement_percent": 96.6888528973097,
+    "logs": {
+      "macos": {
+        "build": "build/v4/r9-macos-build.log",
+        "test": "build/v4/r9-macos-test.log",
+        "perf": "build/v4/r9-macos-perf.log"
+      },
+      "linux": {
+        "build": "build/v4/r9-linux-build.log",
+        "test": "build/v4/r9-linux-test.log",
+        "perf": "build/v4/r9-linux-perf.log"
+      }
+    },
+    "binary_sha256": {
+      "build/v4/core-r9/sim": "c564b36ca3dae3c6ed686b7391e3817da790191b195bae1a0a39dc6ced0cd21f",
+      "build/v4/r9-macos/sim": "907ede357762a017890d63331dad30cce9a265cc944175842a9a2beee0913431",
+      "build/v4/r9-linux/sim": "f7a2ae6e849cef5d4967a1c112ef9dbdef7668986c73e54e27b84c0019100e56"
+    }
+  },
+  "synthesis": {
+    "report": "build/v4/synth-r4/opt/report.json",
+    "audit": "build/v4/analysis-r4/audit.json",
+    "area": {
+      "logic_area_um2": 9317.975939999991,
+      "sequential_area_um2": 4642.272,
+      "combinational_area_um2": 4675.703939999991,
+      "sram_area_um2": 6313.340621999998,
+      "area_um2": 15631.316561999989
+    },
+    "timing": {
+      "clock_port": "clock",
+      "clock_period_ns": 2.0,
+      "input_delay_ns": 0.2,
+      "output_delay_ns": 0.2,
+      "input_transition_ns": 0.05,
+      "clock_transition_ns": 0.05,
+      "clock_uncertainty_ns": 0.05,
+      "output_load_ff": 5.0,
+      "reset_value": 0,
+      "clock_model": "ideal",
+      "interconnect": "no_parasitics",
+      "frequency_resolution_ns": 0.001,
+      "minimum_period_ns": 3.3310546875,
+      "estimated_fmax_mhz": 300.20521841102317,
+      "worst_setup_slack_ns": -1.330637,
+      "timing_analyzed": true
+    },
+    "tools": {
+      "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+      "opensta": "3.1.0"
+    },
+    "libraries": [
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_AO_RVT_TT_nldm_211120.lib",
+        "sha256": "b1ece108c0a2acd8d01c05cee6daee2834425037b1d9aad625d6f1dd640f1940"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_INVBUF_RVT_TT_nldm_220122.lib",
+        "sha256": "a4ceb32e418e1aac8667e28fbd8e9e46baf520180be4db075598a4d7c681a56e"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_OA_RVT_TT_nldm_211120.lib",
+        "sha256": "6529c6c72465cd133dfbfb03952327ab2774bb6aa4be866d78fd7bc6c58c9f6f"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_SEQ_RVT_TT_nldm_220123.lib",
+        "sha256": "57a0b403485b99ebd676942af4673ac086b86c7c75fbdc3e5c0038501dd22ba3"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.lib",
+        "sha256": "fa92e6ab1481810602811b1eea54bc016a341f11fb5188d7512c026599adf038"
+      },
+      {
+        "path": "/work/build/v4/synth-r4/opt/ram/fakeram_asap7_1024x8.lib",
+        "sha256": "54565b04833c6bf334d2d74cdaae3796230822dc853c41f7846235dfb1c66da1"
+      },
+      {
+        "path": "/work/build/v4/synth-r4/opt/ram/fakeram_asap7_16x21.lib",
+        "sha256": "62e6c63e736ed2bb3790c9d982a74036c580f0756945f75be54b49d62dfdf2aa"
+      },
+      {
+        "path": "/work/build/v4/synth-r4/opt/ram/fakeram_asap7_32x20.lib",
+        "sha256": "3acb01d68a11e19d1516443049a2bd7862b2f1fc5d58847f4f33ce68b0b16a84"
+      },
+      {
+        "path": "/work/build/v4/synth-r4/opt/ram/fakeram_asap7_512x8.lib",
+        "sha256": "76008a32e7c01d04fd0e8c2c1ec8bea9fd8579e47ac559731b2d98fa3b539a07"
+      }
+    ],
+    "sram_model": {
+      "name": "fakeram-asap7-v1",
+      "upstream": "ABKGroup/FakeRAM2.0",
+      "commit": "49dad15badc28a55363813e105c830c7776fc588",
+      "estimated": true,
+      "area_per_bit_um2": 0.0419904,
+      "clock_to_q_formula_ns": "0.071262 + 0.0000167155 * depth + 0.001243254 * width",
+      "setup_ns": 0.05,
+      "hold_ns": 0.05,
+      "min_period_ns": 0.157
+    },
+    "at_300mhz_period_margin_from_search_ps": 2.2786458333334814,
+    "critical_path": {
+      "start": "core.mq_count[3]",
+      "end": "core.issue_imm[22]",
+      "mapped_start": "_139520_/QN",
+      "mapped_end": "_139341_/D",
+      "chain": [
+        "memory response eligibility from queued/sent counts",
+        "raw load/MDU/ALU writeback arbitration and wb_dst[5]",
+        "IQ operand-ready comparison and oldest-ready grant",
+        "binary issue_index selecting IQ ROB index",
+        "ROB row decode and metadata selection into EX"
+      ],
+      "high_fanout_gates": [
+        {
+          "gate": "_078682_",
+          "meaning": "raw memory-completion condition",
+          "fanout": 92,
+          "delay_ns": 0.525
+        },
+        {
+          "gate": "_080111_",
+          "meaning": "wb_dst[5] arbitration",
+          "fanout": 24,
+          "delay_ns": 0.5288
+        },
+        {
+          "gate": "_119861_",
+          "meaning": "selected ROB row decode",
+          "fanout": 114,
+          "delay_ns": 0.721
+        }
+      ],
+      "interpretation": "The remaining limit is same-cycle wakeup plus scheduler and two-stage indexed metadata read. No further optimization was applied after reaching the requested target."
+    },
+    "direct_300mhz": {
+      "clock_period_ns": 3.3333333333333335,
+      "worst_slack_ns_from_7digit_report": 0.0026967,
+      "worst_slack_ps": 2.6967,
+      "worst_slack_json_ps": 2.697,
+      "setup_met": true,
+      "only_analysis_clock_period_changed": true,
+      "official_sdc_sha256": "6cd3f0ad5ae7bec472484ad9db220c767c29716309fbad0b26c46f384a3372dd",
+      "analysis_sdc_sha256": "33ffbb2fa2a9002f07702000d61f9a0091abd6d3f263c6644a855eaab5feb408",
+      "report": "build/v4/analysis-r4/timing-300mhz.rpt",
+      "note": "Direct STA slack differs slightly from period-search margin because the official Fmax search stops at a 0.001 ns resolution."
+    },
+    "source_and_framework_audit": {
+      "source_start_equals_end": true,
+      "source_report_matches_start": true,
+      "all_report_inputs_match_current": true,
+      "standard_libraries_match_v3": true,
+      "sram_model_matches_v3": true,
+      "tools_match_v3": true,
+      "constraints_match_v3": true,
+      "abc_target_2000ps": true,
+      "framework_diff_vs_v3_empty": true
+    },
+    "report_sha256": "776fea02e67813f9a60f47574e6386f0b265c13be1baa1afcb6e5705af5f1fdc"
+  },
+  "verification": {
+    "evidence_index": "build/verification/v4-final-evidence.json",
+    "counts": {
+      "strict": {
+        "passed": 129,
+        "total": 129,
+        "commits": 98298
+      },
+      "small": {
+        "passed": 86,
+        "total": 86,
+        "commits": 65532
+      },
+      "writeback_faults": {
+        "passed": 12,
+        "total": 12,
+        "commits": 783
+      },
+      "perf": {
+        "passed": 6,
+        "total": 6,
+        "commits": 374104
+      },
+      "faults_macos": {
+        "passed": 27,
+        "total": 27
+      },
+      "faults_linux": {
+        "passed": 27,
+        "total": 27
+      }
+    },
+    "reports": {
+      "strict": "build/v4/strict-r9/20261015-231616-854283/summary.json",
+      "small": "build/verification/v4-runs-small-r9/20261015-231821-585329/summary.json",
+      "writeback_faults": "build/verification/v4-writeback-faults-r9/summary.json",
+      "perf": "build/verification/v4-perf-r9/20261015-231812-452864/summary.json",
+      "faults_macos": "build/verification/v4-faults-macos-r9/summary.json",
+      "faults_linux": "build/verification/v4-faults-linux-r9/summary.json"
+    },
+    "builds": {
+      "strict": {
+        "path": "build/v4/core-r9",
+        "manifest_sha256": "cd78f29ba8aefd4cd6e342a889d52ab0179e652d83afe2f66921b0898631d85b",
+        "simulator_sha256": "c564b36ca3dae3c6ed686b7391e3817da790191b195bae1a0a39dc6ced0cd21f",
+        "parameters": {
+          "TRACE": "1"
+        },
+        "stale_sources": []
+      },
+      "small": {
+        "path": "build/verification/v4-trace-small-r9",
+        "manifest_sha256": "cd78f29ba8aefd4cd6e342a889d52ab0179e652d83afe2f66921b0898631d85b",
+        "simulator_sha256": "0527703d43f027c0045c2ce33889b03a38f87f6d007c880b23e5c3f4c0cb832e",
+        "parameters": {
+          "TRACE": "1",
+          "ROB_DEPTH": "5",
+          "PRF_SIZE": "37",
+          "IQ_DEPTH": "3",
+          "LSQ_DEPTH": "3",
+          "MEM_QUEUE_DEPTH": "3",
+          "ICACHE_BYTES": "128",
+          "DCACHE_BYTES": "128",
+          "CACHE_LINE_BYTES": "8",
+          "DCACHE_WAYS": "1",
+          "FETCH_QUEUE_DEPTH": "5",
+          "FETCH_OUTSTANDING": "3",
+          "BTB_ENTRIES": "5",
+          "RAS_DEPTH": "3"
+        },
+        "stale_sources": []
+      },
+      "writeback_faults": {
+        "path": "build/verification/v4-writeback-fault-trace-r9",
+        "manifest_sha256": "65a4e299665be6d590ea06506b7bdfffa7dd151aeb088b25f7bbe2b33e46975f",
+        "simulator_sha256": "a514f4783b54d1ef9fc4fe2d7fbb02709f779a523385701e53f5e24d89c990ef",
+        "parameters": {
+          "TRACE": "1"
+        },
+        "stale_sources": []
+      }
+    },
+    "reference_checker_tests": {
+      "passed": 23,
+      "log": "build/verification/v4-reference-unittest.log"
+    },
+    "assembler_audit": {
+      "passed": 43,
+      "log": "build/verification/v4-cases-audit.log"
+    },
+    "units": {
+      "execute_and_frontend": "build/verification/v4-unit-summary.json",
+      "native_execute_frontend_configs": 10,
+      "linux_execute_frontend_configs": 10,
+      "memory": "build/v4/unit-memory-final/summary.json",
+      "native_writeback_configs": 14,
+      "native_writethrough_configs": 3,
+      "linux_production_128B_configs": 2
+    },
+    "source_sha256": {
+      "verification/directed/generate.py": "8f598e70d0d4492e12c441b2920805a68110a6d6066b0814145aff3b181fb351",
+      "verification/directed/lsu_cases.py": "cd2577cd71edb219046c976ca18bc70ec85aaac7f47b2ef557f72cbd2a014d3d",
+      "verification/directed/README.md": "96997d9fef2cba211c518c3caf375503d9ea51696d876072bd766676cfb52b1b",
+      "verification/directed/control_cases.py": "c169bc35659272e072bd34e228d5d4f186bf34130d938772a421bec7deb44710",
+      "verification/runners/run_faults.py": "362c53f01cccb857ed750740d6e764aebaf690a13483c1d5b9583235c9124ae5",
+      "verification/runners/analyze_trace.py": "daff3ae9632a9baaa744519ef70bd296d1c31302cbf4f5b4e3f8b701115175eb",
+      "verification/runners/test_reference.py": "d2a62b8993e37eba9aeed5aeb82c805d6e0489da684368fc26a38fd30ce65104",
+      "verification/runners/lsu_checks.py": "340494640df61b0ab54d6ba28a51646dcb78c065fd99ec3c2d3272896af2736c",
+      "verification/runners/build_trace.py": "b863546b5deb9e346a1f17a1f86c7d08d1d19a36673e5f6bd9efdf406e06bd5c",
+      "verification/runners/rv32_reference.py": "fb8ca2e0d7ffdcf332ca33488ea2fb21aece85ec9bcacd40f2cb23d12e0cd115",
+      "verification/runners/test_analysis.py": "466aabec5d432ed2adea16e9e1b478f5652c4869f111a173e6a7c9af6d8d5502",
+      "verification/runners/run_writeback_faults.py": "460a852a97f9c7884d79a6d8333437fa2d059b5c49af055880917e7bbdf35184",
+      "verification/runners/writeback_fault_sim.cpp": "0195cd68e9bec98de633aa8c6f7dd468558e55c03af97ac87b7340e6b81ea411",
+      "verification/runners/audit_cases.py": "f2a16c78200cd653ba08a48dff0b844ea8ea39557c9b92c509b6c8097f8c21e9",
+      "verification/runners/run_linux_units.sh": "6ac357033d7fec183a20c19fcd5b62b5efd4d3656b25c4231f49bee775eb95db",
+      "verification/runners/analyze_dependencies.py": "7f486dea6cc255e4e10818d846c1cff8efb2c0ee82c7f116db2cabe658e734fe",
+      "verification/runners/test_lsu_checks.py": "4709d6afa89d805b8df28ba83d2cd3a4943189b35f40759403242381b89330fa",
+      "verification/runners/run_cpu.py": "a6a66ff05ed453040cda3401b71eb190200ef0105cd8765fc8526079a5bb74c6"
+    }
+  },
+  "contracts": {
+    "buffered_store_error": "Fail-stop asynchronous diagnostic with original queued PC/instruction; younger retired instructions are not rolled back.",
+    "killed_load": "Descriptor retained through request/response drain; no writeback after cancellation or PRF reuse.",
+    "mmio": "Wait for preceding descriptor responses and full cache dirty flush; no external exit after failed preceding Store.",
+    "default_cache_misses": "One blocking miss; four ordered D-cache CPU credits.",
+    "timing": "Course ideal-clock, no-parasitics estimate; only about 2.28 ps period margin versus 300 MHz."
+  },
+  "framework_modified": false
+}

@@ -37,6 +37,15 @@ python3 verification/runners/audit_cases.py \
 | `cache_exit_dirty` | 写脏 256 行，最后更新后直接 MMIO；CPU 层核对架构数据，外存实际排空由存储单测核验 |
 | `flush_dirty_store` | 错路 SB 命中预先写入的驻留行，必须发射后被杀且原数据保持 |
 | `flush_writeback_load` | 错路 uncached Load 触发脏行排空后被杀；配合专用注入器验证写回失败后的重试 |
+| `lsu_forward_youngest` / `lsu_forward_partial` | 长 DIV 阻止旧 Store 退休时，SW/SB/SH 逐字节按年龄转发；完整覆盖与部分覆盖合并，以及符号扩展 |
+| `lsu_nonalias_bypass` | 已知地址的旧 Store 尚未退休，年轻非别名 Load 已进入 LSU，转发 mask 必须为 0 |
+| `lsu_unknown_address` / `lsu_unknown_data` | 年轻 Load 已分配但必须等旧 Store 的未知地址/数据就绪；41 轮覆盖 ROB 回绕 |
+| `lsu_younger_store_age` | 年轻 Store 地址/数据先就绪，仍不能转发给等待 DIV 地址的旧 Load，也不能先于它退休 |
+| `lsu_multiple_loads` | 至少两笔已被 Cache 接收且尚未响应的 Load；之后连续冷 miss 验证顺序和目的寄存器身份 |
+| `lsu_killed_hits` / `lsu_killed_reuse` | 同一 flush 杀死至少两个 Load 上下文；前者要求两笔请求已接受，后者要求冷 miss 旧响应前复用物理目的寄存器 |
+| `lsu_committed_store_flush` | 已退休、尚未响应的缓冲 Store 跨 redirect 仍存活；错路 Store 不得改写其值 |
+| `early_older_override` | 年轻分支先请求提前取指，延迟执行的老分支随后以精确动态身份覆盖它 |
+| `early_commit_collision` | 老分支重定向提交与年轻分支解析同拍，必须阻止年轻提前取指覆盖老分支目标 |
 
 ## 对接仿真器
 
@@ -72,44 +81,54 @@ CPU_TRACE FLUSH id=22 cycle=692 pc=00000054 target=00000060 load_pending=1
 CPU_TRACE DROP_LOAD id=23 cycle=767 pc=00000058
 CPU_TRACE WB_STALL id=42 cycle=200 pc=00000040 source=1
 CPU_TRACE RENAME_BYPASS id=43 cycle=201 pc=00000044 source=3
-CPU_TRACE MEM_RESPONSE id=44 cycle=220 pc=00000048 write=1 killed=0
-CPU_TRACE STORE_RETIRE id=44 cycle=221 pc=00000048
+CPU_TRACE LOAD_QUEUE id=44 cycle=203 pc=00000048 mask=e depth=2
+CPU_TRACE MEM_REQUEST id=44 cycle=204 pc=00000048 write=0 addr=00010000 killed=0
+CPU_TRACE MEM_RESPONSE id=44 cycle=220 pc=00000048 write=0 killed=0
+CPU_TRACE STORE_RETIRE id=45 cycle=221 pc=0000004c
+CPU_TRACE EARLY_FETCH id=46 cycle=222 pc=00000050 target=00000060 prev_id=47 override=1
+CPU_TRACE EARLY_BLOCK id=47 cycle=223 pc=00000054 head_id=46
 ```
 
 - `seq` 是从 0 连续递增的架构退休序号；`id` 是分配时的唯一动态指令编号，冲刷后允许留空号。
 - 没有寄存器写回时 `rd=0 value=0`；写 x0 也按无写回处理。
 - Store 使用对齐 4 字节的 `addr`、左移到正确 byte lane 的 `data` 和 `strb`。比较器忽略未使能 byte lane 的数据。
 - Store 的 COMMIT 可在 ROB 头且不可撤销地交给存储系统时打印。最终退出 Store 必须先记录，因为官方仿真器在退出 B 响应握手时立即结束。不能在 B 响应时重复打印。
+- V4 普通 RAM Store 在 ROB 头进入不可撤销队列时 COMMIT/STORE_RETIRE，可能早于 Cache 的 MEM_REQUEST；uncached Store 仍在请求握手时 COMMIT、响应后退队。MEM_REQUEST/MEM_RESPONSE 必须读取独立上下文保存的原始身份，不能读取已复用 ROB 槽位。
 - 默认逐条检查 PC、指令、目的寄存器、结果和 Store 副作用；漏提交、重复提交和过早退出均失败。
 - OoO 探针要求匹配最终已提交的动态 `id`：年轻独立 ADD 的 ISSUE 周期早于更老依赖 ADD，而 COMMIT 序号晚于它。仅与长操作重叠执行不算发射乱序；错误路径上的同 PC 发射也不算证据。
 - 错误路径探针先预热关键指令和恢复目标。默认必须观察错误指令 DISPATCH、ISSUE 先于指定分支 FLUSH，且从不 COMMIT。Load/MDU 还必须从不 COMPLETE；Load 必须在 FLUSH 时仍 `load_pending=1`，后来出现保留原始 `id/pc` 的 DROP_LOAD。
 - `flush_load` 额外强制检查恢复路径最终提交的指令，在旧响应到来前复用了被杀 Load 的同一个 `pdst`。`flush_bad_load` 要求杀死与错误响应排空；最短外部延迟下错误响应会很快返回，因此不额外要求它的目的寄存器也提前复用。
 - V2 预测测试要求指定控制流次数发生对应目标的 FLUSH，同时要求训练后的部分控制流无需 FLUSH。`pipeline_completion` 要求 Load（`source=1`）和 MDU（`source=2`）都实际阻塞过普通 EX 指令，且这些指令随后只 ISSUE/COMPLETE 一次并最终提交；RENAME_BYPASS 的 `source` 分别表示 rs1、rs2、两者同拍命中写回。
+- V4 LSU 探针区分 LOAD_QUEUE 与真正接受的 MEM_REQUEST；`depth` 是十进制，`mask` 是十六进制。逐事务检查接受/响应身份、FIFO 顺序、取消后禁止 COMPLETE/COMMIT，以及退出时不能遗留更老事务。转发探针还要求对应旧 Store 在 Load 进入队列时均已完成地址/数据计算但仍未 COMMIT。多取消探针按动态分支 `id` 排除预热时同 PC 的已提交 Load，并要求原上下文 DROP_LOAD。
+- 提前取指检查要求具体 EARLY_FETCH 覆盖事件的 `prev_id`，以及正确的老分支目标和 `FLUSH prepared=1`。同拍竞争检查要求 EARLY_BLOCK 的 `head_id` 精确对应该拍提交的老分支，且年轻分支该拍没有 EARLY_FETCH、以后没有 COMMIT。仅通过最终结果不能满足这些要求。
 - `--no-ooo` 和 `--no-speculation-coverage` 供小队列参数的纯功能回归或定位问题使用，只跳过对应计时覆盖，始终保留逐条提交对比。后者也跳过依赖默认 BTB 布局和默认流水窗口的 V2 预测/写回争用覆盖；报告记录实际启用的检查。`--result-only` 同时跳过全部轨迹检查，不能用于完整 CPU 验收。
 
-默认生成 **31 组**（23 组定向、8 个随机种子；V2 冻结版本为 26 组）。完整运行示例：
+默认生成 **43 组**（35 组定向、8 个随机种子；V3 冻结版本为 31 组）。完整运行示例：
 
 ```sh
-python3 verification/directed/generate.py --out build/verification/v2-cases
-python3 verification/runners/build_trace.py --out build/verification/v2-trace
-python3 verification/runners/run_cpu.py --sim build/verification/v2-trace/sim \
-  --cases build/verification/v2-cases --latencies 1,10,31
-python3 verification/runners/run_faults.py --sim build/verification/v2-trace/sim \
-  --out build/verification/v2-faults --latencies 1,10,31
+python3 verification/directed/generate.py --out build/verification/v4-cases
+python3 verification/runners/build_trace.py --out build/verification/v4-trace
+python3 verification/runners/run_cpu.py --sim build/verification/v4-trace/sim \
+  --cases build/verification/v4-cases --latencies 1,10,31
+python3 verification/runners/run_faults.py --sim build/verification/v4-trace/sim \
+  --out build/verification/v4-faults --latencies 1,10,31
 ```
 
 非 2 的幂小参数配置的纯功能回归示例：
 
 ```sh
-python3 verification/runners/build_trace.py --out build/verification/v2-trace-small \
+python3 verification/runners/build_trace.py --out build/verification/v4-trace-small \
   --param ROB_DEPTH=5 --param PRF_SIZE=37 --param IQ_DEPTH=3 --param LSQ_DEPTH=3 \
+  --param MEM_QUEUE_DEPTH=3 --param RAS_DEPTH=3 --param DCACHE_WAYS=1 \
   --param ICACHE_BYTES=128 --param DCACHE_BYTES=128 --param CACHE_LINE_BYTES=8 \
   --param FETCH_QUEUE_DEPTH=5 --param FETCH_OUTSTANDING=3 --param BTB_ENTRIES=5
-python3 verification/runners/run_cpu.py --sim build/verification/v2-trace-small/sim \
-  --cases build/verification/v2-cases --latencies 1,10 --no-ooo --no-speculation-coverage
+python3 verification/runners/run_cpu.py --sim build/verification/v4-trace-small/sim \
+  --cases build/verification/v4-cases --latencies 1,10 --no-ooo --no-speculation-coverage
 ```
 
 参考模型只覆盖本课要求的用户态 RV32IM，自然对齐访问；不模拟特权、异常处理、CSR、FENCE、ECALL/EBREAK 或周期性能。它不会把架构路径上非法指令、越界访问静默跳过。随机总线背压需要总线单元测试环境支持；官方仿真器延迟扫描只能覆盖不同响应延迟和其固定的从机行为，不能声称等价于任意独立通道背压测试。
+
+课程 Linux 容器包含 Verilator，未安装 Icarus。可在容器 `/work` 内运行 `verification/runners/run_linux_units.sh`，用 `--timing --assert` 编译相同的 decoder/ALU、MDU 与前端测试台；前端包含 5 个队列/预测配置和 RAS 深度 0、1、3，共 10 个单元配置。`CPU2026_LINUX_UNIT_BUILD` 控制独立输出目录，`CPU2026_UNIT_JOBS` 控制构建并行数，逐配置保存编译与执行日志。
 
 ## 从逐提交轨迹测量瓶颈
 
@@ -121,9 +140,14 @@ python3 verification/runners/run_cpu.py --sim build/verification/trace/sim \
 python3 verification/runners/analyze_trace.py \
   --runs build/verification/perf-trace/TIMESTAMP \
   --sim build/verification/trace/sim --out build/verification/perf-analysis.json
+python3 verification/runners/analyze_dependencies.py \
+  --runs build/verification/perf-trace/TIMESTAMP \
+  --out build/verification/dependency-analysis.json
 ```
 
 分析器统计已提交 Load 的 ISSUE→COMPLETE 延迟分布、分配到发射等待、Store 发射到请求等待、控制流恢复比例、FLUSH 到下一次提交的间隔及写回冲突事件。Store 的 COMMIT 早于真实 ROB 退队，因此 V2 轨迹不能直接给出精确 B 等待或 Store 占据 ROB 头的周期数。分析器报告全部 Store 后的提交空档，以及其中后继指令早已完成的保守下界；两者之间还可能包含后继自身的等待。V3 新增 MEM_RESPONSE/STORE_RETIRE 后，还可准确统计请求握手→CPU 接收响应、请求握手→ROB 退队的间隔；这仍不包含请求前已在 ROB 头的等待，最终退出 Store 也可能因官方框架立即停机而没有这两个事件。Load 延迟、恢复间隔和提交空档会重叠，不能相加当成 CPI 分解。预测率仅统计已提交控制流，Load 延迟仅统计最终提交的动态指令身份。
+
+V4 优先使用显式 MEM_REQUEST 作为服务起点，另列 Store COMMIT→REQUEST、COMMIT→ROB 退队和 Load 入队→请求、请求→响应；已经先退休的 Store 不计入 REQUEST→RETIRE 分布，避免用负值误称等待时间。Store 后提交空档只是程序退休间隔，不能归因于 Store 头阻塞。依赖分析器通过已提交动态身份重建最近源寄存器生产者，统计生产者 COMPLETE→消费者 ISSUE、分支 ISSUE→FLUSH，并按下一条指令的状态分配提交空档；同样不是互斥的微架构停顿归因。方向预测回放采用已提交结果即时训练，只有理想化算法比较意义，不能作为预测 IPC。
 
 ## CPU 级写回错误注入
 
@@ -137,3 +161,5 @@ python3 verification/runners/run_writeback_faults.py \
 ```
 
 两条合法路径分别要求当前触发 Load/退出 Store 的准确 fault 编号和 PC；错误不能伪装成更早已退休 Store 的精确异常。错路测试先把一行写脏，再让年轻 uncached Load 触发排空，向第二个写回字注入错误。它必须在恢复后以原动态 `id` 出现唯一 `MEM_RESPONSE killed=1` 与 `DROP_LOAD`，不 COMPLETE/COMMIT；最终 MMIO 必须重试脏行并成功，退出前核对 16 个已提交 RAM 字节。每次仍逐条对比成功路径的架构提交。注入器通过环境变量选择故障地址与外存核对文件，运行器统一配置并保存日志，避免把单纯超时或任意 abort 当成成功。
+
+V4 额外加入 `buffered_ram_store_fault`：四路同组填满后，已退休 RAM Store 触发脏行替换错误。专用故障 B 额外延迟 256 周期，确保发生 redirect 和至少 16 条年轻退休；必须仍用上下文保存的原 Store PC 诊断 `buffered_store=1`，逐条核对所有实际提交，禁止在更老错误前发送退出请求。它是异步错误合同，不改变前述两类 uncached 错误的精确前缀要求。默认总计 **4×3=12** 次错误注入运行。

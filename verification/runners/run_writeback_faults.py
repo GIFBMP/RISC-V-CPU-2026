@@ -39,6 +39,35 @@ def architectural_fault(write: bool) -> FaultCase:
     return FaultCase(program.name, program.description, tuple(program.words), 5 if write else 4, fault_pc)
 
 
+def buffered_store_fault() -> FaultCase:
+    program = Program("buffered_ram_store_fault",
+                      "A retired RAM Store reports its saved PC after redirect and ROB slot reuse")
+    program.li(25, 0)
+    program.jal(0, "compute")
+    program.label("initialize")
+    # Four congruent dirty lines fill the default four ways. The next Store
+    # evicts the first line, whose second writeback word gets one SLVERR.
+    for index in range(4):
+        program.li(1, 0x10000 + index * 0x10000)
+        program.li(11, 0x76543210 + index)
+        program.store("sw", 11, 1)
+    program.li(25, 1)
+    program.li(1, 0x50000)
+    fault_pc = program.pc
+    program.store("sw", 11, 1)
+    program.branch("beq", 0, 0, "compute")
+    program.store("sw", 0, 31)
+    program.label("compute")
+    # This code was warmed before initialization. The deliberately delayed
+    # injected error allows more than one ROB revolution of younger commits.
+    for index in range(64):
+        program.i("addi", 28, 28, index + 1)
+    program.branch("beq", 25, 0, "initialize")
+    program.finish()
+    program.resolve()
+    return FaultCase(program.name, program.description, tuple(program.words), 5, fault_pc)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sim", type=Path, required=True)
@@ -54,6 +83,7 @@ def main() -> int:
     output.mkdir(parents=True, exist_ok=True)
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     os.environ["CPU_TEST_FAULT_WRITE"] = "0x10004"
+    os.environ.pop("CPU_TEST_FAULT_EXTRA_DELAY", None)
     os.environ.pop("CPU_TEST_EXPECT_MEMORY", None)
     results = []
     for write in (False, True):
@@ -116,6 +146,47 @@ def main() -> int:
         (folder / "report.json").write_text(json.dumps(result, indent=2) + "\n")
         results.append(result)
         print(f"{'PASS' if result['passed'] else 'FAIL'} {program.name} latency={latency}: {result['errors']}", flush=True)
+
+    # Buffered RAM Stores deliberately have an asynchronous diagnostic contract.
+    # Keep the exact precise-prefix checks above intact; here every observed
+    # commit must remain a valid prefix, including younger retired instructions.
+    os.environ.pop("CPU_TEST_EXPECT_MEMORY", None)
+    os.environ["CPU_TEST_FAULT_EXTRA_DELAY"] = "256"
+    case = buffered_store_fault()
+    image = write_case(case, output / "cases" / case.name)
+    for latency in latencies:
+        folder = output / f"{case.name}-latency{latency}"
+        result = run_fault_case(case, image, simulator, folder, latency, 100_000, 30)
+        log = (folder / "sim.log").read_text()
+        events = [event for line in log.splitlines() if (event := parse_trace(line)) is not None]
+        commits = [fields for kind, fields in events if kind == "COMMIT"]
+        reference = RV32.from_image(image)
+        for actual in commits:
+            mismatch = compare_commit(actual, reference.step())
+            if mismatch:
+                result["errors"].append(mismatch)
+                break
+        trigger = next((item for item in commits if item["pc"] == case.pc), None)
+        response = next((fields for kind, fields in events if kind == "MEM_RESPONSE" and trigger
+                         and fields["id"] == trigger["id"]), None)
+        younger = [item for item in commits if trigger and item["seq"] > trigger["seq"]]
+        intervening_flush = next((fields for kind, fields in events if kind == "FLUSH" and trigger and response
+                                 and trigger["cycle"] < fields["cycle"] < response["cycle"]), None)
+        if not trigger or not response or response.get("killed") or response.get("write") != 1:
+            result["errors"].append("buffered Store did not retain its committed identity through the error response")
+        if len(younger) < 16 or not intervening_flush:
+            result["errors"].append("required younger retirement/ROB reuse and redirect before asynchronous fault were absent")
+        if log.count("CPU_BUS WRITE_ERROR ") != 1 or "buffered_store=1" not in log:
+            result["errors"].append("missing exactly one injected writeback error and explicit buffered Store diagnostic")
+        if "CPU_BUS EXIT_RAM_VISIBLE " in log or any(kind == "MEM_REQUEST" and fields.get("addr") == 0x80000000
+                                                    for kind, fields in events):
+            result["errors"].append("exit escaped the older buffered Store error barrier")
+        result.update({"commits": len(commits), "younger_commits": len(younger),
+                       "buffered_store": trigger, "response": response, "intervening_flush": intervening_flush,
+                       "passed": not result["errors"]})
+        (folder / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+        results.append(result)
+        print(f"{'PASS' if result['passed'] else 'FAIL'} {case.name} latency={latency}: {result['errors']}", flush=True)
     summary = {"simulator": str(simulator), "simulator_sha256": hashlib.sha256(simulator.read_bytes()).hexdigest(),
                "passed": sum(result["passed"] for result in results), "total": len(results), "results": results}
     (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")

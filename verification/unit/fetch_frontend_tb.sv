@@ -5,7 +5,8 @@ module fetch_frontend_tb #(
     parameter integer QUEUE_DEPTH = 8,
     parameter integer OUTSTANDING = 4,
     parameter integer BTB_SIZE = 64,
-    parameter integer PREDICT = 1
+    parameter integer PREDICT = 1,
+    parameter integer RAS_SIZE = 16
 );
     logic clock = 0;
     always #5 clock = !clock;
@@ -21,12 +22,12 @@ module fetch_frontend_tb #(
     logic [31:0] i_rsp_data;
     logic i_rsp_error;
     logic update_valid = 0;
-    logic [31:0] update_pc = 0, update_target = 0;
+    logic [31:0] update_pc = 0, update_target = 0, update_insn = 0;
     logic update_conditional = 0, update_taken = 0;
 
     fetch_frontend #(
         .FETCH_QUEUE_DEPTH(QUEUE_DEPTH), .FETCH_OUTSTANDING(OUTSTANDING),
-        .BTB_ENTRIES(BTB_SIZE), .PREDICT_ENABLE(PREDICT)
+        .BTB_ENTRIES(BTB_SIZE), .PREDICT_ENABLE(PREDICT), .RAS_DEPTH(RAS_SIZE)
     ) dut (.*);
 
     localparam integer MODEL_SIZE = 8192;
@@ -62,6 +63,9 @@ module fetch_frontend_tb #(
     logic [31:0] expected_a_pc = 0, expected_a_target = 0;
     logic expected_b_valid = 0, expected_b_taken = 0;
     logic [31:0] expected_b_pc = 0, expected_b_target = 0;
+    logic ras_test_mode = 0;
+    logic [31:0] ras_expected_target = 0;
+    integer ras_checks = 0;
 
     function automatic [31:0] memory_word(input [31:0] address);
         memory_word = address ^ 32'hcafe_5a5a;
@@ -80,6 +84,7 @@ module fetch_frontend_tb #(
                 if (expected_b_valid && address == expected_b_pc && expected_b_taken)
                     prediction = expected_b_target;
             end
+            if (ras_test_mode) prediction = ras_expected_target;
         end
     endfunction
 
@@ -235,6 +240,7 @@ module fetch_frontend_tb #(
         begin
             @(negedge clock);
             update_valid = 1;
+            update_insn = 0;
             update_pc = pc;
             update_target = target;
             update_conditional = conditional;
@@ -255,6 +261,196 @@ module fetch_frontend_tb #(
             instruction_ready = 1;
             steps(count);
             pause_and_clear();
+        end
+    endtask
+
+    function automatic [31:0] jal(input integer rd);
+        jal = 32'h0000006f | (32'(rd) << 7);
+    endfunction
+
+    function automatic [31:0] jalr(input integer rd, input integer rs1);
+        jalr = 32'h00000067 | (32'(rd) << 7) | (32'(rs1) << 15);
+    endfunction
+
+    task automatic ras_reset;
+        begin
+            @(negedge clock);
+            cache_accept = 0;
+            update_valid = 0;
+            redirect_valid = 0;
+            reset = 1;
+            steps(2);
+            reset = 0;
+            update_insn = 0;
+            instruction_ready = 1;
+            response_latency = 1;
+            variable_latency = 0;
+            ras_test_mode = 1;
+        end
+    endtask
+
+    task automatic ras_train(input [31:0] pc, input [31:0] insn, input [31:0] target);
+        begin
+            @(negedge clock);
+            update_valid = 1;
+            update_pc = pc;
+            update_insn = insn;
+            update_target = target;
+            update_conditional = 0;
+            update_taken = 1;
+            @(negedge clock);
+            update_valid = 0;
+            @(negedge clock);
+            update_insn = 0;
+        end
+    endtask
+
+    // A script supplies each expected prediction explicitly. The ordinary
+    // accepted-request/response scoreboard still checks the public interface;
+    // no internal stack, pointer, or action-decode signal is inspected.
+    task automatic ras_request(input [31:0] pc, input [31:0] target, input integer stall);
+        integer before_count;
+        begin
+            cache_accept = 0;
+            #1;
+            while (!i_req_valid) @(negedge clock);
+            ras_expected_target = target;
+            before_count = accepted;
+            steps(stall);
+            if (accepted != before_count || i_req_addr !== pc)
+                $fatal(1, "RAS stalled request mismatch got=%08x expected=%08x", i_req_addr, pc);
+            cache_accept = 1;
+            @(negedge clock);
+            cache_accept = 0;
+            if (accepted != before_count + 1) $fatal(1, "RAS request was not accepted once");
+            while (pending_head != pending_tail || expected_head != expected_tail) @(negedge clock);
+            ras_checks = ras_checks + 1;
+        end
+    endtask
+
+    task automatic test_ras;
+        integer n;
+        logic [31:0] current_pc, wanted;
+        begin
+            ras_reset();
+            if (PREDICT == 0 || RAS_SIZE == 0) begin
+                ras_train(32'h100, jal(1), 32'h200);
+                ras_train(32'h200, jalr(0, 1), 32'hdead0000);
+                redirect(32'h200);
+                ras_request(32'h200, PREDICT != 0 ? 32'hdead0000 : 32'h204, 8);
+            end else begin
+                // Committed overflow retains the newest bounded set. An extra
+                // dummy push is consumed by training the initial return.
+                for (n = 0; n < RAS_SIZE + 3; n = n + 1)
+                    ras_train(32'h1000 + 32'(n*4), jal(n[0] ? 5 : 1), 32'h800);
+                ras_train(32'h3000, jal(1), 32'h800);
+                ras_train(32'h800, jalr(0, 1), 32'hdead0000);
+                redirect(32'h800);
+                current_pc = 32'h800;
+                for (n = 0; n < RAS_SIZE - 1; n = n + 1) begin
+                    wanted = 32'h1004 + 32'((RAS_SIZE + 2 - n)*4);
+                    if (n != 0) ras_train(current_pc, jalr(0, 5), 32'hdead0000);
+                    ras_request(current_pc, wanted, n == 0 ? 9 : 0);
+                    current_pc = wanted;
+                end
+                if (RAS_SIZE == 1) wanted = 32'hdead0000;
+                else ras_train(current_pc, jalr(0, 1), 32'hdead0000);
+                ras_request(current_pc, 32'hdead0000, 2);
+
+                // A speculative call pushes only when accepted, despite a
+                // stalled request. The return sees the shadowed call address.
+                ras_reset();
+                ras_train(32'h100, jal(1), 32'h200);
+                redirect(32'h100);
+                ras_request(32'h100, 32'h200, 12);
+                ras_train(32'h200, jalr(0, 1), 32'hdead0000);
+                ras_request(32'h200, 32'h104, 7);
+                ras_train(32'h104, jalr(0, 1), 32'hdead0000);
+                ras_request(32'h104, RAS_SIZE > 1 ? 32'h104 : 32'hdead0000, 0);
+
+                // Redirect removes a wrong-path push and pop. The committed
+                // base includes the return that retired during its training.
+                ras_reset();
+                ras_train(32'h100, jal(1), 32'h200);
+                ras_train(32'h200, jal(5), 32'h300);
+                redirect(32'h200);
+                ras_request(32'h200, 32'h300, 0);
+                ras_train(32'h300, jalr(0, 5), 32'hdead0000);
+                ras_request(32'h300, 32'h204, 0);
+                redirect(32'h300);
+                ras_request(32'h300, RAS_SIZE > 1 ? 32'h104 : 32'hdead0000, 0);
+
+                // Same-edge commit+redirect must recover the newly pushed
+                // address, even when stale speculative data occupied its slot.
+                ras_reset();
+                ras_train(32'h800, jalr(0, 1), 32'hdead0000);
+                @(negedge clock);
+                update_valid = 1;
+                update_pc = 32'h400;
+                update_insn = jal(5);
+                update_target = 32'h900;
+                redirect_valid = 1;
+                redirect_pc = 32'h800;
+                @(negedge clock);
+                update_valid = 0;
+                redirect_valid = 0;
+                // Fetch before delayed training replaces a possibly aliased
+                // return entry, including the one-entry BTB configuration.
+                ras_request(32'h800, 32'h404, 0);
+
+                // A retiring return on the redirect edge must also be
+                // included in recovery, rather than resurrecting its top.
+                ras_reset();
+                ras_train(32'h100, jal(1), 32'h200);
+                ras_train(32'h200, jal(5), 32'h300);
+                ras_train(32'h300, jal(1), 32'h800);
+                ras_train(32'h800, jalr(0, 1), 32'hdead0000);
+                @(negedge clock);
+                update_valid = 1;
+                update_pc = 32'h800;
+                update_insn = jalr(0, 1);
+                update_target = 32'hdead0000;
+                redirect_valid = 1;
+                redirect_pc = 32'h800;
+                @(negedge clock);
+                update_valid = 0;
+                redirect_valid = 0;
+                ras_request(32'h800, RAS_SIZE > 2 ? 32'h104 : 32'hdead0000, 0);
+
+                // A link destination with a non-link source only pushes.
+                ras_reset();
+                ras_train(32'h100, jalr(5, 2), 32'h200);
+                redirect(32'h100);
+                ras_request(32'h100, 32'h200, 4);
+                ras_train(32'h200, jalr(0, 5), 32'hdead0000);
+                ras_request(32'h200, 32'h104, 1);
+
+                // Same-register JALR pushes; different link registers pop
+                // then push. Non-link JALR leaves the stack unchanged.
+                ras_reset();
+                ras_train(32'h100, jal(1), 32'h200);
+                ras_train(32'h200, jalr(1, 1), 32'h300);
+                redirect(32'h200);
+                ras_request(32'h200, 32'h300, 3);
+                ras_train(32'h300, jalr(5, 1), 32'hdead0000);
+                ras_request(32'h300, 32'h204, 2);
+                ras_train(32'h204, jalr(0, 1), 32'hdead0000);
+                ras_request(32'h204, 32'h304, 2);
+
+                ras_reset();
+                ras_train(32'h100, jal(5), 32'h200);
+                ras_train(32'h800, jalr(0, 1), 32'hdead0000);
+                // Refill after the return training pop; train a neutral JALR
+                // before restoring and fetching it.
+                ras_train(32'h400, jal(1), 32'h200);
+                ras_train(32'h200, jalr(0, 2), 32'h800);
+                redirect(32'h200);
+                ras_request(32'h200, 32'h800, 0);
+                ras_train(32'h800, jalr(0, 1), 32'hdead0000);
+                ras_request(32'h800, 32'h404, 0);
+            end
+            ras_reset();
+            ras_test_mode = 0;
         end
     endtask
 
@@ -492,6 +688,8 @@ module fetch_frontend_tb #(
         steps(80);
         pause_and_clear();
 
+        test_ras();
+
         if (accepted < 300 || delivered < 200 || dropped == 0 || errors_delivered == 0)
             $fatal(1, "insufficient activity accepted=%0d delivered=%0d dropped=%0d errors=%0d",
                    accepted, delivered, dropped, errors_delivered);
@@ -501,8 +699,8 @@ module fetch_frontend_tb #(
         if (back_to_back_training == 0 || redirect_capture_training == 0
             || redirect_apply_training == 0 || canceled_training == 0)
             $fatal(1, "training pipeline edge coverage missing");
-        $display("PASS fetch_frontend Q=%0d OUT=%0d BTB=%0d PRED=%0d accepted=%0d delivered=%0d dropped=%0d longest_output_streak=%0d",
-                 QUEUE_DEPTH, OUTSTANDING, BTB_SIZE, PREDICT, accepted, delivered, dropped, longest_output_streak);
+        $display("PASS fetch_frontend Q=%0d OUT=%0d BTB=%0d PRED=%0d RAS=%0d ras_checks=%0d accepted=%0d delivered=%0d dropped=%0d longest_output_streak=%0d",
+                 QUEUE_DEPTH, OUTSTANDING, BTB_SIZE, PREDICT, RAS_SIZE, ras_checks, accepted, delivered, dropped, longest_output_streak);
         $finish;
     end
 

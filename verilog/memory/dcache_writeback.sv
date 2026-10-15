@@ -1,5 +1,8 @@
-// Blocking, write-back/write-allocate D cache. Tag and data arrays are genuine
-// synchronous 1RW SRAMs. Only committed CPU Stores may reach this interface.
+// Four-credit, ordered write-back/write-allocate D cache. Load hits accept one
+// request per cycle; a Store hit reserves the next single-port data-array cycle.
+// A miss blocks new requests while older queued responses continue draining.
+// Tag and data arrays are genuine synchronous 1RW SRAMs. Only committed CPU
+// Stores may reach this interface.
 // Every uncached D access flushes all dirty lines before its AXI transaction.
 // A writeback error preserves the entire dirty victim and faults the triggering
 // request; retrying a later eviction/flush writes the complete line again.
@@ -48,6 +51,9 @@ module dcache_writeback #(
     localparam integer LINE_OFFSET = LINE_BYTES >= 4 ? $clog2(LINE_BYTES) : 2;
     localparam integer TAG_SHIFT = $clog2(WAY_BYTES);
     localparam integer TAG_BITS = 32 - TAG_SHIFT;
+    localparam integer FLUSH_GROUP_SIZE = LINES >= 8 ? 8 : LINES;
+    localparam integer FLUSH_GROUP_SHIFT = $clog2(FLUSH_GROUP_SIZE);
+    localparam integer FLUSH_GROUPS = LINES / FLUSH_GROUP_SIZE;
     generate
         if ((WAYS != 1 && WAYS != 2 && WAYS != 4) || CACHE_BYTES < WAYS * 4 ||
             CACHE_BYTES > 2097152 || LINE_BYTES < 4 || LINE_BYTES > WAY_BYTES ||
@@ -57,19 +63,29 @@ module dcache_writeback #(
         end
     endgenerate
 
-    localparam [3:0] IDLE = 0, LOOKUP = 1, STORE_HIT = 2, REFILL = 3,
-        REFILL_FINISH = 4, INSTALL = 5, WB_READ = 6, WB_CAPTURE = 7,
-        WB_SEND = 8, WB_WAIT = 9, FLUSH_SCAN = 10, FLUSH_TAG = 11,
+    localparam [3:0] IDLE = 0, STORE_HIT = 2, REFILL = 3,
+        REFILL_FINISH = 4, INSTALL = 5, WB_READ = 6,
+        WB_WAIT = 9, FLUSH_SCAN = 10, FLUSH_TAG = 11,
         FLUSH_ADVANCE = 12, BYPASS_REQUEST = 13, BYPASS_RESPONSE = 14,
         RESPONSE = 15;
     reg [3:0] state;
     reg [31:0] address, store_data, response_data;
     reg [3:0] store_strobe;
     reg request_write, response_error, refill_error;
+    reg lookup_valid;
+    reg [2:0] cpu_count, response_count;
+    reg [1:0] response_head, response_tail;
+    reg [31:0] responses [0:3];
+    reg [3:0] response_errors;
     reg [WAY_BITS-1:0] selected_way;
     reg wb_for_flush, wb_error;
     reg [SET_BITS-1:0] victim_set;
-    reg [31:0] wb_base, wb_data;
+    reg [31:0] wb_base;
+    reg [31:0] wb_queue [0:3];
+    reg [1:0] wb_head, wb_tail;
+    reg [2:0] wb_count;
+    reg wb_read_pending;
+    reg [COUNT_BITS-1:0] wb_read_word;
     reg [COUNT_BITS-1:0] wb_word, wb_received, issued_words, received_words;
     reg [LINE_BITS-1:0] scan_line;
     reg [LINES-1:0] valid_bits, dirty_bits;
@@ -88,12 +104,27 @@ module dcache_writeback #(
     wire initial_lookup = request_fire && req_addr[1:0] == 0 && req_addr[31:28] == 0;
     wire rd_fire = mem_rd_rsp_valid && mem_rd_rsp_ready;
     wire wr_fire = mem_wr_rsp_valid && mem_wr_rsp_ready;
-    wire wb_active = state == WB_READ || state == WB_CAPTURE || state == WB_SEND || state == WB_WAIT;
+    wire wb_active = state == WB_READ || state == WB_WAIT;
+    wire wb_read_issue = state == WB_READ && wb_read_word < COUNT_BITS'(LINE_WORDS) &&
+        (wb_count + 3'(wb_read_pending)) < 3'd4;
+    wire wb_send = state == WB_READ && mem_wr_valid && mem_wr_ready;
     wire wb_complete = state == WB_WAIT && wb_received == COUNT_BITS'(LINE_WORDS);
     wire refill_last = received_words == COUNT_BITS'(LINE_WORDS - 1);
     wire [SAFE_WAYS-1:0] hits;
     wire hit = |hits;
     reg [WAY_BITS-1:0] hit_way, replacement_way;
+    wire lookup_aligned = address[1:0] == 0;
+    wire lookup_cacheable = address[31:28] == 0;
+    wire lookup_hit = state == IDLE && lookup_valid && lookup_aligned && lookup_cacheable && hit;
+    wire lookup_miss = state == IDLE && lookup_valid && lookup_aligned && lookup_cacheable && !hit;
+    wire lookup_fault = state == IDLE && lookup_valid && !lookup_aligned;
+    wire lookup_store = lookup_hit && request_write;
+    wire lookup_blocks = lookup_valid && !(lookup_aligned && lookup_cacheable && hit && !request_write);
+    wire response_pop = rsp_valid && rsp_ready;
+    wire response_push = lookup_hit || lookup_fault || state == RESPONSE;
+    wire [31:0] response_push_data = state == RESPONSE ? response_data :
+        ((lookup_fault || request_write) ? 32'b0 : data_rdata[hit_way]);
+    wire response_push_error = state == RESPONSE ? response_error : lookup_fault;
     integer select_way;
     always @* begin
         hit_way = 0;
@@ -107,6 +138,23 @@ module dcache_writeback #(
         end
     end
     wire [LINE_BITS-1:0] replacement_line = LINE_BITS'(replacement_way) * LINE_BITS'(SETS) + LINE_BITS'(request_set);
+    wire [LINE_BITS-1:0] hit_line = LINE_BITS'(hit_way) * LINE_BITS'(SETS) + LINE_BITS'(request_set);
+    wire [FLUSH_GROUPS-1:0] dirty_groups;
+    reg scan_group_dirty;
+    always @* begin
+        scan_group_dirty = 0;
+        for (integer group_index = 0; group_index < FLUSH_GROUPS; group_index = group_index + 1)
+            scan_group_dirty = scan_group_dirty | (dirty_groups[group_index] &&
+                (scan_line >> FLUSH_GROUP_SHIFT) == LINE_BITS'(group_index));
+    end
+    wire skip_clean_group = (scan_line & LINE_BITS'(FLUSH_GROUP_SIZE - 1)) == 0 && !scan_group_dirty;
+    generate
+        for (genvar group_index = 0; group_index < FLUSH_GROUPS; group_index = group_index + 1) begin : flush_groups
+            // Local eight-bit reductions add only one extra load per dirty bit;
+            // no full-cache priority chain is required to skip clean regions.
+            assign dirty_groups[group_index] = |dirty_bits[group_index * FLUSH_GROUP_SIZE +: FLUSH_GROUP_SIZE];
+        end
+    endgenerate
 
     genvar way;
     generate
@@ -124,13 +172,14 @@ module dcache_writeback #(
             );
             wire selected = selected_way == WAY_BITS'(way);
             wire refill_write = state == REFILL && selected && rd_fire && !mem_rd_rsp_error;
-            wire store_write = state == STORE_HIT && selected;
-            wire victim_read = state == WB_READ && selected;
+            wire store_write = (state == STORE_HIT && selected) ||
+                (lookup_store && hit_way == WAY_BITS'(way));
+            wire victim_read = wb_read_issue && selected;
             wire data_write = refill_write || store_write;
             wire [WORD_BITS-1:0] data_addr = refill_write ?
                 ((request_word & ~WORD_BITS'(LINE_WORDS - 1)) | WORD_BITS'(received_words)) :
                 (store_write ? request_word :
-                 (victim_read ? (WORD_BITS'(victim_set) * WORD_BITS'(LINE_WORDS) + WORD_BITS'(wb_word)) :
+                 (victim_read ? (WORD_BITS'(victim_set) * WORD_BITS'(LINE_WORDS) + WORD_BITS'(wb_read_word)) :
                   WORD_BITS'((req_addr >> 2) & (WORDS - 1))));
             sram_fakeram #(.DEPTH(WORDS), .WIDTH(32), .WRITE_GRANULARITY(8)) data (
                 .clk(clock), .en(!reset && (initial_lookup || victim_read || data_write)),
@@ -140,14 +189,34 @@ module dcache_writeback #(
         end
     endgenerate
 
+    // A synchronous SRAM read reserves one FIFO slot before it starts. Its
+    // output is captured on the immediately following edge, even if AXI stalls
+    // and the disabled SRAM drives X. Read, capture and send overlap at 1/cycle.
+    reg [31:0] wb_selected_data;
+    always @* begin
+        wb_selected_data = 0;
+        for (integer slot = 0; slot < 4; slot = slot + 1)
+            wb_selected_data = wb_selected_data | (wb_queue[slot] & {32{wb_head == 2'(slot)}});
+    end
+    generate
+        for (genvar slot = 0; slot < 4; slot = slot + 1) begin : writeback_slots
+            always @(posedge clock) begin
+                if (!reset && wb_read_pending && wb_tail == 2'(slot))
+                    wb_queue[slot] <= data_rdata[selected_way];
+            end
+        end
+    endgenerate
+
     // Each metadata row owns its local updates. Avoid a wide vector's shared
     // hold mux, whose control would otherwise fan out across every cache row.
     genvar row;
     generate
         for (row = 0; row < LINES; row = row + 1) begin : metadata
             wire install_here = state == INSTALL && request_line == LINE_BITS'(row);
-            wire store_here = state == STORE_HIT && store_strobe != 0 && request_line == LINE_BITS'(row);
-            wire evict_clean_here = state == LOOKUP && !hit && replacement_line == LINE_BITS'(row) &&
+            wire store_here = store_strobe != 0 &&
+                ((state == STORE_HIT && request_line == LINE_BITS'(row)) ||
+                 (lookup_store && hit_line == LINE_BITS'(row)));
+            wire evict_clean_here = lookup_miss && replacement_line == LINE_BITS'(row) &&
                 !(valid_bits[row] && dirty_bits[row]);
             wire writeback_done_here = wb_complete && !wb_error && selected_line == LINE_BITS'(row);
             always @(posedge clock) begin
@@ -171,19 +240,42 @@ module dcache_writeback #(
         end
     endgenerate
 
-    assign req_ready = !reset && state == IDLE;
-    assign rsp_valid = !reset && state == RESPONSE;
-    assign rsp_data = response_data;
-    assign rsp_error = response_error;
+    // Registered credit accounting keeps rsp_ready out of the request path.
+    // The executing lookup/miss already owns its eventual response FIFO slot.
+    assign req_ready = !reset && state == IDLE && !lookup_blocks && cpu_count < 3'd4;
+    assign rsp_valid = !reset && response_count != 0;
+    reg [31:0] response_selected_data;
+    reg response_selected_error;
+    always @* begin
+        response_selected_data = 0;
+        response_selected_error = 0;
+        for (integer slot = 0; slot < 4; slot = slot + 1) begin
+            response_selected_data = response_selected_data | (responses[slot] & {32{response_head == 2'(slot)}});
+            response_selected_error = response_selected_error | (response_errors[slot] && response_head == 2'(slot));
+        end
+    end
+    assign rsp_data = response_selected_data;
+    assign rsp_error = response_selected_error;
+    generate
+        for (genvar slot = 0; slot < 4; slot = slot + 1) begin : response_slots
+            always @(posedge clock) begin
+                if (!reset && response_push && response_tail == 2'(slot)) begin
+                    responses[slot] <= response_push_data;
+                    response_errors[slot] <= response_push_error;
+                end
+            end
+        end
+    endgenerate
     assign mem_rd_valid = !reset && ((state == REFILL && issued_words < COUNT_BITS'(LINE_WORDS)) ||
         (state == BYPASS_REQUEST && !request_write));
     assign mem_rd_addr = state == REFILL ?
         ((address & ~32'(LINE_BYTES - 1)) | (32'(issued_words) << 2)) : address;
     assign mem_rd_rsp_ready = !reset && (state == REFILL || (state == BYPASS_RESPONSE && !request_write));
-    assign mem_wr_valid = !reset && (state == WB_SEND || (state == BYPASS_REQUEST && request_write));
-    assign mem_wr_addr = state == WB_SEND ? wb_base + (32'(wb_word) << 2) : address;
-    assign mem_wr_data = state == WB_SEND ? wb_data : store_data;
-    assign mem_wr_strb = state == WB_SEND ? 4'hf : store_strobe;
+    assign mem_wr_valid = !reset && ((state == WB_READ && wb_count != 0) ||
+        (state == BYPASS_REQUEST && request_write));
+    assign mem_wr_addr = state == WB_READ ? wb_base + (32'(wb_word) << 2) : address;
+    assign mem_wr_data = state == WB_READ ? wb_selected_data : store_data;
+    assign mem_wr_strb = state == WB_READ ? 4'hf : store_strobe;
     assign mem_wr_rsp_ready = !reset && (wb_active || (state == BYPASS_RESPONSE && request_write));
 
     always @(posedge clock) begin
@@ -196,60 +288,84 @@ module dcache_writeback #(
             response_data <= 0;
             response_error <= 0;
             refill_error <= 0;
+            lookup_valid <= 0;
+            cpu_count <= 0;
+            response_count <= 0;
+            response_head <= 0;
+            response_tail <= 0;
             selected_way <= 0;
             victim_set <= 0;
             wb_for_flush <= 0;
             wb_error <= 0;
             wb_base <= 0;
-            wb_data <= 0;
+            wb_head <= 0;
+            wb_tail <= 0;
+            wb_count <= 0;
+            wb_read_pending <= 0;
+            wb_read_word <= 0;
             wb_word <= 0;
             wb_received <= 0;
             issued_words <= 0;
             received_words <= 0;
             scan_line <= 0;
         end else begin
+            wb_read_pending <= wb_read_issue;
+            if (wb_read_issue) wb_read_word <= wb_read_word + 1'b1;
+            if (wb_read_pending) wb_tail <= wb_tail + 1'b1;
+            if (wb_send) wb_head <= wb_head + 1'b1;
+            case ({wb_read_pending, wb_send})
+                2'b10: wb_count <= wb_count + 1'b1;
+                2'b01: wb_count <= wb_count - 1'b1;
+                default: ;
+            endcase
+            lookup_valid <= request_fire;
+            if (request_fire) begin
+                address <= req_addr;
+                store_data <= req_wdata;
+                store_strobe <= req_wstrb;
+                request_write <= req_write;
+                response_data <= 0;
+                response_error <= 0;
+            end
+            if (response_push) response_tail <= response_tail + 1'b1;
+            if (response_pop) response_head <= response_head + 1'b1;
+            case ({request_fire, response_pop})
+                2'b10: cpu_count <= cpu_count + 1'b1;
+                2'b01: cpu_count <= cpu_count - 1'b1;
+                default: ;
+            endcase
+            case ({response_push, response_pop})
+                2'b10: response_count <= response_count + 1'b1;
+                2'b01: response_count <= response_count - 1'b1;
+                default: ;
+            endcase
             if (wb_active && wr_fire) begin
                 wb_received <= wb_received + 1'b1;
                 wb_error <= wb_error || mem_wr_rsp_error;
             end
             case (state)
-                IDLE: if (request_fire) begin
-                    address <= req_addr;
-                    store_data <= req_wdata;
-                    store_strobe <= req_wstrb;
-                    request_write <= req_write;
-                    response_data <= 0;
-                    response_error <= 0;
-                    if (req_addr[1:0] != 0) begin
-                        response_error <= 1;
-                        state <= RESPONSE;
-                    end else if (req_addr[31:28] != 0) begin
+                IDLE: if (lookup_valid && lookup_aligned) begin
+                    if (!lookup_cacheable) begin
                         scan_line <= 0;
                         state <= FLUSH_SCAN;
-                    end else state <= LOOKUP;
-                end
-                LOOKUP: if (hit) begin
-                    selected_way <= hit_way;
-                    if (request_write) state <= STORE_HIT;
-                    else begin
-                        response_data <= data_rdata[hit_way];
-                        state <= RESPONSE;
-                    end
-                end else begin
-                    selected_way <= replacement_way;
-                    victim_set <= request_set;
-                    wb_for_flush <= 0;
-                    wb_error <= 0;
-                    wb_word <= 0;
-                    wb_received <= 0;
-                    wb_base <= (32'(tag_rdata[replacement_way]) << TAG_SHIFT) |
-                        (32'(request_set) << LINE_OFFSET);
-                    issued_words <= 0;
-                    received_words <= 0;
-                    refill_error <= 0;
-                    if (valid_bits[replacement_line] && dirty_bits[replacement_line]) state <= WB_READ;
-                    else begin
-                        state <= REFILL;
+                    end else if (!hit) begin
+                        selected_way <= replacement_way;
+                        victim_set <= request_set;
+                        wb_for_flush <= 0;
+                        wb_error <= 0;
+                        wb_word <= 0;
+                        wb_received <= 0;
+                        wb_read_word <= 0;
+                        wb_head <= 0;
+                        wb_tail <= 0;
+                        wb_count <= 0;
+                        wb_base <= (32'(tag_rdata[replacement_way]) << TAG_SHIFT) |
+                            (32'(request_set) << LINE_OFFSET);
+                        issued_words <= 0;
+                        received_words <= 0;
+                        refill_error <= 0;
+                        if (valid_bits[replacement_line] && dirty_bits[replacement_line]) state <= WB_READ;
+                        else state <= REFILL;
                     end
                 end
                 STORE_HIT: begin
@@ -276,17 +392,9 @@ module dcache_writeback #(
                         state <= STORE_HIT;
                     end else state <= RESPONSE;
                 end
-                WB_READ: state <= WB_CAPTURE;
-                WB_CAPTURE: begin
-                    wb_data <= data_rdata[selected_way];
-                    state <= WB_SEND;
-                end
-                WB_SEND: if (mem_wr_valid && mem_wr_ready) begin
+                WB_READ: if (wb_send) begin
                     if (wb_word == COUNT_BITS'(LINE_WORDS - 1)) state <= WB_WAIT;
-                    else begin
-                        wb_word <= wb_word + 1'b1;
-                        state <= WB_READ;
-                    end
+                    wb_word <= wb_word + 1'b1;
                 end
                 WB_WAIT: if (wb_complete) begin
                     if (wb_error) begin
@@ -302,7 +410,10 @@ module dcache_writeback #(
                     end
                 end
                 FLUSH_SCAN: begin
-                    if (valid_bits[scan_line] && dirty_bits[scan_line]) begin
+                    if (skip_clean_group) begin
+                        if (scan_line == LINE_BITS'(LINES - FLUSH_GROUP_SIZE)) state <= BYPASS_REQUEST;
+                        else scan_line <= scan_line + LINE_BITS'(FLUSH_GROUP_SIZE);
+                    end else if (valid_bits[scan_line] && dirty_bits[scan_line]) begin
                         selected_way <= scan_way;
                         victim_set <= scan_set;
                         state <= FLUSH_TAG;
@@ -314,6 +425,10 @@ module dcache_writeback #(
                         (32'(victim_set) << LINE_OFFSET);
                     wb_word <= 0;
                     wb_received <= 0;
+                    wb_read_word <= 0;
+                    wb_head <= 0;
+                    wb_tail <= 0;
+                    wb_count <= 0;
                     wb_error <= 0;
                     wb_for_flush <= 1;
                     state <= WB_READ;
@@ -336,9 +451,22 @@ module dcache_writeback #(
                         state <= RESPONSE;
                     end
                 end
-                RESPONSE: if (rsp_valid && rsp_ready) state <= IDLE;
+                RESPONSE: state <= IDLE;
                 default: state <= IDLE;
             endcase
         end
     end
+`ifndef SYNTHESIS
+    always @(posedge clock) if (!reset) begin
+        assert (cpu_count <= 4 && response_count <= cpu_count);
+        assert (cpu_count == response_count + 3'((state != IDLE) || lookup_valid));
+        assert (!response_push || response_count < 4 || response_pop);
+        assert (!request_fire || state == IDLE);
+        assert (!(lookup_store && initial_lookup));
+        assert (wb_count + 3'(wb_read_pending) <= 4);
+        assert (!wb_read_pending || wb_active);
+        assert (!wb_active || wb_word <= wb_read_word);
+        assert (state != WB_WAIT || (wb_count == 0 && !wb_read_pending));
+    end
+`endif
 endmodule

@@ -21,9 +21,10 @@ import sys
 import time
 
 from rv32_reference import Commit, RV32
+from lsu_checks import check_lsu, check_memory_transactions
 
-TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|FLUSH|DROP_LOAD|WB_STALL|RENAME_BYPASS|MEM_RESPONSE|STORE_RETIRE)\s+(.*)")
-DECIMAL = {"seq", "id", "cycle", "rd", "pdst", "store", "load_pending", "source", "write", "killed"}
+TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|FLUSH|DROP_LOAD|WB_STALL|RENAME_BYPASS|MEM_REQUEST|MEM_RESPONSE|STORE_RETIRE|LOAD_QUEUE|EARLY_FETCH|EARLY_BLOCK)\s+(.*)")
+DECIMAL = {"seq", "id", "cycle", "rd", "pdst", "store", "load_pending", "source", "write", "killed", "depth", "prev_id", "head_id", "override", "prepared"}
 PASS = re.compile(r"^PASS cycles=(\d+) result=(\d+) expected=(\d+)\s*$")
 
 
@@ -170,6 +171,31 @@ def check_pipeline(requirements: dict, events: list[tuple[str, dict]]) -> tuple[
     return None, evidence
 
 
+def check_recovery(probe: dict, events: list[tuple[str, dict]]) -> tuple[str | None, dict]:
+    def matching(kind, pc):
+        return [fields for event, fields in events if event == kind and fields.get("pc") == pc]
+    committed = {fields["id"]: fields for event, fields in events if event == "COMMIT"}
+    for flush in matching("FLUSH", probe["older_pc"]):
+        if flush.get("target") != probe["target_pc"] or flush["id"] not in committed:
+            continue
+        older = next((item for item in matching("EARLY_FETCH", probe["older_pc"]) if item["id"] == flush["id"]), None)
+        if probe["kind"] == "older_override" and older and older.get("override"):
+            young = next((item for item in matching("EARLY_FETCH", probe["younger_pc"])
+                          if item["id"] == older.get("prev_id") and item["cycle"] < older["cycle"]
+                          and item["id"] > older["id"] and item["id"] not in committed), None)
+            if young and older["target"] == flush["target"] and flush.get("prepared") == 1:
+                return None, {"younger_fetch": young, "older_override": older, "flush": flush}
+        elif probe["kind"] == "commit_collision":
+            block = next((item for item in matching("EARLY_BLOCK", probe["younger_pc"])
+                          if item.get("head_id") == flush["id"] and item["id"] > flush["id"]
+                          and item["cycle"] == committed[flush["id"]]["cycle"]
+                          and item["id"] not in committed), None)
+            if block and not any(item["id"] == block["id"] and item["cycle"] == block["cycle"]
+                                 for item in matching("EARLY_FETCH", probe["younger_pc"])):
+                return None, {"blocked_younger": block, "older_commit": committed[flush["id"]], "flush": flush}
+    return "required older-priority early-fetch recovery event was not observed", {}
+
+
 def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: int,
              result_only: bool, require_ooo: bool, require_speculation: bool = True) -> dict:
     expected_result = int((case / "expected.txt").read_text().strip(), 0)
@@ -180,6 +206,8 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
     speculation = metadata.get("speculation", [])
     prediction = metadata.get("prediction", [])
     pipeline = metadata.get("pipeline", {})
+    lsu = metadata.get("lsu", [])
+    recovery = metadata.get("recovery", [])
     probe_pcs = {probe[key + "_pc"] for probe in probes for key in ("older", "younger", "producer")}
     probe_pcs.update(probe[key + "_pc"] for probe in speculation for key in ("branch", "wrong", "replacement"))
     probe_pcs.update(probe["site_pc"] for probe in prediction)
@@ -210,7 +238,7 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
             if not parsed:
                 continue
             kind, fields = parsed
-            if pipeline or fields.get("pc") in probe_pcs:
+            if pipeline or lsu or recovery or fields.get("pc") in probe_pcs:
                 observed.append((kind, fields))
             if kind != "COMMIT":
                 continue
@@ -263,11 +291,32 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
             error, pipeline_proof = check_pipeline(pipeline, observed)
             if error:
                 errors.append(error)
+    lsu_proof = []
+    recovery_proof = []
+    transaction_proof = {}
+    if not result_only and lsu and not errors:
+        error, transaction_proof = check_memory_transactions(observed)
+        if error:
+            errors.append(error)
+        if require_speculation and not errors:
+            for probe in lsu:
+                error, evidence = check_lsu(probe, observed)
+                lsu_proof.append({"probe": probe, "evidence": evidence})
+                if error:
+                    errors.append(error)
+    if not result_only and require_speculation and not errors:
+        for probe in recovery:
+            error, evidence = check_recovery(probe, observed)
+            recovery_proof.append({"probe": probe, "evidence": evidence})
+            if error:
+                errors.append(error)
     report = {"case": case.name, "latency": latency, "passed": not errors, "errors": errors,
               "commits": commits, "cycles": pass_cycles, "elapsed_seconds": round(time.monotonic() - start, 3),
               "result_only": result_only, "command": command, "ooo_evidence": proof,
               "speculation_evidence": speculation_proof,
               "prediction_evidence": prediction_proof, "pipeline_evidence": pipeline_proof,
+              "lsu_evidence": lsu_proof, "memory_transaction_evidence": transaction_proof,
+              "recovery_evidence": recovery_proof,
               "checks": {"commits": not result_only, "ooo": not result_only and require_ooo,
                          "speculation": not result_only and require_speculation},
               "image_sha256": hashlib.sha256((case / "program.data").read_bytes()).hexdigest()}
