@@ -23,10 +23,13 @@ import time
 from rv32_reference import Commit, RV32
 from lsu_checks import check_lsu, check_memory_transactions
 from wide_checks import check_wide
+from v7_checks import check_v7_invariants, check_v7_probe
 from selective_checks import check_selective_invariants, check_selective_probe
 
-TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|FLUSH|DROP_LOAD|DROP_MDU|RECOVERY_HOLD|WB_STALL|WB_PAIR|CONFIG|RENAME_BYPASS|MEM_REQUEST|MEM_RESPONSE|STORE_RETIRE|LOAD_QUEUE|EARLY_FETCH|EARLY_BLOCK)\s+(.*)")
+TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|SELECT|FLUSH|DROP_LOAD|DROP_MDU|RECOVERY_HOLD|WB_STALL|WB_PAIR|CONFIG|RENAME_BYPASS|MEM_REQUEST|MEM_RESPONSE|STORE_RETIRE|STORE_ADDR|STORE_DATA|LOAD_QUEUE|LOAD_RETRY|EX_KEEP|MEM_PAIR|EARLY_FETCH|EARLY_BLOCK)\s+(.*)")
 DECIMAL = {"seq", "id", "cycle", "rd", "pdst", "store", "load_pending", "source", "write", "killed", "depth", "prev_id", "head_id", "override", "prepared", "slot", "selective", "kept", "load_id", "ex_id", "memory", "early_recovery", "dual_wb"}
+DECIMAL.update({"version", "select_width", "rename_width", "commit_width", "checkpoints", "select_load",
+                "execute_redirect", "lane", "fast", "hazard", "space", "ready", "psrc", "late", "store_id"})
 PASS = re.compile(r"^PASS cycles=(\d+) result=(\d+) expected=(\d+)\s*$")
 
 
@@ -372,6 +375,17 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
             if error:
                 errors.append(error)
     wide_proof = {}
+    v7_invariants, v7_proof = {}, []
+    if not result_only and not errors:
+        error, v7_invariants = check_v7_invariants(observed)
+        if error:
+            errors.append(error)
+    if not result_only and require_speculation and not errors:
+        for probe in metadata.get("v7", []):
+            error, evidence = check_v7_probe(probe, observed)
+            v7_proof.append({"probe": probe, "evidence": evidence})
+            if error:
+                errors.append(error)
     if not result_only and require_speculation and not errors and metadata.get("wide"):
         error, wide_proof = check_wide(metadata["wide"], observed)
         if error:
@@ -384,6 +398,7 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
               "lsu_evidence": lsu_proof, "memory_transaction_evidence": transaction_proof,
               "recovery_evidence": recovery_proof,
               "selective_invariants": selective_proof, "wide_evidence": wide_proof,
+              "v7_invariants": v7_invariants, "v7_evidence": v7_proof,
               "checks": {"commits": not result_only, "ooo": not result_only and require_ooo,
                          "speculation": not result_only and require_speculation},
               "image_sha256": hashlib.sha256((case / "program.data").read_bytes()).hexdigest()}

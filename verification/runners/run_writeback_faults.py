@@ -73,6 +73,7 @@ def main() -> int:
     parser.add_argument("--sim", type=Path, required=True)
     parser.add_argument("--out", type=Path, default=Path("build/verification/writeback-faults"))
     parser.add_argument("--latencies", default="1,10,31")
+    parser.add_argument("--recovery-mode", choices=("selective", "wide", "v7"), default="v7")
     args = parser.parse_args()
     simulator, output = args.sim.resolve(), args.out.resolve()
     latencies = [int(value) for value in args.latencies.split(",")]
@@ -120,7 +121,7 @@ def main() -> int:
             results.append(result)
             print(f"{'PASS' if result['passed'] else 'FAIL'} {case.name} latency={latency}: {result['errors']}", flush=True)
 
-    program = wrong_path("writeback_load")
+    program = wrong_path("writeback_load", v7=args.recovery_mode == "v7")
     save(program, output / "cases")
     case_path = output / "cases" / program.name
     machine = RV32.from_image(case_path / "program.data")
@@ -170,11 +171,16 @@ def main() -> int:
         response = next((fields for kind, fields in events if kind == "MEM_RESPONSE" and trigger
                          and fields["id"] == trigger["id"]), None)
         younger = [item for item in commits if trigger and item["seq"] > trigger["seq"]]
+        allocations = {fields["id"]: fields for kind, fields in events if kind == "DISPATCH"}
+        original = allocations.get(trigger["id"]) if trigger else None
+        reused = next((allocations[item["id"]] for item in younger if original and response
+                       and item["id"] in allocations and item["cycle"] < response["cycle"]
+                       and allocations[item["id"]]["slot"] == original["slot"]), None)
         intervening_flush = next((fields for kind, fields in events if kind == "FLUSH" and trigger and response
                                  and trigger["cycle"] < fields["cycle"] < response["cycle"]), None)
         if not trigger or not response or response.get("killed") or response.get("write") != 1:
             result["errors"].append("buffered Store did not retain its committed identity through the error response")
-        if len(younger) < 16 or not intervening_flush:
+        if len(younger) < 16 or not intervening_flush or not reused:
             result["errors"].append("required younger retirement/ROB reuse and redirect before asynchronous fault were absent")
         if log.count("CPU_BUS WRITE_ERROR ") != 1 or "buffered_store=1" not in log:
             result["errors"].append("missing exactly one injected writeback error and explicit buffered Store diagnostic")
@@ -183,6 +189,7 @@ def main() -> int:
             result["errors"].append("exit escaped the older buffered Store error barrier")
         result.update({"commits": len(commits), "younger_commits": len(younger),
                        "buffered_store": trigger, "response": response, "intervening_flush": intervening_flush,
+                       "original_allocation": original, "reused_allocation": reused,
                        "passed": not result["errors"]})
         (folder / "result.json").write_text(json.dumps(result, indent=2) + "\n")
         results.append(result)

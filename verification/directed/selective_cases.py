@@ -1,12 +1,12 @@
 """Selective recovery retains old execution and restores branch-time mappings."""
 
 
-def build_selective_programs(Program, wide=False):
+def build_selective_programs(Program, wide=False, v7=False):
     programs = []
     for operation, padding in (("mdu", 0), ("load", 0), ("store", 0), ("jalr", 0), ("mdu", 13)):
         p = Program("selective_wrap_mdu" if padding else "selective_keep_" + operation,
                     "Recover younger control flow while older work remains live and finishes exactly once")
-        p.li(1, 0x71234567)
+        p.li(1, 0x30000 if v7 and operation == "store" else 0x71234567)
         p.li(2, 3)
         p.li(6, 0x18000)
         p.li(8, 1)
@@ -26,7 +26,10 @@ def build_selective_programs(Program, wide=False):
             p.r("divu", 3, 1, 2)
         if operation == "store":
             p.label("older_store")
-            p.store("sw", 3, 31)
+            if v7:
+                p.store("sw", 1, 3)  # Keep its address, not just data, unresolved.
+            else:
+                p.store("sw", 3, 31)
         p.label("branch")
         if operation == "jalr":
             p.jalr(10, 10)  # Checkpoint must contain this instruction's link.
@@ -110,7 +113,8 @@ def build_selective_programs(Program, wide=False):
     for source in (1, 2):
         p.recovery.append({"kind": "selective_hold", "source": source, "older_labels": old_sites[source]})
     programs.append(p)
-    p = Program("selective_checkpoint_full", "Four branch checkpoints fill behind an old DIV and the fifth resumes after retirement releases one")
+    capacity = 8 if v7 else 4
+    p = Program("selective_checkpoint_full", f"All {capacity} checkpoints fill behind an old DIV; rename resumes after retirement")
     p.li(1, 0x71234567)
     p.li(2, 3)
     p.jal(0, "critical")
@@ -119,7 +123,7 @@ def build_selective_programs(Program, wide=False):
     p.label("critical")
     p.r("divu", 3, 1, 2)
     branches = []
-    for i in range(5):
+    for i in range(capacity + 1):
         label = f"branch_{i}"
         p.label(label)
         branches.append(label)
@@ -128,6 +132,6 @@ def build_selective_programs(Program, wide=False):
     p.checksum(3)
     p.finish()
     p.recovery.append({"kind": "selective_checkpoint_full", "older_label": "critical",
-                       "branch_labels": branches, "capacity": 4})
+                       "branch_labels": branches, "capacity": capacity})
     programs.append(p)
     return programs

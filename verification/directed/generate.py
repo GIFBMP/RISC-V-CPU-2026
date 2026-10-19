@@ -36,6 +36,7 @@ class Program:
         self.prediction: list[dict] = []
         self.pipeline: dict = {}
         self.wide: dict = {}
+        self.v7: list[dict] = []
         self.lsu: list[dict] = []
         self.recovery: list[dict] = []
         self.li(28, 0x12345678)
@@ -283,7 +284,7 @@ def out_of_order(kind: str) -> Program:
     return p
 
 
-def wrong_path(kind: str, legacy: bool = False) -> Program:
+def wrong_path(kind: str, legacy: bool = False, v7: bool = False) -> Program:
     p = Program(f"flush_{kind}", f"Prewarmed taken branch squashes a dispatched/issued younger {kind}")
     p.li(1, 0xF0000000 if kind in ("bad_load", "writeback_load") else (0x18000 if legacy else 0x19000) if kind == "load" else 0x70000000)
     p.li(2, 1)
@@ -310,6 +311,11 @@ def wrong_path(kind: str, legacy: bool = False) -> Program:
         p.data[0x19000 + lane] = byte ^ 0xA5
     if not legacy and kind in ("load", "bad_load", "writeback_load", "mdu"):
         p.load("lw", 12, 6)  # Bound the branch producer to a warm-hit delay.
+        if v7:
+            # Early Load selection can reach the warm-up fallthrough. Warm
+            # its data too, so it cannot delay the branch behind a cold miss.
+            p.load("lw", 13, 31)
+            p.r("xor", 12, 12, 13)
     if not legacy and kind in ("load", "bad_load", "writeback_load", "mdu", "dirty_store"):
         # Do not let speculative warm-up jumps overlap initialization misses
         # or buffered Stores. Enter the critical region only after its initial
@@ -326,7 +332,7 @@ def wrong_path(kind: str, legacy: bool = False) -> Program:
     p.label("producer")
     if kind == "mdu" or (not legacy and kind in ("load", "bad_load", "writeback_load")):
         p.load("lw", 3, 6)
-        if not legacy:
+        if not legacy and not v7:
             # Two true dependent hit loads leave a wrong-path issue window
             # even when a hit responds in one cycle and requests bypass MQ.
             p.load("lw", 3, 3)
@@ -552,9 +558,9 @@ def memory_order_wrap() -> Program:
     return p
 
 
-def cache_conflict_dirty() -> Program:
+def cache_conflict_dirty(way_bytes: int = 0x1000) -> Program:
     p = Program("cache_conflict_dirty", "Seven congruent lines, dirty replacement, partial writes and refetch preserve every byte")
-    addresses = [0x20000 + index * 0x1000 for index in range(7)]
+    addresses = [0x20000 + index * way_bytes for index in range(7)]
     for index, address in enumerate(addresses):
         for offset in range(64):
             p.data[address + offset] = (index * 41 + offset * 13 + 7) & 255
@@ -581,10 +587,10 @@ def cache_conflict_dirty() -> Program:
     return p
 
 
-def cache_partial_allocate() -> Program:
+def cache_partial_allocate(way_bytes: int = 0x1000) -> Program:
     p = Program("cache_partial_allocate", "Cold SB/SH allocate without losing untouched bytes; conflicting dirty lines reload accurately")
     for index in range(6):
-        address = 0x30000 + index * 0x1000
+        address = 0x30000 + index * way_bytes
         for offset in range(64):
             p.data[address + offset] = (0xA5 + 17 * index + 3 * offset) & 255
         p.li(1, address)
@@ -598,7 +604,7 @@ def cache_partial_allocate() -> Program:
         p.checksum(3)
         p.store("sw", 2, 1, 12)
     for index in range(6):
-        p.li(1, 0x30000 + index * 0x1000)
+        p.li(1, 0x30000 + index * way_bytes)
         for offset in range(16):
             p.load("lbu", 3, 1, offset)
             p.checksum(3)
@@ -606,7 +612,7 @@ def cache_partial_allocate() -> Program:
     return p
 
 
-def cache_exit_dirty() -> Program:
+def cache_exit_dirty(line_bytes: int = 16) -> Program:
     p = Program("cache_exit_dirty", "Populate 256 dirty lines and exit immediately after final updates; external drain is checked by the memory unit bench")
     p.li(1, 0x40000)
     p.li(2, 256)
@@ -619,7 +625,7 @@ def cache_exit_dirty() -> Program:
     p.checksum(4)
     p.i("addi", 3, 3, 71)
     p.store("sw", 3, 1, 12)
-    p.i("addi", 1, 1, 16)
+    p.i("addi", 1, 1, line_bytes)
     p.i("addi", 2, 2, -1)
     p.branch("bne", 2, 0, "dirty_loop")
     p.finish()
@@ -709,6 +715,11 @@ def save(program: Program, output: Path) -> dict:
                                for probe in program.prediction]
     metadata["pipeline"] = program.pipeline
     metadata["wide"] = program.wide
+    metadata["v7"] = [{**probe, **{key[:-6] + "_pc": program.labels[value]
+                                  for key, value in probe.items() if key.endswith("_label")},
+                       **{key[:-7] + "_pcs": [program.labels[label] for label in value]
+                          for key, value in probe.items() if key.endswith("_labels")}}
+                      for probe in program.v7]
     metadata["lsu"] = [{**probe, **{key[:-6] + "_pc": program.labels[value]
                                   for key, value in probe.items() if key.endswith("_label")},
                        **{key[:-7] + "_pcs": [program.labels[label] for label in value]
@@ -729,29 +740,34 @@ def main() -> None:
     parser.add_argument("--seeds", default="1,7,23,42,99,256,1024,65535")
     parser.add_argument("--random-count", type=int, default=250)
     parser.add_argument("--case", help="generate only one named case")
-    parser.add_argument("--recovery-mode", choices=("selective", "legacy", "wide"), default="selective",
-                        help="timing profile: selective=V5, wide=V6, legacy=V4; all keep strict execution obligations")
+    parser.add_argument("--recovery-mode", choices=("selective", "legacy", "wide", "v7"), default="v7",
+                        help="timing profile: v7=V7, selective=V5, wide=V6, legacy=V4; strict execution obligations")
     args = parser.parse_args()
     programs = [integer_isa(), memory_lanes(), multiply_divide(), dependencies(), jumps_branches(),
                 out_of_order("mdu"), out_of_order("load")]
     legacy = args.recovery_mode == "legacy"
-    programs += [wrong_path(kind, legacy) for kind in ("store", "mmio", "illegal", "bad_load", "load", "mdu")]
+    v7 = args.recovery_mode == "v7"
+    programs += [wrong_path(kind, legacy, v7) for kind in ("store", "mmio", "illegal", "bad_load", "load", "mdu")]
     programs += [prediction_loop_exit(), prediction_jalr_switch(), prediction_alias(legacy),
                  pipeline_contention(), memory_order_wrap()]
-    programs += [cache_conflict_dirty(), cache_partial_allocate(), cache_exit_dirty(),
-                 wrong_path("dirty_store", legacy), wrong_path("writeback_load", legacy)]
+    programs += [cache_conflict_dirty(0x2000 if v7 else 0x1000),
+                 cache_partial_allocate(0x2000 if v7 else 0x1000), cache_exit_dirty(256 if v7 else 16),
+                 wrong_path("dirty_store", legacy, v7), wrong_path("writeback_load", legacy, v7)]
     from lsu_cases import build_lsu_programs
     programs += build_lsu_programs(Program, legacy=legacy)
     from control_cases import build_control_programs
     programs += build_control_programs(Program)
     from selective_cases import build_selective_programs
     if not legacy:
-        programs += build_selective_programs(Program, wide=args.recovery_mode == "wide")
-    if args.recovery_mode == "wide":
+        programs += build_selective_programs(Program, wide=args.recovery_mode in ("wide", "v7"), v7=v7)
+    if args.recovery_mode in ("wide", "v7"):
         from wide_cases import build_wide_programs
         wide_programs = build_wide_programs(Program)
         names = {p.name for p in wide_programs}
         programs = [p for p in programs if p.name not in names] + wide_programs
+    if v7:
+        from v7_cases import build_v7_programs
+        programs += build_v7_programs(Program)
     programs += [random_program(int(seed, 0), args.random_count) for seed in args.seeds.split(",") if seed]
     if args.case:
         programs = [p for p in programs if p.name == args.case]

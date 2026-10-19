@@ -17,6 +17,42 @@ python3 verification/runners/audit_cases.py \
 
 每组生成 `program.data`、可审阅的 `program.S`、逐字编码 `program.words`、`expected.txt`、`metrics.json`、逐条架构提交 `reference.jsonl` 和 `meta.json`。`program.S` 包含指令部分；初始化数据以 `program.data` 为准。期望结果由独立的按序功能模型执行机器码得到，而不是根据测试名称指定。
 
+## 当前 V7 验收配置
+
+生成器默认 `--recovery-mode v7`，对应生产目录 `verilog/`。共 **63 个程序：55 组定向、8 个随机种子**，外存延迟 1/10/31 下共 **189 次**严格验收。正式 Linux 结果与性能、面积、频率见 [V7 实施记录](../../docs/experiments/v7.md)。
+
+```sh
+python3 verification/directed/generate.py --out build/verification/v7-cases --recovery-mode v7
+python3 verification/runners/build_trace.py --out build/verification/v7-trace
+python3 verification/runners/run_cpu.py --sim build/verification/v7-trace/sim \
+  --cases build/verification/v7-cases --latencies 1,10,31
+```
+
+V7 保留之前各类覆盖义务，并按双选择、8 个检查点、32 KiB D Cache 调整刺激。`cache_conflict_dirty` / `cache_partial_allocate` 使用 **8 KiB 同组间隔**，`cache_exit_dirty` 以 **256 B 行步长**写脏 256 行。错误路径长操作用预热取指和真实数据依赖保证请求在取消前已经接受；检查点饱和要求 8 项占满后第 9 个分支等待释放。
+
+新增 11 个程序覆盖：
+
+| 测试 | 必须实际出现的证据 |
+| --- | --- |
+| `late_store_*` | SB/SH/SW 各自的别名与非别名对照；Store 地址先完成、数据生产者仍未发射；非别名 Load 越过，别名 Load 重试后前进 |
+| `v7_lane_pairs` | 同拍双访存分配、双整数选择、Store+控制流选择，以及第二位置 Load/Store 提交 |
+| `v7_mixed_retire` | 整数+MDU、Store+控制流真正同拍退休 |
+| `v7_second_checkpoint` | 第二位置 JALR 检查点包含第一条映射和自身 link，包含同组 RAW/WAW |
+| `v7_retry_recovery` | 更老的阻塞 Load 跨年轻分支恢复保留动态身份，之后只接受、完成、提交一次 |
+| `v7_cancel_late_store` | 错路 Store 已有地址但没有数据；取消后 ROB 槽位先复用，老生产者才完成，旧 Store 不得捕获晚到数据 |
+
+`v7_checks.py` 总是核验实际选择宽度、唯一执行、重试身份、Store 数据源归属和逐字节最年轻旧写转发。`--no-ooo --no-speculation-coverage` 只供兼容配置跳过依赖默认窗口的计时义务，仍保留上述不变量、全部架构提交、访存身份和恢复守恒检查；默认发布验收不使用这些开关。
+
+总入口还在五组兼容配置上各执行 189 次回归。其中单独关闭并行完成、保留提前恢复的配置，要求 `selective_response_collision` 在三种延迟下都真实触发 `EX_KEEP`，并证明该旧身份之后唯一执行、完成和提交；两个单完成口配置另做 Yosys 组合环路检查。
+
+在课程 Linux 容器的 `/work` 中，一次运行全部官方、定向、兼容参数、故障、单元、形式等价及综合检查：
+
+```sh
+python3 verification/runners/run_v7_linux.py --jobs 3
+```
+
+该入口创建独立时间戳输出目录并检查运行前后的源码摘要；任意步骤失败立即退出。`collect_v7_results.py` 核对完整矩阵、源码、镜像摘要、性能周期以及三项门槛后生成结果 JSON。
+
 | 测试 | 覆盖目标 |
 | --- | --- |
 | `integer_isa` | 所有 RV32I 整数运算、正负边界、移位量、x0、AUIPC |
@@ -32,7 +68,7 @@ python3 verification/runners/audit_cases.py \
 | `prediction_btb_alias` | PC 0x100/0x4100 同时冲突于 64 项低位索引和 XOR 折叠索引，强制替换后恢复；legacy 模式保留原 256 B 间隔 |
 | `pipeline_completion` | 单写回模式强制 Load/MDU 抢占后 EX 保持；双完成模式分别强制 Load+EX、MDU+EX 同拍完成，均仅执行/提交一次；IQ 插入与源写回同拍 |
 | `memory_order_wrap` | 97 轮 Store/Load/部分字节更新，验证 ROB 槽位反复复用后的 older-store 位清理 |
-| `cache_conflict_dirty` | 7 个相差 4 KiB 的同组地址、5 轮脏行替换、部分写与全字重读 |
+| `cache_conflict_dirty` | 7 个同组地址（V7 间隔 8 KiB，V5/V6 为 4 KiB）、5 轮脏行替换、部分写与全字重读 |
 | `cache_partial_allocate` | 冷 SB/SH 写分配，保留未写字节；冲突替换后逐字节核对 |
 | `cache_exit_dirty` | 写脏 256 行，最后更新后直接 MMIO；CPU 层核对架构数据，外存实际排空由存储单测核验 |
 | `flush_dirty_store` | 错路 SB 命中预先写入的驻留行，必须发射后被杀且原数据保持 |
@@ -47,14 +83,14 @@ python3 verification/runners/audit_cases.py \
 | `early_older_override` | 年轻分支先请求提前取指，延迟执行的老分支随后以精确动态身份覆盖它 |
 | `early_commit_collision` | 老分支重定向提交与年轻分支解析同拍，必须阻止年轻提前取指覆盖老分支目标 |
 | `selective_keep_mdu` / `selective_keep_load` | 选择恢复时老长操作确实在途，保留原身份且仅完成/提交一次；恢复目标的独立指令先于老结果执行 |
-| `selective_keep_store` / `selective_keep_jalr` | 老 Store 尚在 IQ 等数据时跨恢复保留；JALR rd=rs1 的 checkpoint 保留自身 link，错误路径 WAW 不得遮蔽老映射 |
-| `selective_wrap_mdu` | 默认 ROB 的 15→0 环绕窗口按年龄保留老 MDU，禁止用槽位数值比较年龄 |
+| `selective_keep_store` / `selective_keep_jalr` | 老 Store 尚在 IQ 等待操作数时跨恢复保留（V7 等基址）；JALR rd=rs1 的 checkpoint 保留自身 link，错误路径 WAW 不得遮蔽老映射 |
+| `selective_wrap_mdu` | ROB 环绕窗口按年龄保留老 MDU，禁止用槽位数值比较年龄 |
 | `selective_response_collision` | 有限间隔扫描，必须实际观察老 Load 与 MDU 响应恰在恢复拍被保持，后来唯一完成且无取消 |
-| `selective_checkpoint_full` | 老 DIV 未完成时 4 个已执行分支占满 checkpoint，第 5 个分支等待首次提交释放后才重命名 |
+| `selective_checkpoint_full` | 老 DIV 未完成时已执行分支占满 checkpoint，下一分支等待首次提交释放后才重命名；V7 为 8+1，V5/V6 为 4+1 |
 
-## V6 双宽配置
+## 历史 V6 双宽配置
 
-当前 V6 默认 RTL 应使用 `--recovery-mode wide` 生成验收集：
+复现 V6 时使用冻结提交 `a661936` 的独立 checkout，并以 `--recovery-mode wide` 生成验收集；当前默认 RTL 已是 V7：
 
 ```sh
 python3 verification/directed/generate.py --out build/verification/v6-cases --recovery-mode wide
@@ -117,6 +153,13 @@ CPU_TRACE FLUSH id=22 cycle=692 pc=00000054 target=00000060 load_pending=1 prepa
 CPU_TRACE DROP_MDU id=23 cycle=692 pc=00000058
 CPU_TRACE RECOVERY_HOLD id=20 cycle=692 pc=0000004c source=2
 CPU_TRACE WB_PAIR id=42 cycle=200 pc=00000040 load_id=40 ex_id=42 memory=1
+CPU_TRACE CONFIG id=0 cycle=0 pc=00000000 early_recovery=1 dual_wb=1 version=7 select_width=2 rename_width=2 commit_width=2 checkpoints=8 select_load=1 execute_redirect=1
+CPU_TRACE SELECT id=44 cycle=201 pc=00000048 insn=0000a283 lane=0 fast=0
+CPU_TRACE LOAD_RETRY id=44 cycle=202 pc=00000048 hazard=1 space=1
+CPU_TRACE STORE_ADDR id=43 cycle=200 pc=00000044 addr=00010000 strb=f ready=0 psrc=35
+CPU_TRACE STORE_DATA id=43 cycle=203 pc=00000044 data=12345678 late=1 psrc=35
+CPU_TRACE LOAD_QUEUE id=44 cycle=204 pc=00000048 mask=f depth=2 addr=00010000 data=12345678 fast=1
+CPU_TRACE EX_KEEP id=40 cycle=202 pc=00000038 insn=00108093
 ```
 
 - `seq` 是从 0 连续递增的架构退休序号；`id` 是分配时的唯一动态指令编号，冲刷后允许留空号。
@@ -134,18 +177,21 @@ CPU_TRACE WB_PAIR id=42 cycle=200 pc=00000040 load_id=40 ex_id=42 memory=1
 - V5 选择恢复按全部 DISPATCH/COMMIT/STORE_RETIRE 重建 ROB 活跃身份，在每次 FLUSH 检查 head、保留数、取消数和年龄边界；任何被杀动态 id 后续 ISSUE/COMPLETE/COMMIT 均失败。uncached Store 的早期架构 COMMIT 不等于 ROB 退队，直到 STORE_RETIRE 才从活跃集合移除。该守恒检查在小参数回归中也不跳过。
 - V5 的 `early_older_override` 要求年轻分支先真实选择恢复，随后更老分支再次恢复并取消年轻分支；`early_commit_collision` 的边界提前到 EX，要求年轻就绪分支已分配、在老分支检测恢复时不能被选入 EX，之后从未 ISSUE/COMMIT。按 FLUSH 的 `selective` 字段选择对应机制，不根据测试是否失败猜测模式。
 - V5 双完成检查由 CONFIG 的 `dual_wb` 显式选择。两个不同动态 id 必须各有同拍 COMPLETE，两个最终都提交且只有一次 ISSUE/COMPLETE；Load 对应真实未取消 MEM_RESPONSE，MDU 对应 M 指令完成。旧单写回配置仍要求两种真实 WB_STALL。`slot/selective/kept/killed/load_id/ex_id` 均按十进制解析。
+- V7 以 `SELECT` 检查真正的双选择宽度和 A/B 通路约束；`ISSUE` 表示执行接受，提前 Load 与上一拍 A/B 指令可能在同拍接受三条，但每个动态身份只接受一次。`LOAD_RETRY` 必须先于重新选择，接受后禁止重试。`STORE_ADDR/STORE_DATA` 核对数据源、生产者完成拍、字节偏移和退休载荷；`LOAD_QUEUE` 的 `data` 是逐字节转发快照，按当时全部存活旧 Store 的年龄重新计算。`EX_KEEP` 记录恢复拍保留的老 EX 身份。
 - `--no-ooo` 和 `--no-speculation-coverage` 供小队列参数的纯功能回归或定位问题使用，只跳过对应计时覆盖，始终保留逐条提交对比。后者也跳过依赖默认 BTB 布局和默认流水窗口的 V2 预测/写回争用覆盖；报告记录实际启用的检查。`--result-only` 同时跳过全部轨迹检查，不能用于完整 CPU 验收。
 
-默认生成 V5 的 **50 组**（42 组定向、8 个随机种子）。`--recovery-mode legacy` 保留 V4 原始 **43 组**时序刺激；V3 冻结版本为 31 组。早恢复会在原错误路径操作发射前清空窗口，因此 V5 刺激让分支等待真实 producer，再证明同样严格的在途取消、排空和复用。两种模式都逐提交核对，不能以覆盖豁免代替各自默认严格验收。当前快速响应配置用已预热的 Store 命中队列制造真实端口背压，确保至少两笔 Load 已接受且在恢复时仍在途；恢复边界测试还分别证明旧 Load 与 MDU 结果恰在恢复拍被保留，并唯一完成和退休。V5 完整运行示例：
+## 历史 V5/V4 配置
+
+`--recovery-mode selective` 生成 V5 的 **50 组**（42 组定向、8 个随机种子），`wide` 为 V6 的 52 组，当前默认 `v7` 为 63 组。`legacy` 保留 V4 原始 **43 组**时序刺激；V3 冻结版本为 31 组。V5 刺激让分支等待真实 producer，证明错误路径的在途取消、排空和复用；还用预热 Store 命中队列制造端口背压，证明多笔 Load 在途以及恢复拍的旧 Load/MDU 响应保持。复现历史硬件须采用相应实施记录标明的冻结 checkout。以下是 V5 的历史运行命令：
 
 ```sh
-python3 verification/directed/generate.py --out build/verification/v5-cases
+python3 verification/directed/generate.py --out build/verification/v5-cases --recovery-mode selective
 python3 verification/runners/build_trace.py --out build/verification/v5-trace
 python3 verification/runners/run_cpu.py --sim build/verification/v5-trace/sim \
   --cases build/verification/v5-cases --latencies 1,10,31
 ```
 
-复现 V4 必须先在独立 checkout 中切到冻结提交 `98d4abd`，再执行该版本自己的生成器与构建脚本。当前默认硬件是 V5，`--recovery-mode legacy` 仅保留 V4 刺激，不能把当前默认构建当成 V4 硬件。以下命令在 `98d4abd` 的 checkout 中执行：
+复现 V4 必须先在独立 checkout 中切到冻结提交 `98d4abd`，再执行该版本自己的生成器与构建脚本。当前默认硬件是 V7，`--recovery-mode legacy` 仅保留 V4 刺激，不能把当前默认构建当成 V4 硬件。以下命令在 `98d4abd` 的 checkout 中执行：
 
 ```sh
 python3 verification/directed/generate.py --out build/verification/v4-cases
@@ -156,7 +202,7 @@ python3 verification/runners/run_faults.py --sim build/verification/v4-trace/sim
   --out build/verification/v4-faults --latencies 1,10,31
 ```
 
-当前 V5 非 2 的幂小参数配置的纯功能回归示例（先生成上面的 V5 cases；D 行宽必须独立覆盖为 8 B）：
+V5 非 2 的幂小参数配置的历史功能回归示例（在 V5 checkout 中先生成上述 cases；D 行宽必须独立覆盖为 8 B）。V7 的完整参数组以 `run_v7_linux.py` 中的 `PROFILES` 为准：
 
 ```sh
 python3 verification/runners/build_trace.py --out build/verification/v5-trace-small \
@@ -169,7 +215,7 @@ python3 verification/runners/run_cpu.py --sim build/verification/v5-trace-small/
   --cases build/verification/v5-cases --latencies 1,10 --no-ooo --no-speculation-coverage
 ```
 
-当前 RTL 的旧恢复/单完成参数分支也单独做功能回归，不能用冻结 V4 二进制代替这个检查。以下运行保留逐提交、全部访存身份与恢复后取消身份守恒；只跳过依赖默认机制与窗口的计时证据：
+V5 当时的旧恢复/单完成参数分支也单独做功能回归，不能用冻结 V4 二进制代替该检查。以下历史命令保留逐提交、全部访存身份与恢复后取消身份守恒；只跳过依赖默认机制与窗口的计时证据。V7 总入口在当前 RTL 上重测对应参数分支：
 
 ```sh
 python3 verification/runners/build_trace.py --out build/verification/v5-trace-legacy \

@@ -49,8 +49,12 @@ module writeback_memory_tb #(parameter integer FETCH_WIDTH = 1, parameter intege
         .FAST_HIT_RESPONSE(FAST_HIT_RESPONSE), .FAST_INSTRUCTION_RESPONSE(FAST_INSTRUCTION_RESPONSE),
         .PIPELINED_STORE_HITS(PIPELINED_STORE_HITS)) dut (.*);
 
-    reg [31:0] memory [0:16383];
-    reg [31:0] expected_memory [0:16383];
+    // Congruent-address tests extend past 64 KiB with V7's 8 KiB way span.
+    // Scale only the bench RAM; CPU/course RAM and performance are unchanged.
+    localparam integer MEMORY_WORDS = DCACHE_BYTES > 16384 ? DCACHE_BYTES : 16384;
+    localparam integer MEMORY_BYTES = MEMORY_WORDS * 4;
+    reg [31:0] memory [0:MEMORY_WORDS-1];
+    reg [31:0] expected_memory [0:MEMORY_WORDS-1];
     integer verify_word;
     integer cycle = 0;
     integer ar_count = 0, aw_count = 0, w_count = 0, b_count = 0;
@@ -127,8 +131,8 @@ module writeback_memory_tb #(parameter integer FETCH_WIDTH = 1, parameter intege
                 ar_count <= ar_count + 1;
                 read_tail <= (read_tail + 1) % 32;
                 queued_due[read_tail] <= cycle + read_latency;
-                queued_rdata[read_tail] <= araddr < 65536 ? memory[araddr >> 2] : 32'b0;
-                queued_rresp[read_tail] <= araddr >= 65536 ? 2'b11 :
+                queued_rdata[read_tail] <= araddr < MEMORY_BYTES ? memory[araddr >> 2] : 32'b0;
+                queued_rresp[read_tail] <= araddr >= MEMORY_BYTES ? 2'b11 :
                     ((read_fault && araddr == read_fault_address) ? 2'b10 : 2'b00);
             end
             if (awvalid && awready) begin
@@ -136,7 +140,7 @@ module writeback_memory_tb #(parameter integer FETCH_WIDTH = 1, parameter intege
                 if (awaddr == 32'h80000000) begin
                     if (aw_count != b_count)
                         $fatal(1, "Exit AW was issued before all earlier B responses completed");
-                    for (verify_word = 0; verify_word < 16384; verify_word = verify_word + 1)
+                    for (verify_word = 0; verify_word < MEMORY_WORDS; verify_word = verify_word + 1)
                         if (memory[verify_word] !== expected_memory[verify_word])
                             $fatal(1, "Exit AW preceded dirty RAM visibility: address=%h got=%h expected=%h",
                                 32'(verify_word * 4), memory[verify_word], expected_memory[verify_word]);
@@ -160,7 +164,7 @@ module writeback_memory_tb #(parameter integer FETCH_WIDTH = 1, parameter intege
                         exit_value <= write_payloads[paired_writes % 32];
                         exit_count <= exit_count + 1;
                     end else write_responses[paired_writes % 32] <= 2'b10;
-                end else if (write_addresses[paired_writes % 32] >= 65536)
+                end else if (write_addresses[paired_writes % 32] >= MEMORY_BYTES)
                     write_responses[paired_writes % 32] <= 2'b11;
                 else begin
                     for (lane = 0; lane < 4; lane = lane + 1)
@@ -207,7 +211,7 @@ module writeback_memory_tb #(parameter integer FETCH_WIDTH = 1, parameter intege
             last_internal_addr <= dut.d_wr_addr;
             last_internal_data <= dut.d_wr_data;
             last_internal_mask <= dut.d_wr_strb;
-            if (dut.d_wr_valid && dut.d_wr_ready && dut.d_wr_addr < 65536) begin
+            if (dut.d_wr_valid && dut.d_wr_ready && dut.d_wr_addr < MEMORY_BYTES) begin
                 if (dut.d_wr_data !== expected_memory[dut.d_wr_addr >> 2] || dut.d_wr_strb !== 4'hf)
                     $fatal(1, "Writeback SRAM pipeline lost a word or byte mask at %h", dut.d_wr_addr);
                 // Each line starts only after all previous B responses. The
@@ -532,7 +536,7 @@ module writeback_memory_tb #(parameter integer FETCH_WIDTH = 1, parameter intege
     task automatic verify_external;
         integer word_number;
         begin
-            for (word_number = 0; word_number < 16384; word_number = word_number + 1)
+            for (word_number = 0; word_number < MEMORY_WORDS; word_number = word_number + 1)
                 if (memory[word_number] !== expected_memory[word_number])
                     $fatal(1, "Flushed RAM mismatch at %h", 32'(word_number * 4));
         end
@@ -558,7 +562,7 @@ module writeback_memory_tb #(parameter integer FETCH_WIDTH = 1, parameter intege
             stall_write = 0;
             write_latency = 1;
         end
-        for (index = 0; index < 16384; index = index + 1) begin
+        for (index = 0; index < MEMORY_WORDS; index = index + 1) begin
             memory[index] = 32'h9e3779b9 ^ (32'(index) * 32'h01020408);
             expected_memory[index] = memory[index];
         end

@@ -86,6 +86,12 @@ class MemoryEvidence(unittest.TestCase):
                   event("ISSUE", 3, 3, pc=12), event("LOAD_QUEUE", 2, 10, pc=8, mask=0),
                   event("COMMIT", 2, 20, pc=8), event("COMMIT", 3, 21, pc=12)]
         self.assertIsNone(check_lsu(probe, events)[0])
+        simultaneous = deepcopy(events)
+        simultaneous[5][1].update(cycle=20, seq=3)
+        simultaneous[4][1]["seq"] = 2
+        self.assertIsNone(check_lsu(probe, simultaneous)[0])
+        simultaneous[5][1]["seq"] = 1
+        self.assertIsNotNone(check_lsu(probe, simultaneous)[0])
         wrong = deepcopy(events)
         wrong[3][1]["mask"] = 15
         self.assertIsNotNone(check_lsu(probe, wrong)[0])

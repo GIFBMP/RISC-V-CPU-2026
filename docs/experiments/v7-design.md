@@ -1,6 +1,6 @@
 # V7 设计：两条可共享整数运算的执行通路与解耦访存
 
-基线为 `a66193614d8ac59b606eb41d0ed973a0cbc3c7e2` 的 V6；测试子模块为 `29f980727f7d99a1842a58f34091c7579ba3fe85`。本次交付是结构设计和可运行的实验原型，生产目录 `verilog/` 仍保持 V6。原型补丁、参数、源码摘要与测量索引分别见 [原型补丁](v7-prototype.patch)、[实验结果](v7-design-results.json)。
+基线为 `a66193614d8ac59b606eb41d0ed973a0cbc3c7e2` 的 V6；测试子模块为 `29f980727f7d99a1842a58f34091c7579ba3fe85`。本文保留设计阶段的结构方案与实验原型结果；原型现已集成到生产目录 `verilog/`，正式验收见 [V7 实施记录](v7.md)。原型补丁、参数、源码摘要与测量索引分别见 [原型补丁](v7-prototype.patch)、[实验结果](v7-design-results.json)。
 
 ## 目标与测量口径
 
@@ -156,7 +156,7 @@ Load 仍等待所有更老 Store 的地址明确。非别名 Load 可以越过�
 
 ```sh
 mkdir -p build/v7-reproduce
-cp -R verilog build/v7-reproduce/verilog
+git archive a66193614d8ac59b606eb41d0ed973a0cbc3c7e2 verilog | tar -x -C build/v7-reproduce
 patch -p1 -d build/v7-reproduce < docs/experiments/v7-prototype.patch
 python3 verification/runners/build_trace.py \
   --filelist build/v7-reproduce/verilog/filelist.f --out build/v7-reproduce/trace

@@ -99,18 +99,24 @@ def check_lsu(probe, events):
         evidence["peak"] = peak
         return (None if peak >= probe["minimum"] else "insufficient genuinely accepted simultaneous Load requests"), evidence
     if kind == "younger_store":
+        v7 = any(k == "CONFIG" and f.get("version") == 7 for k, f in events)
         witness = None
         for queue in matches("LOAD_QUEUE", probe["load_pc"]):
             if queue["id"] not in commits:
                 continue
-            if queue["mask"]:
+            # V7 can retain the preceding loop's older Store while admitting
+            # this Load. Its exact per-byte source and payload are checked by
+            # check_v7_invariants; a nonzero mask alone no longer implies a
+            # younger source. Legacy traces lack that ownership evidence.
+            if queue["mask"] and not v7:
                 return "older Load unexpectedly forwarded from a younger Store", evidence
             younger = min((item for item in matches("DISPATCH", probe["store_pc"]) if item["id"] > queue["id"]),
                           key=lambda item: item["id"], default=None)
             if younger is None or younger["id"] not in commits:
                 return "required younger Store did not commit", evidence
             load_commit, store_commit = commits[queue["id"]], commits[younger["id"]]
-            if store_commit["cycle"] <= load_commit["cycle"]:
+            if (store_commit["cycle"] < load_commit["cycle"]
+                    or store_commit.get("seq", younger["id"]) <= load_commit.get("seq", queue["id"])):
                 return "younger Store became irrevocable before older Load retired", evidence
             issue = indexed["ISSUE"].get(younger["id"])
             if issue and issue["cycle"] < queue["cycle"]:

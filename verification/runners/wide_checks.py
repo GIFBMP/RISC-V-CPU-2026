@@ -3,10 +3,17 @@ from collections import defaultdict
 
 
 def check_wide(requirements, events):
+    # V7 accepts early Loads and the preceding EX stage in the same cycle.
+    # Actual issue width is the number selected from IQ, never ISSUE accepts.
+    selection_event = "SELECT" if any(k == "CONFIG" and f.get("version") == 7 for k, f in events) else "ISSUE"
     committed = {f["id"] for k, f in events if k == "COMMIT"}
     groups = {kind: defaultdict(list) for kind in ("DISPATCH", "ISSUE", "COMMIT")}
     flushes = {f["id"]: f for k, f in events if k == "FLUSH" and f.get("selective")}
     for kind, fields in events:
+        if kind == "ISSUE" and selection_event == "SELECT":
+            continue
+        if kind == "SELECT":
+            kind = "ISSUE"
         if kind in groups:
             groups[kind][fields["cycle"]].append(fields)
     proof = {}

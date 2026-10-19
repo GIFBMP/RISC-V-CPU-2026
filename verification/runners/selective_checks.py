@@ -47,7 +47,7 @@ def check_selective_invariants(events):
                 del live[identity]
         for kind, fields in group:
             identity = fields.get("id")
-            if identity in canceled and kind in ("ISSUE", "COMPLETE", "COMMIT", "STORE_RETIRE"):
+            if identity in canceled and kind in ("SELECT", "ISSUE", "COMPLETE", "COMMIT", "STORE_RETIRE", "STORE_ADDR", "STORE_DATA", "LOAD_RETRY"):
                 return f"canceled id={identity} produced {kind} at cycle {cycle}", proof
             if kind == "DISPATCH":
                 if identity in live or identity in canceled:
@@ -84,7 +84,7 @@ def check_selective_probe(probe, events):
                 or any(by_kind["COMPLETE"].get(a["id"], {}).get("cycle", old["cycle"]) >= old["cycle"]
                        for a in branches[:n])
                 or branches[n]["cycle"] <= commits[branches[0]["id"]]["cycle"]):
-            return "four live completed controls and fifth rename resuming after checkpoint retirement were not observed", {}
+            return f"{n} live completed controls and the next rename resuming after checkpoint retirement were not observed", {}
         return None, {"older_completion": old, "full_allocations": branches[:n],
                       "first_checkpoint_retirement": commits[branches[0]["id"]], "resumed_fifth": branches[n]}
     if probe["kind"] == "selective_hold":
