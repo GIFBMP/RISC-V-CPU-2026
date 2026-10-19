@@ -52,6 +52,26 @@ python3 verification/runners/audit_cases.py \
 | `selective_response_collision` | 有限间隔扫描，必须实际观察老 Load 与 MDU 响应恰在恢复拍被保持，后来唯一完成且无取消 |
 | `selective_checkpoint_full` | 老 DIV 未完成时 4 个已执行分支占满 checkpoint，第 5 个分支等待首次提交释放后才重命名 |
 
+## V6 双宽配置
+
+当前 V6 默认 RTL 应使用 `--recovery-mode wide` 生成验收集：
+
+```sh
+python3 verification/directed/generate.py --out build/verification/v6-cases --recovery-mode wide
+python3 verification/runners/build_trace.py --out build/verification/v6-trace
+python3 verification/runners/run_cpu.py --sim build/verification/v6-trace/sim \
+  --cases build/verification/v6-cases --latencies 1,10,31
+verification/unit/run_wide_fetch.sh
+```
+
+该配置共 52 个程序，延迟 1/10/31 下执行 156 次。原 `selective`、`legacy` 生成模式继续用于历史版本，不改变其默认行为。双宽模式调整三项 LSU 用例和恢复响应碰撞的指令间隔，使双发射下仍实际触发旧有严格覆盖要求；没有降低已接受在途请求数、取消数量或恢复拍保持要求。
+
+- `wide_rename_retire`：同组 RAW/WAW、x0、PRF 回收、ROB 回绕；轨迹必须出现真正存活并提交的双分配、双发射、双提交。
+- `wide_checkpoint_pair`：同拍 JAL 链接寄存器重命名与年轻 WAW，恢复必须保留 JAL 自身映射、取消同组年轻指令和错路 Store。
+- 双取指单测覆盖 7 组 FIFO/在途/直通/重定向参数、请求和译码背压、部分消费、第二位置预测、取消及共享错误。另以 8/128 B I 行、两种响应模式检查两字数据与行尾错误重试。
+
+宽度证据由 `wide_checks.py` 检查并记录于 `summary.json` 的 `wide_evidence`。兼容配置可关闭与默认结构有关的覆盖要求，但不能以兼容结果替代默认配置的严格验收；架构逐提交、顺序与请求身份检查仍保留。
+
 ## 对接仿真器
 
 运行器直接使用官方仿真器位置参数协议：`sim IMAGE EXPECTED MAX_CYCLES LATENCY`，不修改框架。正常的非 trace 构建可使用 `--result-only` 检查最终结果；完整验收需要顶层 `TRACE=1` 构建，必须提供逐条提交轨迹。默认周期上限为 100,000,000，避免把长正确性程序误判为超时。

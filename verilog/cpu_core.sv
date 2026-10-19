@@ -1,13 +1,16 @@
-// V5: decoupled predicted fetch, rename, oldest-ready select/read, registered
-// execute and in-order retirement. Loads pass resolved older stores with
-// byte forwarding; committed RAM stores drain through an ordered memory queue.
+// V6: paired fetch and asymmetric dual rename/issue/retirement. The integer
+// lane runs beside the memory/control/MDU lane. Loads pass resolved older
+// stores with byte forwarding; committed RAM stores drain through an ordered queue.
 module cpu_core #(
+    parameter integer FETCH_WIDTH = 1,
     parameter integer ROB_DEPTH = 16,
     parameter integer PRF_SIZE = 48,
     parameter integer IQ_DEPTH = 8,
     parameter integer LSQ_DEPTH = 8,
     parameter integer MEM_QUEUE_DEPTH = 8,
     parameter integer ISSUE_WIDTH = 1,
+    parameter integer RENAME_WIDTH = 1,
+    parameter integer COMMIT_WIDTH = 1,
     parameter integer FETCH_QUEUE_DEPTH = 8,
     parameter integer FETCH_OUTSTANDING = 4,
     parameter integer BTB_ENTRIES = 64,
@@ -23,6 +26,7 @@ module cpu_core #(
     parameter integer BRANCH_CHECKPOINTS = 4,
     parameter integer TRAIN_EXECUTE = 0,
     parameter integer LOAD_REQUEST_BYPASS = 0,
+    parameter integer PARALLEL_STORE_ENQUEUE = 1,
     parameter integer PREDICT_ENABLE = 1,
     parameter integer TRACE = 0
 ) (
@@ -32,7 +36,7 @@ module cpu_core #(
     output logic [31:0] i_req_addr,
     input logic i_rsp_valid,
     output logic i_rsp_ready,
-    input logic [31:0] i_rsp_data,
+    input logic [31:0] i_rsp_data, i_rsp_data2,
     input logic i_rsp_error,
     output logic d_req_valid,
     input logic d_req_ready,
@@ -88,7 +92,30 @@ module cpu_core #(
     logic [PRF_SIZE-1:0] recovery_free;
     logic [CW-1:0] recovery_count;
     logic [LW-1:0] recovery_lsq_count;
-    logic [ROB_DEPTH-1:0] head_onehot;
+    logic [ROB_DEPTH-1:0] head_onehot, head2_onehot;
+    logic [RW-1:0] head2_index, tail2_index;
+    logic head2_done;
+    logic [3:0] head2_fault;
+    logic [4:0] head2_op, head2_rd;
+    logic [PW-1:0] head2_dst, head2_old;
+    logic [31:0] head2_pc, head2_insn;
+    assign head2_onehot = {head_onehot[ROB_DEPTH-2:0], head_onehot[ROB_DEPTH-1]};
+    assign head2_index = next_rob(rob_head);
+    assign tail2_index = next_rob(rob_tail);
+    always_comb begin
+        head2_done = 0; head2_fault = 0; head2_op = 0; head2_rd = 0;
+        head2_dst = 0; head2_old = 0; head2_pc = 0; head2_insn = 0;
+        for (integer r = 0; r < ROB_DEPTH; r = r + 1) begin
+            head2_done |= rob_done[r] && head2_onehot[r];
+            head2_fault |= rob_fault[r] & {4{head2_onehot[r]}};
+            head2_op |= rob_op[r] & {5{head2_onehot[r]}};
+            head2_rd |= rob_rd[r] & {5{head2_onehot[r]}};
+            head2_dst |= rob_dst[r] & {PW{head2_onehot[r]}};
+            head2_old |= rob_old[r] & {PW{head2_onehot[r]}};
+            head2_pc |= rob_pc[r] & {32{head2_onehot[r]}};
+            head2_insn |= rob_insn[r] & {32{head2_onehot[r]}};
+        end
+    end
     logic [32-1:0] head_addr;
     logic [32-1:0] head_branch_dest;
     logic [32-1:0] head_data;
@@ -158,6 +185,19 @@ module cpu_core #(
     logic [IQ_PAYLOAD_BITS-1:0] selected_payload;
     logic [PW-1:0] selected_src1, selected_src2;
     logic [IQ_DEPTH-1:0] wb_match1, wb_match2, ex_match1, ex_match2;
+    logic [IQ_DEPTH-1:0] second_match1, second_match2;
+    logic [IQ_DEPTH-1:0] iq_older [0:IQ_DEPTH-1];
+    logic [IQ_DEPTH-1:0] second_candidate, second_grant;
+    logic [IQ_PAYLOAD_BITS-1:0] second_payload;
+    logic [PW-1:0] second_src1, second_src2, second_dst;
+    logic [RW-1:0] second_selected_rob, second_rob;
+    logic [31:0] second_a, second_b, second_pc, second_imm, second_result;
+    logic [4:0] second_op;
+    logic second_use_imm, second_valid, second_select, second_wb;
+    logic second_wb1, second_wb2, second_ex1, second_ex2, second_own1, second_own2;
+    logic [2:0] second_funct3_unused;
+    logic [3:0] second_fault_unused;
+    logic [31:0] second_prediction_unused;
     logic selected_wb1, selected_wb2, selected_ex1, selected_ex2;
     logic [RW-1:0] selected_rob;
     logic [ROB_DEPTH-1:0] selected_stores;
@@ -171,6 +211,21 @@ module cpu_core #(
     logic [ROB_DEPTH-1:0] retiring_store;
     logic [31:0] fetch_buffer_pc, fetch_buffer_insn, fetch_predicted;
     logic fetch_buffer_valid, fetch_buffer_error;
+    logic fetch2_valid, fetch2_error;
+    logic [31:0] fetch2_pc, fetch2_insn, fetch2_prediction;
+    logic [4:0] dec2_op, dec2_rs1, dec2_rs2, dec2_rd;
+    logic dec2_use_rs1, dec2_use_rs2, dec2_writes_rd, dec2_use_imm, dec2_illegal, dec2_has_dst;
+    logic [31:0] dec2_imm;
+    logic [2:0] dec2_funct3;
+    logic dispatch2, commit2, commit2_register;
+    logic free2_found, iq_free2_found, dec2_dependency1, dec2_dependency2;
+    logic [PW-1:0] free2_index, dispatch2_src1, dispatch2_src2, dispatch2_old;
+    logic [QW-1:0] iq_free2_index;
+    decoder decode2 (
+        .instruction(fetch2_insn), .op(dec2_op), .rs1(dec2_rs1), .rs2(dec2_rs2), .rd(dec2_rd),
+        .use_rs1(dec2_use_rs1), .use_rs2(dec2_use_rs2), .writes_rd(dec2_writes_rd),
+        .use_imm(dec2_use_imm), .immediate(dec2_imm), .funct3(dec2_funct3), .illegal(dec2_illegal)
+    );
     logic halted, recovery_pending;
     logic early_pending, early_pulse, recovery_prepared;
     logic [RW-1:0] early_rob;
@@ -194,6 +249,8 @@ module cpu_core #(
     // requests. Send and response pointers advance independently; no finite
     // generation tag can alias a late response after a branch recovery.
     logic [MW-1:0] mq_head, mq_send, mq_tail;
+    logic [MW-1:0] mq_store_tail;
+    logic [1:0] mem_enqueue_count;
     logic [MCW-1:0] mq_count, mq_unsent;
     logic [MEM_QUEUE_DEPTH-1:0] mq_valid, mq_killed, mq_write, mq_committed;
     logic [31:0] mq_addr [0:MEM_QUEUE_DEPTH-1], mq_data [0:MEM_QUEUE_DEPTH-1];
@@ -261,6 +318,7 @@ module cpu_core #(
 
     localparam bit TRAIN_EARLY = TRAIN_EXECUTE != 0 && RAS_DEPTH == 0;
     fetch_frontend #(
+        .DECODE_WIDTH(RENAME_WIDTH), .FETCH_WIDTH(FETCH_WIDTH),
         .FETCH_QUEUE_DEPTH(FETCH_QUEUE_DEPTH), .FETCH_OUTSTANDING(FETCH_OUTSTANDING),
         .BTB_ENTRIES(BTB_ENTRIES), .BTB_INDEX_XOR(BTB_INDEX_XOR), .LOCAL_HISTORY_BITS(LOCAL_HISTORY_BITS),
         .REDIRECT_OVERLAP(REDIRECT_OVERLAP), .RESPONSE_BYPASS(RESPONSE_BYPASS), .REDIRECT_REQUEST(REDIRECT_REQUEST), .RAS_DEPTH(RAS_DEPTH), .PREDICT_ENABLE(PREDICT_ENABLE)
@@ -269,11 +327,14 @@ module cpu_core #(
         .redirect_valid(early_pulse || (flush && !recovery_prepared)),
         .redirect_pc(flush && !recovery_prepared ? recovery_pc : early_target),
         .instruction_valid(fetch_buffer_valid), .instruction_ready(dispatch),
+        .instruction2_valid(fetch2_valid), .instruction2_ready(dispatch2),
+        .instruction2_pc(fetch2_pc), .instruction2_data(fetch2_insn),
+        .instruction2_predicted_pc(fetch2_prediction), .instruction2_error(fetch2_error),
         .instruction_pc(fetch_buffer_pc), .instruction_data(fetch_buffer_insn),
         .instruction_predicted_pc(fetch_predicted), .instruction_error(fetch_buffer_error),
         .i_req_valid(i_req_valid), .i_req_ready(i_req_ready), .i_req_addr(i_req_addr),
         .i_rsp_valid(i_rsp_valid), .i_rsp_ready(i_rsp_ready),
-        .i_rsp_data(i_rsp_data), .i_rsp_error(i_rsp_error),
+        .i_rsp_data(i_rsp_data), .i_rsp_data2(i_rsp_data2), .i_rsp_error(i_rsp_error),
         .update_valid(TRAIN_EARLY ? issue_valid && issue_fault == FAULT_NONE
                      && (issue_op == OP_BRANCH || issue_op == OP_JAL || issue_op == OP_JALR)
                      : commit_fire && (head_op == OP_BRANCH || head_op == OP_JAL || head_op == OP_JALR)),
@@ -286,8 +347,10 @@ module cpu_core #(
 
     generate
         if (ROB_DEPTH < 2 || PRF_SIZE < 33 || IQ_DEPTH < 1 || LSQ_DEPTH < 1
-            || LSQ_DEPTH > ROB_DEPTH || ISSUE_WIDTH != 1 || MEM_QUEUE_DEPTH < 1 || BRANCH_CHECKPOINTS < 1) begin : invalid_parameters
-            cpu_core_requires_valid_single_issue_configuration invalid_configuration();
+            || LSQ_DEPTH > ROB_DEPTH || (ISSUE_WIDTH != 1 && ISSUE_WIDTH != 2)
+            || (RENAME_WIDTH != 1 && RENAME_WIDTH != 2) || (COMMIT_WIDTH != 1 && COMMIT_WIDTH != 2)
+            || (FETCH_WIDTH != 1 && FETCH_WIDTH != 2) || MEM_QUEUE_DEPTH < 1 || BRANCH_CHECKPOINTS < 1) begin : invalid_parameters
+            cpu_core_requires_valid_widths_and_queue_sizes invalid_configuration();
         end
     endgenerate
 
@@ -354,9 +417,13 @@ module cpu_core #(
                          && issue_op == OP_LOAD && issue_fault == FAULT_NONE;
     assign load_enqueue = load_available && !reset && !halted && !flush;
     assign mem_enqueue = load_enqueue || store_start;
+    assign mem_enqueue_count = {1'b0, load_enqueue} + {1'b0, store_start};
+    assign mq_store_tail = load_enqueue ? next_mem(mq_tail) : mq_tail;
     assign store_bufferable = head_addr[31:28] == 0;
     always_comb begin
-        store_start = !reset && !halted && !flush && mem_space && !load_enqueue && rob_count != 0
+        store_start = !reset && !halted && !flush && mem_space
+                   && (!load_enqueue || (PARALLEL_STORE_ENQUEUE != 0 && store_bufferable
+                       && mq_count < MCW'(MEM_QUEUE_DEPTH-1))) && rob_count != 0
                    && head_is_store && head_done
                    && !head_store_sent && head_fault == FAULT_NONE;
         commit_fire = !reset && !halted && !flush && rob_count != 0 && head_done
@@ -366,6 +433,10 @@ module cpu_core #(
         // retirement does not depend on the Store enqueue arbitration.
         commit_register = !reset && !halted && !flush && rob_count != 0
                         && head_done && head_fault == FAULT_NONE && head_rd != 0;
+        commit2 = COMMIT_WIDTH == 2 && commit_fire && rob_count >= 2 && !head_redirect
+            && head2_done && head2_fault == FAULT_NONE && head2_op <= OP_AUIPC
+            && (!head_is_store || store_bufferable);
+        commit2_register = commit2 && head2_rd != 0;
         retiring_store = head_onehot & {ROB_DEPTH{commit_fire && head_is_store}};
         free_found = 1'b0;
         free_index = '0;
@@ -392,6 +463,29 @@ module cpu_core #(
                 && (!dec_has_dst || free_found)
                 && (!dec_memory || lsq_count < LW'(LSQ_DEPTH))
                 && (EARLY_RECOVERY == 0 || !dec_control || checkpoint_found);
+        free2_found = 0;
+        free2_index = 0;
+        for (integer p = PRF_SIZE-1; p >= 1; p = p - 1)
+            if (free_regs[p] && (!dec_has_dst || free_index != PW'(p))) begin
+                free2_found = 1;
+                free2_index = PW'(p);
+            end
+        iq_free2_found = 0;
+        iq_free2_index = 0;
+        for (integer q = IQ_DEPTH-1; q >= 0; q = q - 1)
+            if (!iq_valid[q] && iq_free_index != QW'(q)) begin
+                iq_free2_found = 1;
+                iq_free2_index = QW'(q);
+            end
+        dec2_has_dst = dec2_writes_rd && dec2_rd != 0 && !dec2_illegal && !fetch2_error;
+        dec2_dependency1 = dec2_use_rs1 && dec_has_dst && dec2_rs1 == dec_rd;
+        dec2_dependency2 = dec2_use_rs2 && dec_has_dst && dec2_rs2 == dec_rd;
+        dispatch2_src1 = !dec2_use_rs1 ? PW'(0) : dec2_dependency1 ? free_index : rat[dec2_rs1];
+        dispatch2_src2 = !dec2_use_rs2 ? PW'(0) : dec2_dependency2 ? free_index : rat[dec2_rs2];
+        dispatch2_old = dec_has_dst && dec_rd == dec2_rd ? free_index : rat[dec2_rd];
+        dispatch2 = RENAME_WIDTH == 2 && dispatch && fetch2_valid && !fetch2_error && !dec2_illegal
+            && !fetch_buffer_error && !dec_illegal && dec2_op <= OP_AUIPC
+            && rob_count < CW'(ROB_DEPTH-1) && iq_free2_found && (!dec2_has_dst || free2_found);
     end
 
     always_comb begin
@@ -446,9 +540,11 @@ module cpu_core #(
             wb_match2[q] = wb_available && wb_dst == iq_src2[q];
             ex_match1[q] = ex_wb_available && issue_dst == iq_src1[q];
             ex_match2[q] = ex_wb_available && issue_dst == iq_src2[q];
+            second_match1[q] = second_valid && second_dst != 0 && second_dst == iq_src1[q];
+            second_match2[q] = second_valid && second_dst != 0 && second_dst == iq_src2[q];
             candidate[q] = iq_valid[q]
-                && (iq_ready1[q] || wb_match1[q] || ex_match1[q])
-                && (iq_ready2[q] || wb_match2[q] || ex_match2[q]);
+                && (iq_ready1[q] || wb_match1[q] || ex_match1[q] || second_match1[q])
+                && (iq_ready2[q] || wb_match2[q] || ex_match2[q] || second_match2[q]);
             if (iq_kind[q] == 1)
                 // Select on the old context's response cycle. Operands enter
                 // EX at that edge, after the LSU context has become free.
@@ -457,11 +553,17 @@ module cpu_core #(
                 candidate[q] = candidate[q] && mdu_req_available
                              && !(ex_valid && issue_op == OP_MULDIV);
         end
+        for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
+            second_candidate[q] = ISSUE_WIDTH == 2 && candidate[q]
+                && iq_payload[q][IQ_PAYLOAD_BITS-1 -: 5] <= OP_AUIPC;
+            if (ISSUE_WIDTH == 2 && iq_payload[q][IQ_PAYLOAD_BITS-1 -: 5] <= OP_AUIPC)
+                candidate[q] = 0;
+        end
         // Pairwise age comparisons avoid a serial best-age priority chain.
         for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
             grant[q] = candidate[q];
             for (integer k = 0; k < IQ_DEPTH; k = k + 1)
-                if (candidate[k] && older(iq_rob[k], iq_rob[q], rob_head)) grant[q] = 1'b0;
+                if (candidate[k] && iq_older[k][q]) grant[q] = 1'b0;
         end
         selected_wb1 = wb_dst != 0 && |(grant & wb_match1);
         selected_wb2 = wb_dst != 0 && |(grant & wb_match2);
@@ -502,12 +604,57 @@ module cpu_core #(
              issue_pc, issue_imm, issue_use_imm, issue_predicted} <= selected_payload;
             issue_a <= selected_wb1
                      ? wb_value : selected_ex1
-                     ? issue_value : prf[selected_src1];
+                     ? issue_value : |(grant & second_match1)
+                     ? second_result : prf[selected_src1];
             issue_b <= selected_wb2
                      ? wb_value : selected_ex2
-                     ? issue_value : prf[selected_src2];
+                     ? issue_value : |(grant & second_match2)
+                     ? second_result : prf[selected_src2];
         end
     end
+    // Independent oldest-ready selectors keep the lanes parallel. In dual
+    // mode all simple integers use this lane; control, memory and M use primary.
+    always_comb begin
+        second_grant = 0;
+        for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
+            second_grant[q] = second_candidate[q];
+            for (integer k = 0; k < IQ_DEPTH; k = k + 1)
+                if (second_candidate[k] && iq_older[k][q]) second_grant[q] = 0;
+        end
+        second_payload = 0;
+        second_src1 = 0;
+        second_src2 = 0;
+        second_selected_rob = 0;
+        for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
+            second_payload |= iq_payload[q] & {IQ_PAYLOAD_BITS{second_grant[q]}};
+            second_src1 |= iq_src1[q] & {PW{second_grant[q]}};
+            second_src2 |= iq_src2[q] & {PW{second_grant[q]}};
+            second_selected_rob |= iq_rob[q] & {RW{second_grant[q]}};
+        end
+        second_wb1 = wb_dst != 0 && |(second_grant & wb_match1);
+        second_wb2 = wb_dst != 0 && |(second_grant & wb_match2);
+        second_ex1 = issue_dst != 0 && |(second_grant & ex_match1);
+        second_ex2 = issue_dst != 0 && |(second_grant & ex_match2);
+        second_own1 = |(second_grant & second_match1);
+        second_own2 = |(second_grant & second_match2);
+        second_select = |second_grant && !reset && !halted && !flush
+                      && !(EARLY_RECOVERY != 0 && early_detect);
+    end
+    always_ff @(posedge clock) begin
+        if (reset || flush) second_valid <= 0;
+        else second_valid <= second_select;
+        second_rob <= second_selected_rob;
+        {second_op, second_dst, second_funct3_unused, second_fault_unused,
+         second_pc, second_imm, second_use_imm, second_prediction_unused} <= second_payload;
+        second_a <= second_wb1 ? wb_value : second_ex1 ? issue_value
+                  : second_own1 ? second_result : prf[second_src1];
+        second_b <= second_wb2 ? wb_value : second_ex2 ? issue_value
+                  : second_own2 ? second_result : prf[second_src2];
+    end
+    alu second_alu (.op(second_op), .lhs(second_op == OP_AUIPC ? second_pc : second_a),
+        .rhs(second_use_imm ? second_imm : second_b), .result(second_result));
+    assign second_wb = second_valid && !reset && !flush && !halted;
+
     assign alu_lhs = (issue_op == OP_AUIPC) ? issue_pc : issue_a;
     assign alu_rhs = issue_use_imm ? issue_imm : issue_b;
     alu integer_alu (.op(issue_op), .lhs(alu_lhs), .rhs(alu_rhs), .result(alu_result));
@@ -643,9 +790,13 @@ module cpu_core #(
                     rrat[a] <= PW'(a);
                 end else begin
                     if (flush) rat[a] <= EARLY_RECOVERY != 0 ? recovery_map[a] : rrat[a];
-                    else if (dispatch && dec_has_dst && dec_rd == 5'(a)) rat[a] <= free_index;
+                    else begin
+                        if (dispatch && dec_has_dst && dec_rd == 5'(a)) rat[a] <= free_index;
+                        if (dispatch2 && dec2_has_dst && dec2_rd == 5'(a)) rat[a] <= free2_index;
+                    end
                     if (commit_register && head_rd == 5'(a))
                         rrat[a] <= head_dst;
+                    if (commit2_register && head2_rd == 5'(a)) rrat[a] <= head2_dst;
                 end
             end
         end
@@ -655,6 +806,7 @@ module cpu_core #(
                 else begin
                     if (wb_valid && wb_dst == PW'(p) && p != 0) prf[p] <= wb_value;
                     if (ex_wb_valid && issue_dst == PW'(p) && p != 0) prf[p] <= issue_value;
+                    if (second_wb && second_dst == PW'(p) && p != 0) prf[p] <= second_result;
                 end
                 if (reset) begin
                     committed_regs[p] <= p < 32;
@@ -665,31 +817,44 @@ module cpu_core #(
                         if (head_old == PW'(p)) committed_regs[p] <= 1'b0;
                         if (head_dst == PW'(p)) committed_regs[p] <= 1'b1;
                     end
+                    if (commit2_register) begin
+                        if (head2_old == PW'(p)) committed_regs[p] <= 1'b0;
+                        if (head2_dst == PW'(p)) committed_regs[p] <= 1'b1;
+                    end
                     if (flush) begin
                         free_regs[p] <= EARLY_RECOVERY != 0 ? recovery_free[p] : !committed_regs[p];
                         if (EARLY_RECOVERY == 0) prf_ready[p] <= 1'b1;
                     end else begin
                         if (commit_register && head_old == PW'(p))
                             free_regs[p] <= 1'b1;
+                        if (commit2_register && head2_old == PW'(p)) free_regs[p] <= 1'b1;
+                        if (dispatch2 && dec2_has_dst && free2_index == PW'(p)) begin
+                            free_regs[p] <= 1'b0;
+                            prf_ready[p] <= 1'b0;
+                        end
                         if (dispatch && dec_has_dst && free_index == PW'(p)) begin
                             free_regs[p] <= 1'b0;
                             prf_ready[p] <= 1'b0;
                         end
                         if (wb_valid && wb_dst == PW'(p) && p != 0) prf_ready[p] <= 1'b1;
                         if (ex_wb_valid && issue_dst == PW'(p) && p != 0) prf_ready[p] <= 1'b1;
+                        if (second_wb && second_dst == PW'(p) && p != 0) prf_ready[p] <= 1'b1;
                     end
                 end
             end
         end
         for (genvar r = 0; r < ROB_DEPTH; r = r + 1) begin : reorder_entries
-            wire allocate = dispatch && rob_tail == RW'(r);
+            wire allocate1 = dispatch && rob_tail == RW'(r);
+            wire allocate2 = dispatch2 && tail2_index == RW'(r);
+            wire allocate = allocate1 || allocate2;
             // The tail slot is unallocated whenever the ROB is not full.
             // Prewrite its payload even while rename is stalled; validity is
             // still set exclusively by dispatch, and flush clears validity.
             wire prepare_payload = rob_count < CW'(ROB_DEPTH) && rob_tail == RW'(r);
-            wire retire = commit_fire && rob_head == RW'(r);
+            wire retire = (commit_fire && rob_head == RW'(r)) || (commit2 && head2_index == RW'(r));
             wire complete_main = wb_valid && wb_rob == RW'(r);
-            wire complete = complete_main || (ex_wb_valid && issue_rob == RW'(r));
+            wire complete_second = second_wb && second_rob == RW'(r);
+            wire complete = complete_main || (ex_wb_valid && issue_rob == RW'(r)) || complete_second;
             wire execute = issue_valid && issue_rob == RW'(r);
             wire store_complete = mem_response && mem_write && !mq_committed[mq_head] && !mem_killed && mem_rob == RW'(r);
             always_ff @(posedge clock) begin
@@ -715,8 +880,8 @@ module cpu_core #(
                         rob_redirect[r] <= 1'b0;
                         rob_store_done[r] <= 1'b0;
                         rob_store_sent[r] <= 1'b0;
-                        rob_is_store[r] <= dispatch_op == OP_STORE;
-                        rob_is_load[r] <= dispatch_op == OP_LOAD;
+                        rob_is_store[r] <= allocate1 && dispatch_op == OP_STORE;
+                        rob_is_load[r] <= allocate1 && dispatch_op == OP_LOAD;
                     end
                     if (execute && issue_op == OP_STORE && issue_fault == FAULT_NONE) rob_done[r] <= 1'b1;
                     if (execute && issue_simple) rob_redirect[r] <= issue_redirect && issue_fault == FAULT_NONE;
@@ -734,7 +899,17 @@ module cpu_core #(
                     rob_old[r] <= dec_has_dst ? rat[dec_rd] : {PW{1'b0}};
                     rob_fault[r] <= fetch_buffer_error ? FAULT_FETCH : dec_illegal ? FAULT_ILLEGAL : FAULT_NONE;
                 end
-                if (complete) rob_fault[r] <= complete_main ? wb_fault : issue_fault;
+                if (rob_count < CW'(ROB_DEPTH-1) && tail2_index == RW'(r) && RENAME_WIDTH == 2) begin
+                    rob_checkpoint[r] <= 0;
+                    rob_pc[r] <= fetch2_pc;
+                    rob_insn[r] <= fetch2_insn;
+                    rob_op[r] <= dec2_op;
+                    rob_rd[r] <= dec2_has_dst ? dec2_rd : 5'b0;
+                    rob_dst[r] <= dec2_has_dst ? free2_index : PW'(0);
+                    rob_old[r] <= dec2_has_dst ? dispatch2_old : PW'(0);
+                    rob_fault[r] <= FAULT_NONE;
+                end
+                if (complete) rob_fault[r] <= complete_second ? FAULT_NONE : complete_main ? wb_fault : issue_fault;
                 if (store_complete && d_rsp_error) rob_fault[r] <= FAULT_STORE;
                 if (execute && issue_op == OP_STORE && issue_fault == FAULT_NONE) begin
                     rob_addr[r] <= {issue_address[31:2], 2'b0};
@@ -749,16 +924,25 @@ module cpu_core #(
             end
         end
         for (genvar q = 0; q < IQ_DEPTH; q = q + 1) begin : issue_entries
-            wire allocate = dispatch && iq_free_index == QW'(q);
+            wire allocate1 = dispatch && iq_free_index == QW'(q);
+            wire allocate2 = dispatch2 && iq_free2_index == QW'(q);
+            wire allocate = allocate1 || allocate2;
             always_ff @(posedge clock) begin
                 if (reset || (flush && (EARLY_RECOVERY == 0 || recovery_kill[iq_rob[q]]))) iq_valid[q] <= 1'b0;
                 else begin
                     if (select_fire && issue_index == QW'(q)) iq_valid[q] <= 1'b0;
+                    if (second_select && second_grant[q]) iq_valid[q] <= 1'b0;
                     if (allocate) iq_valid[q] <= 1'b1;
                 end
                 iq_stores[q] <= iq_stores[q] & ~retiring_store & ~(flush ? recovery_kill : {ROB_DEPTH{1'b0}});
-                if ((wb_valid && wb_dst == iq_src1[q]) || (ex_wb_valid && issue_dst == iq_src1[q])) iq_ready1[q] <= 1'b1;
-                if ((wb_valid && wb_dst == iq_src2[q]) || (ex_wb_valid && issue_dst == iq_src2[q])) iq_ready2[q] <= 1'b1;
+                if ((wb_valid && wb_dst == iq_src1[q]) || (ex_wb_valid && issue_dst == iq_src1[q]) || (second_wb && second_dst == iq_src1[q])) iq_ready1[q] <= 1'b1;
+                if ((wb_valid && wb_dst == iq_src2[q]) || (ex_wb_valid && issue_dst == iq_src2[q]) || (second_wb && second_dst == iq_src2[q])) iq_ready2[q] <= 1'b1;
+                for (integer k = 0; k < IQ_DEPTH; k = k + 1) begin
+                    if (allocate2) iq_older[q][k] <= 0;
+                    else if (allocate1) iq_older[q][k] <= dispatch2 && iq_free2_index == QW'(k);
+                    else if ((dispatch && iq_free_index == QW'(k)) || (dispatch2 && iq_free2_index == QW'(k)))
+                        iq_older[q][k] <= iq_valid[q];
+                end
                 // Invalid slots may prepare payload independently of global
                 // rename/flush control; the chosen slot becomes valid on dispatch.
                 if (!iq_valid[q]) begin
@@ -769,11 +953,26 @@ module cpu_core #(
                     iq_src1[q] <= dispatch_src1;
                     iq_src2[q] <= dispatch_src2;
                     iq_ready1[q] <= prf_ready[dispatch_src1] || (wb_valid && wb_dst == dispatch_src1)
-                                  || (ex_wb_valid && issue_dst == dispatch_src1);
+                                  || (ex_wb_valid && issue_dst == dispatch_src1) || (second_wb && second_dst == dispatch_src1);
                     iq_ready2[q] <= prf_ready[dispatch_src2] || (wb_valid && wb_dst == dispatch_src2)
-                                  || (ex_wb_valid && issue_dst == dispatch_src2);
+                                  || (ex_wb_valid && issue_dst == dispatch_src2) || (second_wb && second_dst == dispatch_src2);
                     iq_kind[q] <= dispatch_op == OP_LOAD ? 2'd1 : dispatch_op == OP_MULDIV ? 2'd2 : 2'd0;
                     iq_stores[q] <= rob_is_store & ~retiring_store;
+                    if (RENAME_WIDTH == 2 && iq_free2_index == QW'(q) && iq_free2_found) begin
+                        iq_rob[q] <= tail2_index;
+                        iq_payload[q] <= {dec2_op, dec2_has_dst ? free2_index : PW'(0),
+                            dec2_funct3, FAULT_NONE, fetch2_pc, dec2_imm, dec2_use_imm, fetch2_prediction};
+                        iq_src1[q] <= dispatch2_src1;
+                        iq_src2[q] <= dispatch2_src2;
+                        iq_ready1[q] <= !dec2_dependency1 && (prf_ready[dispatch2_src1]
+                            || (wb_valid && wb_dst == dispatch2_src1) || (ex_wb_valid && issue_dst == dispatch2_src1)
+                            || (second_wb && second_dst == dispatch2_src1));
+                        iq_ready2[q] <= !dec2_dependency2 && (prf_ready[dispatch2_src2]
+                            || (wb_valid && wb_dst == dispatch2_src2) || (ex_wb_valid && issue_dst == dispatch2_src2)
+                            || (second_wb && second_dst == dispatch2_src2));
+                        iq_kind[q] <= 0;
+                        iq_stores[q] <= 0;
+                    end
                 end
             end
         end
@@ -834,11 +1033,7 @@ module cpu_core #(
             end else if (!halted) begin
                 if (!flush && rob_count != 0 && head_done && head_fault != FAULT_NONE)
                     halted <= 1'b1;
-                case ({dispatch, commit_fire})
-                    2'b10: rob_count <= rob_count + 1'b1;
-                    2'b01: rob_count <= rob_count - 1'b1;
-                    default: ;
-                endcase
+                rob_count <= rob_count + CW'(dispatch) + CW'(dispatch2) - CW'(commit_fire) - CW'(commit2);
                 case ({dispatch && dec_memory,
                        commit_fire && (head_is_load || head_is_store)})
                     2'b10: lsq_count <= lsq_count + 1'b1;
@@ -846,8 +1041,8 @@ module cpu_core #(
                     default: ;
                 endcase
                 if (commit_fire) begin
-                    rob_head <= next_rob(rob_head);
-                    head_onehot <= {head_onehot[ROB_DEPTH-2:0], head_onehot[ROB_DEPTH-1]};
+                    rob_head <= commit2 ? next_rob(head2_index) : head2_index;
+                    head_onehot <= commit2 ? {head2_onehot[ROB_DEPTH-2:0], head2_onehot[ROB_DEPTH-1]} : head2_onehot;
                     // This commit updates RRAT and committed_regs first. The
                     // following recovery cycle prevents any younger retirement.
                     if (head_redirect && EARLY_RECOVERY == 0) begin
@@ -856,7 +1051,7 @@ module cpu_core #(
                         recovery_prepared <= early_pending && early_rob == rob_head;
                     end
                 end
-                if (dispatch) rob_tail <= next_rob(rob_tail);
+                if (dispatch) rob_tail <= dispatch2 ? next_rob(tail2_index) : tail2_index;
                 if (issue_valid && issue_op == OP_MULDIV && issue_fault == FAULT_NONE) begin
                     mdu_rob <= issue_rob;
                     mdu_dst <= issue_dst;
@@ -873,19 +1068,11 @@ module cpu_core #(
             mq_count <= 0;
             mq_unsent <= 0;
         end else begin
-            if (mem_enqueue) mq_tail <= next_mem(mq_tail);
+            if (mem_enqueue) mq_tail <= mem_enqueue_count == 2 ? next_mem(next_mem(mq_tail)) : next_mem(mq_tail);
             if (d_req_valid && d_req_ready) mq_send <= next_mem(mq_send);
             if (mem_response) mq_head <= next_mem(mq_head);
-            case ({mem_enqueue, mem_response})
-                2'b10: mq_count <= mq_count + 1'b1;
-                2'b01: mq_count <= mq_count - 1'b1;
-                default: ;
-            endcase
-            case ({mem_enqueue, d_req_valid && d_req_ready})
-                2'b10: mq_unsent <= mq_unsent + 1'b1;
-                2'b01: mq_unsent <= mq_unsent - 1'b1;
-                default: ;
-            endcase
+            mq_count <= mq_count + MCW'(mem_enqueue_count) - MCW'(mem_response);
+            mq_unsent <= mq_unsent + MCW'(mem_enqueue_count) - MCW'(d_req_valid && d_req_ready);
         end
     end
     generate
@@ -898,7 +1085,7 @@ module cpu_core #(
                     if (mem_response && mq_head == MW'(m)) mq_valid[m] <= 0;
                     if (flush && mq_valid[m] && !mq_committed[m]
                         && (EARLY_RECOVERY == 0 || recovery_kill[mq_rob[m]])) mq_killed[m] <= 1;
-                    if (mem_enqueue && mq_tail == MW'(m)) begin
+                    if ((load_enqueue && mq_tail == MW'(m)) || (store_start && mq_store_tail == MW'(m))) begin
                         mq_valid[m] <= 1;
                         mq_killed[m] <= 0;
                     end
@@ -919,6 +1106,22 @@ module cpu_core #(
                     mq_forward[m] <= forward_data;
                     mq_mask[m] <= !load_available ? 4'b0 : forward_mask;
                 end
+                // A second admission lane lets a ready RAM Store retire while
+                // EX enqueues a Load. The Load stays first and snapshots the
+                // retiring Store's forwarded bytes before its ROB slot is freed.
+                // With two free slots, prepare the second payload independently
+                // of the admission handshake; only mq_valid authorizes use.
+                if (PARALLEL_STORE_ENQUEUE != 0 && mq_count < MCW'(MEM_QUEUE_DEPTH-1)
+                    && next_mem(mq_tail) == MW'(m)) begin
+                    mq_write[m] <= 1;
+                    mq_committed[m] <= 1;
+                    mq_addr[m] <= head_addr;
+                    mq_data[m] <= head_data;
+                    mq_strb[m] <= head_strb;
+                    mq_rob[m] <= rob_head;
+                    mq_dst[m] <= 0;
+                    mq_mask[m] <= 0;
+                end
             end
         end
     endgenerate
@@ -936,7 +1139,9 @@ module cpu_core #(
     integer t;
     initial begin
         if (ROB_DEPTH < 2 || PRF_SIZE < 33 || IQ_DEPTH < 1 || LSQ_DEPTH < 1
-            || LSQ_DEPTH > ROB_DEPTH || ISSUE_WIDTH != 1 || MEM_QUEUE_DEPTH < 1 || BRANCH_CHECKPOINTS < 1)
+            || LSQ_DEPTH > ROB_DEPTH || (ISSUE_WIDTH != 1 && ISSUE_WIDTH != 2)
+            || (RENAME_WIDTH != 1 && RENAME_WIDTH != 2) || (COMMIT_WIDTH != 1 && COMMIT_WIDTH != 2)
+            || (FETCH_WIDTH != 1 && FETCH_WIDTH != 2) || MEM_QUEUE_DEPTH < 1 || BRANCH_CHECKPOINTS < 1)
             $fatal(1, "Unsupported core parameters");
     end
     always @(posedge clock) begin
@@ -960,9 +1165,24 @@ module cpu_core #(
                              trace_next_id, trace_cycle, fetch_buffer_pc, fetch_buffer_insn,
                              dec_has_dst ? dec_rd : 5'b0, dec_has_dst ? free_index : {PW{1'b0}}, rob_tail);
             end
+            if (dispatch2) begin
+                trace_id[tail2_index] <= trace_next_id + 1;
+                trace_next_id <= trace_next_id + 2;
+                if (TRACE != 0)
+                    $display("CPU_TRACE DISPATCH id=%0d cycle=%0d pc=%08x insn=%08x rd=%0d pdst=%0d slot=%0d",
+                        trace_next_id + 1, trace_cycle, fetch2_pc, fetch2_insn,
+                        dec2_has_dst ? dec2_rd : 5'b0, dec2_has_dst ? free2_index : PW'(0), tail2_index);
+            end
             if (TRACE != 0 && issue_valid)
                 $display("CPU_TRACE ISSUE id=%0d cycle=%0d pc=%08x insn=%08x",
                          trace_id[issue_rob], trace_cycle, rob_pc[issue_rob], rob_insn[issue_rob]);
+            if (TRACE != 0 && second_wb) begin
+                $display("CPU_TRACE ISSUE id=%0d cycle=%0d pc=%08x insn=%08x", trace_id[second_rob], trace_cycle, second_pc, rob_insn[second_rob]);
+                $display("CPU_TRACE COMPLETE id=%0d cycle=%0d pc=%08x insn=%08x", trace_id[second_rob], trace_cycle, second_pc, rob_insn[second_rob]);
+                if (wb_valid) $display("CPU_TRACE WB_PAIR id=%0d cycle=%0d pc=%08x load_id=%0d ex_id=%0d memory=%0d",
+                    trace_id[second_rob], trace_cycle, second_pc, trace_id[wb_rob], trace_id[second_rob],
+                    mem_response && !mem_write && !mem_killed);
+            end
             if (TRACE != 0 && early_detect)
                 $display("CPU_TRACE EARLY_FETCH id=%0d cycle=%0d pc=%08x target=%08x prev_id=%0d override=%0d",
                          trace_id[issue_rob], trace_cycle, issue_pc, issue_target,
@@ -977,13 +1197,28 @@ module cpu_core #(
                          trace_id[issue_rob], trace_cycle, issue_pc, load_completion ? 1 : 2);
             if (TRACE != 0 && dispatch &&
                 ((wb_valid && wb_dst != 0 && (dispatch_src1 == wb_dst || dispatch_src2 == wb_dst)) ||
-                 (ex_wb_valid && issue_dst != 0 && (dispatch_src1 == issue_dst || dispatch_src2 == issue_dst))))
+                 (ex_wb_valid && issue_dst != 0 && (dispatch_src1 == issue_dst || dispatch_src2 == issue_dst)) ||
+                 (second_wb && second_dst != 0 && (dispatch_src1 == second_dst || dispatch_src2 == second_dst))))
                 $display("CPU_TRACE RENAME_BYPASS id=%0d cycle=%0d pc=%08x source=%0d",
-                         trace_next_id, trace_cycle, fetch_buffer_pc,
-                         (((wb_valid && wb_dst != 0 && dispatch_src1 == wb_dst) ||
-                           (ex_wb_valid && issue_dst != 0 && dispatch_src1 == issue_dst)) ? 1 : 0) +
-                         (((wb_valid && wb_dst != 0 && dispatch_src2 == wb_dst) ||
-                           (ex_wb_valid && issue_dst != 0 && dispatch_src2 == issue_dst)) ? 2 : 0));
+                    trace_next_id, trace_cycle, fetch_buffer_pc,
+                    (((wb_valid && wb_dst != 0 && dispatch_src1 == wb_dst) ||
+                      (ex_wb_valid && issue_dst != 0 && dispatch_src1 == issue_dst) ||
+                      (second_wb && second_dst != 0 && dispatch_src1 == second_dst)) ? 1 : 0) +
+                    (((wb_valid && wb_dst != 0 && dispatch_src2 == wb_dst) ||
+                      (ex_wb_valid && issue_dst != 0 && dispatch_src2 == issue_dst) ||
+                      (second_wb && second_dst != 0 && dispatch_src2 == second_dst)) ? 2 : 0));
+            if (TRACE != 0 && dispatch2 &&
+                ((wb_valid && wb_dst != 0 && (dispatch2_src1 == wb_dst || dispatch2_src2 == wb_dst)) ||
+                 (ex_wb_valid && issue_dst != 0 && (dispatch2_src1 == issue_dst || dispatch2_src2 == issue_dst)) ||
+                 (second_wb && second_dst != 0 && (dispatch2_src1 == second_dst || dispatch2_src2 == second_dst))))
+                $display("CPU_TRACE RENAME_BYPASS id=%0d cycle=%0d pc=%08x source=%0d",
+                    trace_next_id + 1, trace_cycle, fetch2_pc,
+                    (((wb_valid && wb_dst != 0 && dispatch2_src1 == wb_dst) ||
+                      (ex_wb_valid && issue_dst != 0 && dispatch2_src1 == issue_dst) ||
+                      (second_wb && second_dst != 0 && dispatch2_src1 == second_dst)) ? 1 : 0) +
+                    (((wb_valid && wb_dst != 0 && dispatch2_src2 == wb_dst) ||
+                      (ex_wb_valid && issue_dst != 0 && dispatch2_src2 == issue_dst) ||
+                      (second_wb && second_dst != 0 && dispatch2_src2 == second_dst)) ? 2 : 0));
             if (TRACE != 0 && d_req_valid && d_req_ready)
                 $display("CPU_TRACE MEM_REQUEST id=%0d cycle=%0d pc=%08x write=%0d addr=%08x killed=%0d",
                          load_request_bypass ? trace_id[issue_rob] : trace_mq_id[mq_send], trace_cycle,
@@ -1006,12 +1241,19 @@ module cpu_core #(
                          mem_response && !mem_write && !mem_killed);
             end
             if (mem_enqueue) begin
-                trace_mq_id[mq_tail] <= trace_id[store_start ? rob_head : issue_rob];
-                trace_mq_pc[mq_tail] <= rob_pc[store_start ? rob_head : issue_rob];
-                trace_mq_insn[mq_tail] <= rob_insn[store_start ? rob_head : issue_rob];
+                trace_mq_id[mq_tail] <= trace_id[load_enqueue ? issue_rob : rob_head];
+                trace_mq_pc[mq_tail] <= rob_pc[load_enqueue ? issue_rob : rob_head];
+                trace_mq_insn[mq_tail] <= rob_insn[load_enqueue ? issue_rob : rob_head];
                 if (TRACE != 0 && load_enqueue)
                     $display("CPU_TRACE LOAD_QUEUE id=%0d cycle=%0d pc=%08x mask=%01x depth=%0d",
                              trace_id[issue_rob], trace_cycle, issue_pc, forward_mask, mq_count);
+            end
+            if (load_enqueue && store_start) begin
+                trace_mq_id[mq_store_tail] <= trace_id[rob_head];
+                trace_mq_pc[mq_store_tail] <= head_pc;
+                trace_mq_insn[mq_store_tail] <= head_insn;
+                if (TRACE != 0) $display("CPU_TRACE MEM_PAIR id=%0d cycle=%0d pc=%08x load_id=%0d store_id=%0d",
+                    trace_id[rob_head], trace_cycle, head_pc, trace_id[issue_rob], trace_id[rob_head]);
             end
             if (EARLY_RECOVERY == 0 && commit_fire && head_redirect) begin
                 trace_recovery_id <= trace_id[rob_head];
@@ -1065,13 +1307,34 @@ module cpu_core #(
                              head_rd == 0 ? 32'b0 : prf[head_dst]);
                 trace_retired <= trace_retired + 1;
             end
+            if (commit2) begin
+                if (TRACE != 0)
+                    $display("CPU_TRACE COMMIT seq=%0d id=%0d cycle=%0d pc=%08x insn=%08x rd=%0d value=%08x store=0 addr=00000000 data=00000000 strb=0",
+                        trace_retired + 1, trace_id[head2_index], trace_cycle, head2_pc, head2_insn,
+                        head2_rd, head2_rd == 0 ? 32'b0 : prf[head2_dst]);
+                trace_retired <= trace_retired + 2;
+            end
             if (!halted) begin
+                if (dispatch2) begin
+                    assert (dispatch && iq_free_index != iq_free2_index && rob_tail != tail2_index);
+                    assert (!dec_has_dst || !dec2_has_dst || free_index != free2_index);
+                end
+                if (commit2) assert (commit_fire && rob_count >= 2 && head2_op <= OP_AUIPC);
+                assert ($onehot0(grant) && $onehot0(second_grant));
+                if (second_wb) begin
+                    assert (rob_valid[second_rob] && !rob_done[second_rob] && rob_dst[second_rob] == second_dst);
+                    assert (!wb_valid || wb_rob != second_rob);
+                    assert (!ex_wb_valid || issue_rob != second_rob);
+                end
                 if (flush && EARLY_RECOVERY != 0) begin
                     assert (checkpoint_valid[recovery_checkpoint]);
                     assert (checkpoint_owner[recovery_checkpoint] == recovery_rob);
                 end
                 assert (commit_register == (commit_fire && head_rd != 0));
-                assert (!(load_enqueue && store_start));
+                if (load_enqueue && store_start) begin
+                    assert (PARALLEL_STORE_ENQUEUE != 0 && store_bufferable);
+                    assert (mq_store_tail != mq_tail && !mq_valid[mq_store_tail]);
+                end
                 if (load_request_bypass) begin
                     assert (load_enqueue && mem_enqueue && mq_unsent == 0 && mq_send == mq_tail);
                     assert (!d_req_write && issue_address[31:28] == 0);

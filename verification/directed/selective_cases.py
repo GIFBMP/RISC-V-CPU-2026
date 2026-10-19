@@ -1,7 +1,7 @@
 """Selective recovery retains old execution and restores branch-time mappings."""
 
 
-def build_selective_programs(Program):
+def build_selective_programs(Program, wide=False):
     programs = []
     for operation, padding in (("mdu", 0), ("load", 0), ("store", 0), ("jalr", 0), ("mdu", 13)):
         p = Program("selective_wrap_mdu" if padding else "selective_keep_" + operation,
@@ -65,7 +65,8 @@ def build_selective_programs(Program):
     p.label("start")
     old_sites = {1: [], 2: []}
     for source, delays in ((1, [(d, 0) for d in range(6)]),
-                           (2, [(5, 0), (5, 1), (5, 2), (8, 0), (8, 1)])):
+                           (2, [(d, f) for d in range(4, 15) for f in range(4)] if wide
+                            else [(5, 0), (5, 1), (5, 2), (8, 0), (8, 1)])):
         for delay, fine in delays:
             prefix = f"source{source}_delay{delay}_fine{fine}"
             p.i("addi", 8, 0, 1)

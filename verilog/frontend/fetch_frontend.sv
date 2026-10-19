@@ -1,9 +1,11 @@
 // Ordered I-cache requests feed a separate instruction FIFO. Every accepted
-// request reserves a FIFO slot, so a full response stream cannot deadlock.
+// request reserves one or two FIFO words, so a full response stream cannot deadlock.
 // Redirects clear queued instructions and mark accepted old requests killed.
 // Optional overlap reuses free credits before all old responses have drained.
 // Per-context cancellation has no finite epoch/tag that can wrap.
 module fetch_frontend #(
+    parameter integer FETCH_WIDTH = 1,
+    parameter integer DECODE_WIDTH = 1,
     parameter integer PREDICT_ENABLE = 1,
     parameter integer BTB_ENTRIES = 64,
     parameter integer BTB_INDEX_XOR = 0,
@@ -26,13 +28,17 @@ module fetch_frontend #(
     output logic [31:0] instruction_data,
     output logic [31:0] instruction_predicted_pc,
     output logic instruction_error,
+    output logic instruction2_valid,
+    input logic instruction2_ready,
+    output logic [31:0] instruction2_pc, instruction2_data, instruction2_predicted_pc,
+    output logic instruction2_error,
 
     output logic i_req_valid,
     input logic i_req_ready,
     output logic [31:0] i_req_addr,
     input logic i_rsp_valid,
     output logic i_rsp_ready,
-    input logic [31:0] i_rsp_data,
+    input logic [31:0] i_rsp_data, i_rsp_data2,
     input logic i_rsp_error,
 
     input logic update_valid,
@@ -46,7 +52,7 @@ module fetch_frontend #(
     localparam integer QCW = $clog2(FETCH_QUEUE_DEPTH + 1);
     localparam integer OW = (FETCH_OUTSTANDING > 1) ? $clog2(FETCH_OUTSTANDING) : 1;
     localparam integer OCW = $clog2(FETCH_OUTSTANDING + 1);
-    localparam integer TOTAL_W = $clog2(FETCH_QUEUE_DEPTH + FETCH_OUTSTANDING + 1);
+    localparam integer TOTAL_W = $clog2(FETCH_QUEUE_DEPTH + 2*FETCH_OUTSTANDING + 3);
     localparam integer BW = (BTB_ENTRIES > 1) ? $clog2(BTB_ENTRIES) : 1;
     localparam integer RS = RAS_DEPTH > 0 ? RAS_DEPTH : 1;
     localparam integer RW = RS > 1 ? $clog2(RS) : 1;
@@ -55,10 +61,23 @@ module fetch_frontend #(
     localparam integer PATTERNS = 1 << LOCAL_HISTORY_BITS;
 
     logic [31:0] next_pc, predicted_next, fetch_pc;
+    logic [31:0] first_prediction, pair_pc, pair_prediction, pair_target;
+    logic [31:0] redirect_pair_pc, redirect_pair_target, redirect_pair_prediction;
+    logic normal_fetch_pair, redirect_fetch_pair;
+    logic [BW-1:0] pair_index, redirect_pair_index;
+    logic [BTB_ENTRIES-1:0] pair_match, redirect_pair_match;
+    logic fetch_pair, response_pair;
+    logic [FETCH_OUTSTANDING-1:0] request_pair;
+    logic [31:0] request_prediction2 [0:FETCH_OUTSTANDING-1];
+    logic [31:0] response_prediction2;
+    logic [1:0] fetch_words, response_words, queue_push_count;
+    logic [TOTAL_W-1:0] request_slots;
     logic request_on_redirect;
     logic redirect_request_pending;
     logic draining;
     logic [QW-1:0] queue_head, queue_tail;
+    logic [FETCH_QUEUE_DEPTH-1:0] queue_head_onehot, queue_second_onehot;
+    assign queue_second_onehot = (queue_head_onehot << 1) | (queue_head_onehot >> (FETCH_QUEUE_DEPTH-1));
     logic [QCW-1:0] queue_count;
     logic [31:0] queue_pc [0:FETCH_QUEUE_DEPTH-1];
     logic [31:0] queue_data [0:FETCH_QUEUE_DEPTH-1];
@@ -103,7 +122,8 @@ module fetch_frontend #(
     logic ras_commit_write, ras_spec_write;
     logic [31:0] ras_top;
 
-    logic instruction_fire, request_fire, response_fire, queue_push;
+    logic instruction_fire, instruction2_fire, request_fire, response_fire, queue_push;
+    logic [1:0] queue_pop_count;
     logic response_killed, response_live, bypass_response, bypass_payload, queue_pop;
     logic [TOTAL_W-1:0] reserved_slots;
 
@@ -150,7 +170,8 @@ module fetch_frontend #(
     endfunction
 
     generate
-        if (FETCH_QUEUE_DEPTH < 1 || FETCH_OUTSTANDING < 1
+        if ((FETCH_WIDTH != 1 && FETCH_WIDTH != 2) || (DECODE_WIDTH != 1 && DECODE_WIDTH != 2)
+            || FETCH_QUEUE_DEPTH < 1 || FETCH_OUTSTANDING < 1
             || BTB_ENTRIES < 1 || BTB_ENTRIES > 65536 || RAS_DEPTH < 0
             || LOCAL_HISTORY_BITS < 0 || LOCAL_HISTORY_BITS > 4) begin : invalid_parameters
             fetch_frontend_requires_positive_supported_sizes invalid_configuration();
@@ -197,7 +218,40 @@ module fetch_frontend #(
             : (prediction_hit ? prediction_target : next_pc + 32'd4);
         if (RAS_DEPTH > 0 && prediction_ras_action[0] && ras_spec_count != 0)
             predicted_next = ras_top;
+        first_prediction = predicted_next;
+        // A second word is used only from an aligned 8-byte group. Avoid
+        // putting a 32-bit incrementer before this independent BTB lookup.
+        pair_pc = {next_pc[31:3], 3'b100};
+        redirect_pair_pc = {redirect_pc[31:3], 3'b100};
+        pair_index = btb_index(BW'(pair_pc >> 2)
+            ^ (BTB_INDEX_XOR != 0 ? BW'(pair_pc >> (BW+2)) : BW'(0)));
+        redirect_pair_index = btb_index(BW'(redirect_pair_pc >> 2)
+            ^ (BTB_INDEX_XOR != 0 ? BW'(redirect_pair_pc >> (BW+2)) : BW'(0)));
+        pair_target = 0;
+        redirect_pair_target = 0;
+        for (integer b = 0; b < BTB_ENTRIES; b = b + 1) begin
+            pair_match[b] = FETCH_WIDTH == 2 && PREDICT_ENABLE != 0 && btb_valid[b]
+                && pair_index == BW'(b) && btb_pc[b] == pair_pc
+                && (!btb_conditional[b] || prediction_taken[b]);
+            pair_target |= btb_target[b] & {32{pair_match[b]}};
+            redirect_pair_match[b] = FETCH_WIDTH == 2 && PREDICT_ENABLE != 0
+                && REDIRECT_REQUEST != 0 && RAS_DEPTH == 0 && btb_valid[b]
+                && redirect_pair_index == BW'(b) && btb_pc[b] == redirect_pair_pc
+                && (!btb_conditional[b] || prediction_taken[b]);
+            redirect_pair_target |= btb_target[b] & {32{redirect_pair_match[b]}};
+        end
+        normal_fetch_pair = FETCH_WIDTH == 2 && RAS_DEPTH == 0 && FETCH_QUEUE_DEPTH >= 2
+            && next_pc[31:28] == 0 && next_pc[2:0] == 0 && !prediction_hit;
+        redirect_fetch_pair = FETCH_WIDTH == 2 && RAS_DEPTH == 0 && FETCH_QUEUE_DEPTH >= 2
+            && redirect_pc[31:28] == 0 && redirect_pc[2:0] == 0 && !redirect_prediction_hit;
+        redirect_pair_prediction = |redirect_pair_match ? redirect_pair_target : redirect_pc + 32'd8;
+        pair_prediction = request_on_redirect ? redirect_pair_prediction :
+            (|pair_match ? pair_target : next_pc + 32'd8);
+        fetch_pair = request_on_redirect ? redirect_fetch_pair : normal_fetch_pair;
+        if (fetch_pair) predicted_next = pair_prediction;
     end
+    assign fetch_words = fetch_pair ? 2'd2 : 2'd1;
+    assign response_words = response_pair ? 2'd2 : 2'd1;
 
     // Keep payload independent of the ready/valid block. Besides documenting
     // the actual acyclic path, this avoids process-level false cycles in older
@@ -210,20 +264,46 @@ module fetch_frontend #(
         instruction_predicted_pc = 32'b0;
         instruction_error = 1'b0;
         for (integer q = 0; q < FETCH_QUEUE_DEPTH; q = q + 1) begin
-            instruction_pc = instruction_pc | (queue_pc[q] & {32{queue_head == QW'(q)}});
-            instruction_data = instruction_data | (queue_data[q] & {32{queue_head == QW'(q)}});
-            instruction_predicted_pc = instruction_predicted_pc | (queue_prediction[q] & {32{queue_head == QW'(q)}});
-            instruction_error = instruction_error | (queue_error[q] && queue_head == QW'(q));
+            instruction_pc = instruction_pc | (queue_pc[q] & {32{queue_head_onehot[q]}});
+            instruction_data = instruction_data | (queue_data[q] & {32{queue_head_onehot[q]}});
+            instruction_predicted_pc = instruction_predicted_pc | (queue_prediction[q] & {32{queue_head_onehot[q]}});
+            instruction_error = instruction_error | (queue_error[q] && queue_head_onehot[q]);
+        end
+        instruction2_pc = 0;
+        instruction2_data = 0;
+        instruction2_predicted_pc = 0;
+        instruction2_error = 0;
+        for (integer q = 0; q < FETCH_QUEUE_DEPTH; q = q + 1) begin
+            instruction2_pc |= queue_pc[q] & {32{queue_second_onehot[q]}};
+            instruction2_data |= queue_data[q] & {32{queue_second_onehot[q]}};
+            instruction2_predicted_pc |= queue_prediction[q] & {32{queue_second_onehot[q]}};
+            instruction2_error |= queue_error[q] && queue_second_onehot[q];
         end
         response_pc = 32'b0;
         response_prediction = 32'b0;
+        response_prediction2 = 0;
+        response_pair = 0;
         response_killed = 1'b0;
         for (integer r = 0; r < FETCH_OUTSTANDING; r = r + 1) begin
             response_pc = response_pc | (request_pc[r] & {32{request_head == OW'(r)}});
             response_prediction = response_prediction | (request_prediction[r] & {32{request_head == OW'(r)}});
+            response_prediction2 |= request_prediction2[r] & {32{request_head == OW'(r)}};
+            response_pair |= request_pair[r] && request_head == OW'(r);
             response_killed = response_killed | (request_killed[r] && request_head == OW'(r));
         end
 
+        if (queue_count == 0 && RESPONSE_BYPASS != 0) begin
+            instruction2_pc = response_pc + 32'd4;
+            instruction2_data = i_rsp_data2;
+            instruction2_predicted_pc = response_prediction2;
+            instruction2_error = i_rsp_error;
+        end
+        if (queue_count == 1 && RESPONSE_BYPASS != 0) begin
+            instruction2_pc = response_pc;
+            instruction2_data = i_rsp_data;
+            instruction2_predicted_pc = response_prediction;
+            instruction2_error = i_rsp_error || response_pc[1:0] != 0;
+        end
         bypass_payload = RESPONSE_BYPASS != 0 && queue_count == 0;
         // Invalid payload is don't-care. Keep response validity/cancellation
         // out of the wide mux feeding decode and prospective rename payload.
@@ -245,18 +325,28 @@ module fetch_frontend #(
     assign bypass_response = bypass_payload && response_live;
     assign instruction_valid = !reset && !redirect_valid && (queue_count != 0 || bypass_response);
     assign instruction_fire = instruction_valid && instruction_ready;
-    assign queue_pop = instruction_fire && queue_count != 0;
-    // If bypass is stalled, capture the response into the empty FIFO.
-    // Its payload remains identical on the next cycle until acceptance.
-    assign queue_push = response_live && !(bypass_response && instruction_ready);
-    assign reserved_slots = TOTAL_W'(queue_count) + TOTAL_W'(request_count);
+    assign instruction2_valid = DECODE_WIDTH == 2 && !reset && !redirect_valid
+        && (queue_count >= 2 || (RESPONSE_BYPASS != 0 && response_live
+            && (queue_count == 1 || (queue_count == 0 && response_pair))));
+    assign instruction2_fire = instruction_fire && instruction2_valid && instruction2_ready;
+    assign queue_pop = instruction_fire;
+    assign queue_pop_count = {1'b0, instruction_fire} + {1'b0, instruction2_fire};
+    // Write every live response into its reserved rows, including words
+    // consumed directly this cycle. Advancing both ends on bypass keeps the
+    // payload writes independent of either decode lane's ready signal.
+    assign queue_push = response_live;
+    assign queue_push_count = response_live ? response_words : 2'd0;
+    assign reserved_slots = TOTAL_W'(queue_count) + request_slots;
     assign i_req_addr = fetch_pc;
+    // Dual decode releases credits at the following edge. The FIFO absorbs
+    // this elasticity while its wide decoder stays off the request path.
     assign i_req_valid = !reset && (!redirect_valid || request_on_redirect)
                      && (!draining || request_on_redirect || redirect_request_pending)
                      && (request_count < OCW'(FETCH_OUTSTANDING) || response_fire)
                      && (request_on_redirect
-                         ? (TOTAL_W'(request_count) < TOTAL_W'(FETCH_QUEUE_DEPTH) || response_fire)
-                         : (reserved_slots < TOTAL_W'(FETCH_QUEUE_DEPTH) || instruction_fire));
+                         ? (request_slots + TOTAL_W'(fetch_words) <= TOTAL_W'(FETCH_QUEUE_DEPTH)
+                             + (response_fire ? TOTAL_W'(response_words) : TOTAL_W'(0)))
+                         : (reserved_slots + TOTAL_W'(fetch_words) <= TOTAL_W'(FETCH_QUEUE_DEPTH) + (DECODE_WIDTH == 1 ? TOTAL_W'(queue_pop_count) : TOTAL_W'(0))));
     assign request_fire = i_req_valid && i_req_ready;
 
     always_comb begin
@@ -340,14 +430,18 @@ module fetch_frontend #(
             draining <= 1'b0;
             redirect_request_pending <= 1'b0;
             queue_head <= '0;
+            queue_head_onehot <= {{(FETCH_QUEUE_DEPTH-1){1'b0}}, 1'b1};
             queue_tail <= '0;
             queue_count <= '0;
             queue_error <= '0;
             request_head <= '0;
             request_tail <= '0;
             request_count <= '0;
+            request_slots <= '0;
             request_killed <= '0;
         end else begin
+            request_slots <= request_slots + (request_fire ? TOTAL_W'(fetch_words) : TOTAL_W'(0))
+                - (response_fire ? TOTAL_W'(response_words) : TOTAL_W'(0));
             if (request_fire) begin
                 redirect_request_pending <= 1'b0;
                 request_killed[request_tail] <= 1'b0;
@@ -368,6 +462,7 @@ module fetch_frontend #(
                 redirect_request_pending <= request_on_redirect && i_req_valid && !i_req_ready;
                 next_pc <= request_fire ? predicted_next : redirect_pc;
                 queue_head <= '0;
+                queue_head_onehot <= {{(FETCH_QUEUE_DEPTH-1){1'b0}}, 1'b1};
                 queue_tail <= '0;
                 queue_count <= '0;
                 // A response consumed on the redirect edge belongs to the old
@@ -383,15 +478,16 @@ module fetch_frontend #(
                     draining <= 1'b0;
                 if (queue_push) begin
                     queue_error[queue_tail] <= i_rsp_error || response_pc[1:0] != 0;
-                    queue_tail <= next_queue(queue_tail);
+                    if (response_pair) queue_error[next_queue(queue_tail)] <= i_rsp_error;
+                    queue_tail <= response_pair ? next_queue(next_queue(queue_tail)) : next_queue(queue_tail);
                 end
-                if (queue_pop)
-                    queue_head <= next_queue(queue_head);
-                case ({queue_push, queue_pop})
-                    2'b10: queue_count <= queue_count + 1'b1;
-                    2'b01: queue_count <= queue_count - 1'b1;
-                    default: ;
-                endcase
+                if (queue_pop) begin
+                    queue_head <= queue_pop_count == 2 ? next_queue(next_queue(queue_head)) : next_queue(queue_head);
+                    queue_head_onehot <= queue_pop_count == 2
+                        ? ((queue_second_onehot << 1) | (queue_second_onehot >> (FETCH_QUEUE_DEPTH-1)))
+                        : queue_second_onehot;
+                end
+                queue_count <= queue_count + QCW'(queue_push_count) - QCW'(queue_pop_count);
             end
 
         end
@@ -407,13 +503,15 @@ module fetch_frontend #(
                 if ((request_count < OCW'(FETCH_OUTSTANDING) || response_fire)
                     && request_tail == OW'(r)) begin
                     request_pc[r] <= fetch_pc;
-                    request_prediction[r] <= predicted_next;
+                    request_prediction[r] <= first_prediction;
+                    request_prediction2[r] <= pair_prediction;
+                    request_pair[r] <= fetch_pair;
                 end
             end
         end
     endgenerate
 
-    // Every outstanding request reserves one instruction-FIFO slot. Thus a
+    // Every outstanding request reserves its one or two FIFO words. Thus a
     // nonzero request count proves that the queue is not full and its tail
     // payload is unoccupied, even if the current response is killed/stalled.
     // Prewrite only that free row; real pushes alone advance the valid count.
@@ -425,6 +523,11 @@ module fetch_frontend #(
                     queue_pc[q] <= response_pc;
                     queue_data[q] <= i_rsp_data;
                     queue_prediction[q] <= response_prediction;
+                end
+                if (request_count != 0 && response_pair && next_queue(queue_tail) == QW'(q)) begin
+                    queue_pc[q] <= response_pc + 32'd4;
+                    queue_data[q] <= i_rsp_data2;
+                    queue_prediction[q] <= response_prediction2;
                 end
             end
         end
@@ -522,7 +625,8 @@ module fetch_frontend #(
     logic [31:0] held_instruction_prediction;
     logic held_instruction_error;
     initial begin
-        if (FETCH_QUEUE_DEPTH < 1 || FETCH_OUTSTANDING < 1 || BTB_ENTRIES < 1 || BTB_ENTRIES > 65536 || RAS_DEPTH < 0
+        if ((FETCH_WIDTH != 1 && FETCH_WIDTH != 2) || (DECODE_WIDTH != 1 && DECODE_WIDTH != 2)
+            || FETCH_QUEUE_DEPTH < 1 || FETCH_OUTSTANDING < 1 || BTB_ENTRIES < 1 || BTB_ENTRIES > 65536 || RAS_DEPTH < 0
             || LOCAL_HISTORY_BITS < 0 || LOCAL_HISTORY_BITS > 4)
             $fatal(1, "Unsupported fetch frontend parameters");
     end
@@ -531,6 +635,7 @@ module fetch_frontend #(
             stalled_request <= 1'b0;
             stalled_instruction <= 1'b0;
         end else begin
+            assert (queue_head_onehot == ({{(FETCH_QUEUE_DEPTH-1){1'b0}}, 1'b1} << queue_head));
             assert (int'(queue_count) <= FETCH_QUEUE_DEPTH) else $fatal(1, "instruction FIFO overflow");
             assert (int'(request_count) <= FETCH_OUTSTANDING) else $fatal(1, "fetch context overflow");
             assert (int'(reserved_slots) <= FETCH_QUEUE_DEPTH) else $fatal(1, "fetch credit overflow");

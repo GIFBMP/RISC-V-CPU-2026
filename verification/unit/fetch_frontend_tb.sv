@@ -29,6 +29,11 @@ module fetch_frontend_tb #(
     logic [31:0] update_pc = 0, update_target = 0, update_insn = 0;
     logic update_conditional = 0, update_taken = 0;
 
+    logic instruction2_valid, instruction2_error;
+    logic instruction2_ready = 0;
+    logic [31:0] instruction2_pc, instruction2_data, instruction2_predicted_pc;
+    logic [31:0] i_rsp_data2 = 0;
+
     fetch_frontend #(
         .FETCH_QUEUE_DEPTH(QUEUE_DEPTH), .FETCH_OUTSTANDING(OUTSTANDING),
         .BTB_ENTRIES(BTB_SIZE), .BTB_INDEX_XOR(BTB_HASH),

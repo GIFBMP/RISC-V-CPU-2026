@@ -1,8 +1,8 @@
-// Course interface. Defaults describe the V5 single-issue CPU.
+// Course interface. Defaults describe the V6 asymmetric dual-issue CPU.
 module student_top #(
     parameter integer ROB_DEPTH = 16,
     parameter integer PRF_SIZE = 48,
-    parameter integer IQ_DEPTH = 8,
+    parameter integer IQ_DEPTH = 6,
     parameter integer LSQ_DEPTH = 8,
     parameter integer MEM_QUEUE_DEPTH = 8,
     parameter integer ICACHE_BYTES = 2048,
@@ -16,7 +16,10 @@ module student_top #(
     parameter integer FAST_HIT_RESPONSE = 1,
     parameter integer PIPELINED_STORE_HITS = 1,
     parameter integer FAST_INSTRUCTION_RESPONSE = 1,
-    parameter integer ISSUE_WIDTH = 1,
+    parameter integer FETCH_WIDTH = 2,
+    parameter integer ISSUE_WIDTH = 2,
+    parameter integer RENAME_WIDTH = 2,
+    parameter integer COMMIT_WIDTH = 2,
     parameter integer FETCH_QUEUE_DEPTH = 8,
     parameter integer FETCH_OUTSTANDING = 4,
     parameter integer BTB_ENTRIES = 64,
@@ -24,7 +27,7 @@ module student_top #(
     parameter integer LOCAL_HISTORY_BITS = 1,
     parameter integer REDIRECT_OVERLAP = 1,
     parameter integer RESPONSE_BYPASS = 1,
-    parameter integer REDIRECT_REQUEST = 1,
+    parameter integer REDIRECT_REQUEST = 0,
     parameter integer RAS_DEPTH = 0,
     parameter integer EARLY_FETCH = 1,
     parameter integer EARLY_RECOVERY = 1,
@@ -32,6 +35,7 @@ module student_top #(
     parameter integer BRANCH_CHECKPOINTS = 4,
     parameter integer TRAIN_EXECUTE = 0,
     parameter integer LOAD_REQUEST_BYPASS = 1,
+    parameter integer PARALLEL_STORE_ENQUEUE = 1,
     parameter integer PREDICT_ENABLE = 1,
     parameter integer TRACE = 0
 ) (
@@ -55,6 +59,8 @@ module student_top #(
     input  logic bvalid,
     output logic bready
 );
+    localparam integer EFFECTIVE_FETCH_WIDTH = ICACHE_LINE_BYTES >= 8 && ICACHE_BYTES >= 8 && RAS_DEPTH == 0 ? FETCH_WIDTH : 1;
+    logic [31:0] i_rsp_data2;
     logic i_req_valid, i_req_ready, i_rsp_valid, i_rsp_ready, i_rsp_error;
     logic [31:0] i_req_addr, i_rsp_data;
     logic d_req_valid, d_req_ready, d_req_write;
@@ -63,18 +69,20 @@ module student_top #(
     logic [3:0] d_req_wstrb;
 
     cpu_core #(
+        .FETCH_WIDTH(EFFECTIVE_FETCH_WIDTH),
         .ROB_DEPTH(ROB_DEPTH), .PRF_SIZE(PRF_SIZE), .IQ_DEPTH(IQ_DEPTH),
-        .LSQ_DEPTH(LSQ_DEPTH), .MEM_QUEUE_DEPTH(MEM_QUEUE_DEPTH), .ISSUE_WIDTH(ISSUE_WIDTH), .TRACE(TRACE),
+        .LSQ_DEPTH(LSQ_DEPTH), .MEM_QUEUE_DEPTH(MEM_QUEUE_DEPTH), .ISSUE_WIDTH(ISSUE_WIDTH), .RENAME_WIDTH(RENAME_WIDTH), .COMMIT_WIDTH(COMMIT_WIDTH), .TRACE(TRACE),
         .FETCH_QUEUE_DEPTH(FETCH_QUEUE_DEPTH), .FETCH_OUTSTANDING(FETCH_OUTSTANDING),
         .BTB_ENTRIES(BTB_ENTRIES), .BTB_INDEX_XOR(BTB_INDEX_XOR), .LOCAL_HISTORY_BITS(LOCAL_HISTORY_BITS),
         .REDIRECT_OVERLAP(REDIRECT_OVERLAP), .RESPONSE_BYPASS(RESPONSE_BYPASS), .REDIRECT_REQUEST(REDIRECT_REQUEST), .EARLY_RECOVERY(EARLY_RECOVERY),
         .BRANCH_CHECKPOINTS(BRANCH_CHECKPOINTS), .PARALLEL_COMPLETION(PARALLEL_COMPLETION),
-        .EARLY_FETCH(EARLY_FETCH), .TRAIN_EXECUTE(TRAIN_EXECUTE), .LOAD_REQUEST_BYPASS(LOAD_REQUEST_BYPASS), .RAS_DEPTH(RAS_DEPTH), .PREDICT_ENABLE(PREDICT_ENABLE)
+        .EARLY_FETCH(EARLY_FETCH), .TRAIN_EXECUTE(TRAIN_EXECUTE), .LOAD_REQUEST_BYPASS(LOAD_REQUEST_BYPASS),
+        .PARALLEL_STORE_ENQUEUE(PARALLEL_STORE_ENQUEUE), .RAS_DEPTH(RAS_DEPTH), .PREDICT_ENABLE(PREDICT_ENABLE)
     ) core (
         .clock(clock), .reset(reset),
         .i_req_valid(i_req_valid), .i_req_ready(i_req_ready), .i_req_addr(i_req_addr),
         .i_rsp_valid(i_rsp_valid), .i_rsp_ready(i_rsp_ready),
-        .i_rsp_data(i_rsp_data), .i_rsp_error(i_rsp_error),
+        .i_rsp_data(i_rsp_data), .i_rsp_data2(i_rsp_data2), .i_rsp_error(i_rsp_error),
         .d_req_valid(d_req_valid), .d_req_ready(d_req_ready),
         .d_req_write(d_req_write), .d_req_addr(d_req_addr),
         .d_req_wdata(d_req_wdata), .d_req_wstrb(d_req_wstrb),
@@ -83,6 +91,7 @@ module student_top #(
     );
 
     memory_system #(
+        .FETCH_WIDTH(EFFECTIVE_FETCH_WIDTH),
         .ICACHE_BYTES(ICACHE_BYTES), .DCACHE_BYTES(DCACHE_BYTES),
         .CACHE_LINE_BYTES(CACHE_LINE_BYTES),
         .ICACHE_LINE_BYTES(ICACHE_LINE_BYTES), .DCACHE_LINE_BYTES(DCACHE_LINE_BYTES),
@@ -93,7 +102,7 @@ module student_top #(
         .clock(clock), .reset(reset),
         .i_req_valid(i_req_valid), .i_req_ready(i_req_ready), .i_req_addr(i_req_addr),
         .i_rsp_valid(i_rsp_valid), .i_rsp_ready(i_rsp_ready),
-        .i_rsp_data(i_rsp_data), .i_rsp_error(i_rsp_error),
+        .i_rsp_data(i_rsp_data), .i_rsp_data2(i_rsp_data2), .i_rsp_error(i_rsp_error),
         .d_req_valid(d_req_valid), .d_req_ready(d_req_ready),
         .d_req_write(d_req_write), .d_req_addr(d_req_addr),
         .d_req_wdata(d_req_wdata), .d_req_wstrb(d_req_wstrb),

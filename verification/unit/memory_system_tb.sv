@@ -30,6 +30,8 @@ module memory_system_tb #(parameter integer CACHE_LINE_BYTES = 16);
     reg [1:0] bresp = 2'b0;
     reg bvalid = 1'b0;
 
+    wire [31:0] i_rsp_data2;
+
     memory_system #(.CACHE_LINE_BYTES(CACHE_LINE_BYTES), .DCACHE_BYTES(2048),
         .DCACHE_WAYS(1), .DCACHE_WRITE_BACK(0)) dut (.*);
 

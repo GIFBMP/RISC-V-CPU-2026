@@ -1,0 +1,773 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-19",
+  "version": "V6 asymmetric dual-issue RV32IM OoO",
+  "baseline_commit": "f372fa747dc13594c5aaf295b0800c8e6996b921",
+  "framework_commit": "54fc150ffc290f52aa024209ffb9a29d43856f6d",
+  "testcases_commit": "29f980727f7d99a1842a58f34091c7579ba3fe85",
+  "parameters": {
+    "ROB_DEPTH": 16,
+    "PRF_SIZE": 48,
+    "IQ_DEPTH": 6,
+    "LSQ_DEPTH": 8,
+    "MEM_QUEUE_DEPTH": 8,
+    "ICACHE_BYTES": 2048,
+    "DCACHE_BYTES": 16384,
+    "CACHE_LINE_BYTES": 128,
+    "ICACHE_LINE_BYTES": 128,
+    "DCACHE_LINE_BYTES": 256,
+    "ICACHE_WAYS": 1,
+    "DCACHE_WAYS": 4,
+    "DCACHE_WRITE_BACK": 1,
+    "FAST_HIT_RESPONSE": 1,
+    "PIPELINED_STORE_HITS": 1,
+    "FAST_INSTRUCTION_RESPONSE": 1,
+    "FETCH_WIDTH": 2,
+    "ISSUE_WIDTH": 2,
+    "RENAME_WIDTH": 2,
+    "COMMIT_WIDTH": 2,
+    "FETCH_QUEUE_DEPTH": 8,
+    "FETCH_OUTSTANDING": 4,
+    "BTB_ENTRIES": 64,
+    "BTB_INDEX_XOR": 1,
+    "LOCAL_HISTORY_BITS": 1,
+    "REDIRECT_OVERLAP": 1,
+    "RESPONSE_BYPASS": 1,
+    "REDIRECT_REQUEST": 0,
+    "RAS_DEPTH": 0,
+    "EARLY_FETCH": 1,
+    "EARLY_RECOVERY": 1,
+    "PARALLEL_COMPLETION": 1,
+    "BRANCH_CHECKPOINTS": 4,
+    "TRAIN_EXECUTE": 0,
+    "LOAD_REQUEST_BYPASS": 1,
+    "PARALLEL_STORE_ENQUEUE": 1,
+    "PREDICT_ENABLE": 1,
+    "TRACE": 0
+  },
+  "rtl_sha256": {
+    "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+    "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+    "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+    "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+    "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+    "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+    "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+    "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+    "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+    "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+    "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+    "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+    "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+  },
+  "targets": {
+    "ipc_geomean_exclusive_min": 0.845,
+    "frequency_mhz_exclusive_min": 300,
+    "total_area_um2_max": 18000,
+    "all_met": true
+  },
+  "official": {
+    "latency": 10,
+    "max_cycles": 100000000,
+    "platforms": [
+      "macOS arm64 Verilator 5.052, TRACE=1",
+      "Linux arm64 Verilator 5.020, TRACE=0"
+    ],
+    "cycles_identical": true,
+    "performance": [
+      {
+        "case": "perf_median",
+        "dynamic_instructions": 6961,
+        "cycles": 10316,
+        "ipc": 0.6747770453664211,
+        "v5_cycles": 10549,
+        "v5_ipc": 0.6598729737415869
+      },
+      {
+        "case": "perf_multiply",
+        "dynamic_instructions": 21722,
+        "cycles": 18405,
+        "ipc": 1.180222765552839,
+        "v5_cycles": 24643,
+        "v5_ipc": 0.8814673538124417
+      },
+      {
+        "case": "perf_qsort",
+        "dynamic_instructions": 139900,
+        "cycles": 176407,
+        "ipc": 0.7930524298922378,
+        "v5_cycles": 190224,
+        "v5_ipc": 0.7354487341239802
+      },
+      {
+        "case": "perf_rsort",
+        "dynamic_instructions": 195719,
+        "cycles": 175109,
+        "ipc": 1.117698119457024,
+        "v5_cycles": 221759,
+        "v5_ipc": 0.8825752280628971
+      },
+      {
+        "case": "perf_towers",
+        "dynamic_instructions": 5278,
+        "cycles": 6465,
+        "ipc": 0.8163959783449343,
+        "v5_cycles": 7066,
+        "v5_ipc": 0.7469572601188791
+      },
+      {
+        "case": "perf_vvadd",
+        "dynamic_instructions": 4524,
+        "cycles": 6111,
+        "ipc": 0.7403043691703486,
+        "v5_cycles": 6630,
+        "v5_ipc": 0.6823529411764706
+      }
+    ],
+    "ipc_geomean": 0.8676481522414352,
+    "v5_ipc_geomean": 0.7598232680190469,
+    "improvement_vs_v5_percent": 14.190784720702364,
+    "correctness": [
+      {
+        "case": "correctness_add_to_100",
+        "cycles": 528,
+        "commits": 421,
+        "passed": true
+      },
+      {
+        "case": "correctness_array_test1",
+        "cycles": 678,
+        "commits": 131,
+        "passed": true
+      },
+      {
+        "case": "correctness_array_test2",
+        "cycles": 698,
+        "commits": 149,
+        "passed": true
+      },
+      {
+        "case": "correctness_basicopt1",
+        "cycles": 706291,
+        "commits": 142059,
+        "passed": true
+      },
+      {
+        "case": "correctness_bulgarian",
+        "cycles": 231093,
+        "commits": 265654,
+        "passed": true
+      },
+      {
+        "case": "correctness_expr",
+        "cycles": 752,
+        "commits": 291,
+        "passed": true
+      },
+      {
+        "case": "correctness_gcd",
+        "cycles": 680,
+        "commits": 82,
+        "passed": true
+      },
+      {
+        "case": "correctness_hanoi",
+        "cycles": 5224,
+        "commits": 3674,
+        "passed": true
+      },
+      {
+        "case": "correctness_lvalue2",
+        "cycles": 523,
+        "commits": 53,
+        "passed": true
+      },
+      {
+        "case": "correctness_magic",
+        "cycles": 424373,
+        "commits": 441938,
+        "passed": true
+      },
+      {
+        "case": "correctness_manyarguments",
+        "cycles": 545,
+        "commits": 37,
+        "passed": true
+      },
+      {
+        "case": "correctness_multiarray",
+        "cycles": 2422,
+        "commits": 1543,
+        "passed": true
+      },
+      {
+        "case": "correctness_naive",
+        "cycles": 519,
+        "commits": 37,
+        "passed": true
+      },
+      {
+        "case": "correctness_pi",
+        "cycles": 39423860,
+        "commits": 3117658,
+        "passed": true
+      },
+      {
+        "case": "correctness_qsort",
+        "cycles": 961093,
+        "commits": 1097111,
+        "passed": true
+      },
+      {
+        "case": "correctness_queens",
+        "cycles": 269938,
+        "commits": 265167,
+        "passed": true
+      },
+      {
+        "case": "correctness_statement_test",
+        "cycles": 1827,
+        "commits": 546,
+        "passed": true
+      },
+      {
+        "case": "correctness_superloop",
+        "cycles": 427487,
+        "commits": 371607,
+        "passed": true
+      },
+      {
+        "case": "correctness_tak",
+        "cycles": 1221915,
+        "commits": 1221227,
+        "passed": true
+      }
+    ],
+    "trace_performance_summary": "build/v6/final-perf/20261019-171520-153149/summary.json",
+    "trace_correctness_summary": "build/v6/final-correctness/20261019-171520-152941/summary.json",
+    "linux_performance_log": "build/v6/linux-perf.log",
+    "linux_correctness_log": "build/v6/linux-correctness.log"
+  },
+  "synthesis": {
+    "report": "build/v6/synth-final/opt/report.json",
+    "report_sha256": "dd22c966240fa6d1ee9b53dc0fea1c4e8a65c2e5a13f3fb5fddc9c355a83251a",
+    "source_snapshot": "build/v6/final-source",
+    "area": {
+      "logic_area_um2": 10945.745460007607,
+      "sequential_area_um2": 4769.7012,
+      "combinational_area_um2": 6176.044260007607,
+      "sram_area_um2": 6259.592911999999,
+      "area_um2": 17205.338372007605
+    },
+    "timing": {
+      "clock_port": "clock",
+      "clock_period_ns": 2.0,
+      "input_delay_ns": 0.2,
+      "output_delay_ns": 0.2,
+      "input_transition_ns": 0.05,
+      "clock_transition_ns": 0.05,
+      "clock_uncertainty_ns": 0.05,
+      "output_load_ff": 5.0,
+      "reset_value": 0,
+      "clock_model": "ideal",
+      "interconnect": "no_parasitics",
+      "frequency_resolution_ns": 0.001,
+      "minimum_period_ns": 3.3212890625,
+      "estimated_fmax_mhz": 301.0879153190238,
+      "worst_setup_slack_ns": -1.320946,
+      "timing_analyzed": true
+    },
+    "direct_300mhz": {
+      "period_ns": 3.3333333333333335,
+      "worst_slack_ns": 0.012387,
+      "report": "build/v6/analysis-final/timing-300mhz.rpt",
+      "report_sha256": "e8f2bb3992182079a5f19200665a2d401d287964d776f4a489b6e360f8491bf6",
+      "constraints": "build/v6/analysis-final/constraints-300mhz.sdc"
+    },
+    "tools": {
+      "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+      "opensta": "3.1.0"
+    },
+    "libraries": [
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_AO_RVT_TT_nldm_211120.lib",
+        "sha256": "b1ece108c0a2acd8d01c05cee6daee2834425037b1d9aad625d6f1dd640f1940"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_INVBUF_RVT_TT_nldm_220122.lib",
+        "sha256": "a4ceb32e418e1aac8667e28fbd8e9e46baf520180be4db075598a4d7c681a56e"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_OA_RVT_TT_nldm_211120.lib",
+        "sha256": "6529c6c72465cd133dfbfb03952327ab2774bb6aa4be866d78fd7bc6c58c9f6f"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_SEQ_RVT_TT_nldm_220123.lib",
+        "sha256": "57a0b403485b99ebd676942af4673ac086b86c7c75fbdc3e5c0038501dd22ba3"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.lib",
+        "sha256": "fa92e6ab1481810602811b1eea54bc016a341f11fb5188d7512c026599adf038"
+      },
+      {
+        "path": "/work/build/v6/synth-final/opt/ram/fakeram_asap7_1024x8.lib",
+        "sha256": "54565b04833c6bf334d2d74cdaae3796230822dc853c41f7846235dfb1c66da1"
+      },
+      {
+        "path": "/work/build/v6/synth-final/opt/ram/fakeram_asap7_16x20.lib",
+        "sha256": "e4125e8344b62b27b23975d925cdd50e01fa21f2f2044e272ff71ea878eafa2d"
+      },
+      {
+        "path": "/work/build/v6/synth-final/opt/ram/fakeram_asap7_16x21.lib",
+        "sha256": "62e6c63e736ed2bb3790c9d982a74036c580f0756945f75be54b49d62dfdf2aa"
+      },
+      {
+        "path": "/work/build/v6/synth-final/opt/ram/fakeram_asap7_256x32.lib",
+        "sha256": "928a8a6f6e1c31283dc12124ad44d45c91c4e92bb916fd8226d934ef633ac2b9"
+      }
+    ],
+    "sram_model": {
+      "name": "fakeram-asap7-v1",
+      "upstream": "ABKGroup/FakeRAM2.0",
+      "commit": "49dad15badc28a55363813e105c830c7776fc588",
+      "estimated": true,
+      "area_per_bit_um2": 0.0419904,
+      "clock_to_q_formula_ns": "0.071262 + 0.0000167155 * depth + 0.001243254 * width",
+      "setup_ns": 0.05,
+      "hold_ns": 0.05,
+      "min_period_ns": 0.157
+    }
+  },
+  "verification": {
+    "default_directed": {
+      "summary": "build/v6/final-directed/20261019-171520-153307/summary.json",
+      "passed": 156,
+      "total": 156,
+      "commits": 103092
+    },
+    "small_compatibility": {
+      "summary": "build/v6/final-small-directed/20261019-172051-212500/summary.json",
+      "passed": 104,
+      "total": 104,
+      "commits": 68728
+    },
+    "scalar_compatibility": {
+      "summary": "build/v6/final-scalar-directed/20261019-172052-699486/summary.json",
+      "passed": 104,
+      "total": 104,
+      "commits": 68728
+    },
+    "faults": {
+      "summary": "build/v6/final-faults/summary.json",
+      "passed": 27,
+      "total": 27
+    },
+    "writeback_faults": {
+      "summary": "build/v6/final-wb-faults/summary.json",
+      "passed": 12,
+      "total": 12
+    },
+    "unit_fetch": {
+      "log": "build/v6/final-unit-fetch.log",
+      "simulation_runs": 27,
+      "passed": 27
+    },
+    "unit_wide": {
+      "log": "build/v6/final-unit-wide.log",
+      "simulation_runs": 11,
+      "passed": 11
+    },
+    "unit_writeback": {
+      "log": "build/v6/final-unit-writeback.log",
+      "simulation_runs": 30,
+      "passed": 30
+    },
+    "unit_memory": {
+      "log": "build/v6/final-unit-memory.log",
+      "simulation_runs": 3,
+      "passed": 3
+    },
+    "unit_icache": {
+      "log": "build/v6/final-unit-icache.log",
+      "simulation_runs": 4,
+      "passed": 4
+    },
+    "unit_dcache": {
+      "log": "build/v6/final-unit-dcache.log",
+      "simulation_runs": 8,
+      "passed": 8
+    },
+    "parameter_elaboration": {
+      "minimum_valid": 2,
+      "invalid_rejected": 10,
+      "logs": [
+        "build/v6/final-unit-memory.log",
+        "build/v6/final-unit-writeback.log"
+      ]
+    },
+    "reference_checker_tests": {
+      "passed": 37,
+      "log": "build/v6/checker-tests.log"
+    },
+    "gnu_assembler_audit": {
+      "passed": 52,
+      "log": "build/v6/final-encoder-audit.log"
+    },
+    "wide_evidence": [
+      {
+        "case": "wide_checkpoint_pair",
+        "latency": 1,
+        "wide_evidence": {
+          "rename_pairs": 59,
+          "issue_pairs": 12,
+          "commit_pairs": 0,
+          "raw_waw": {
+            "first": {
+              "id": 2,
+              "cycle": 39,
+              "pc": 8,
+              "insn": 69559,
+              "rd": 31,
+              "pdst": 34,
+              "slot": 2
+            },
+            "second": {
+              "id": 3,
+              "cycle": 39,
+              "pc": 12,
+              "insn": 1019795,
+              "rd": 31,
+              "pdst": 35,
+              "slot": 3
+            }
+          },
+          "control_pair_killed": {
+            "first": {
+              "id": 121,
+              "cycle": 198,
+              "pc": 368,
+              "insn": 12583663,
+              "rd": 5,
+              "pdst": 5,
+              "slot": 6
+            },
+            "second": {
+              "id": 122,
+              "cycle": 198,
+              "pc": 372,
+              "insn": 105022099,
+              "rd": 5,
+              "pdst": 37,
+              "slot": 7
+            },
+            "flush": {
+              "id": 121,
+              "cycle": 201,
+              "pc": 368,
+              "target": 380,
+              "load_pending": 0,
+              "prepared": 0,
+              "selective": 1,
+              "head_id": 119,
+              "kept": 3,
+              "killed": 3
+            }
+          }
+        }
+      },
+      {
+        "case": "wide_checkpoint_pair",
+        "latency": 10,
+        "wide_evidence": {
+          "rename_pairs": 59,
+          "issue_pairs": 12,
+          "commit_pairs": 0,
+          "raw_waw": {
+            "first": {
+              "id": 2,
+              "cycle": 48,
+              "pc": 8,
+              "insn": 69559,
+              "rd": 31,
+              "pdst": 34,
+              "slot": 2
+            },
+            "second": {
+              "id": 3,
+              "cycle": 48,
+              "pc": 12,
+              "insn": 1019795,
+              "rd": 31,
+              "pdst": 35,
+              "slot": 3
+            }
+          },
+          "control_pair_killed": {
+            "first": {
+              "id": 121,
+              "cycle": 225,
+              "pc": 368,
+              "insn": 12583663,
+              "rd": 5,
+              "pdst": 5,
+              "slot": 6
+            },
+            "second": {
+              "id": 122,
+              "cycle": 225,
+              "pc": 372,
+              "insn": 105022099,
+              "rd": 5,
+              "pdst": 37,
+              "slot": 7
+            },
+            "flush": {
+              "id": 121,
+              "cycle": 228,
+              "pc": 368,
+              "target": 380,
+              "load_pending": 0,
+              "prepared": 0,
+              "selective": 1,
+              "head_id": 119,
+              "kept": 3,
+              "killed": 3
+            }
+          }
+        }
+      },
+      {
+        "case": "wide_checkpoint_pair",
+        "latency": 31,
+        "wide_evidence": {
+          "rename_pairs": 59,
+          "issue_pairs": 12,
+          "commit_pairs": 0,
+          "raw_waw": {
+            "first": {
+              "id": 2,
+              "cycle": 87,
+              "pc": 8,
+              "insn": 69559,
+              "rd": 31,
+              "pdst": 34,
+              "slot": 2
+            },
+            "second": {
+              "id": 3,
+              "cycle": 87,
+              "pc": 12,
+              "insn": 1019795,
+              "rd": 31,
+              "pdst": 35,
+              "slot": 3
+            }
+          },
+          "control_pair_killed": {
+            "first": {
+              "id": 121,
+              "cycle": 342,
+              "pc": 368,
+              "insn": 12583663,
+              "rd": 5,
+              "pdst": 5,
+              "slot": 6
+            },
+            "second": {
+              "id": 122,
+              "cycle": 342,
+              "pc": 372,
+              "insn": 105022099,
+              "rd": 5,
+              "pdst": 37,
+              "slot": 7
+            },
+            "flush": {
+              "id": 121,
+              "cycle": 345,
+              "pc": 368,
+              "target": 380,
+              "load_pending": 0,
+              "prepared": 0,
+              "selective": 1,
+              "head_id": 119,
+              "kept": 3,
+              "killed": 3
+            }
+          }
+        }
+      },
+      {
+        "case": "wide_rename_retire",
+        "latency": 1,
+        "wide_evidence": {
+          "rename_pairs": 129,
+          "issue_pairs": 66,
+          "commit_pairs": 208,
+          "raw_waw": {
+            "first": {
+              "id": 630,
+              "cycle": 1061,
+              "pc": 128,
+              "insn": 9326131,
+              "rd": 28,
+              "pdst": 32,
+              "slot": 0
+            },
+            "second": {
+              "id": 631,
+              "cycle": 1061,
+              "pc": 132,
+              "insn": 18746899,
+              "rd": 28,
+              "pdst": 47,
+              "slot": 1
+            }
+          }
+        }
+      },
+      {
+        "case": "wide_rename_retire",
+        "latency": 10,
+        "wide_evidence": {
+          "rename_pairs": 129,
+          "issue_pairs": 66,
+          "commit_pairs": 208,
+          "raw_waw": {
+            "first": {
+              "id": 630,
+              "cycle": 1079,
+              "pc": 128,
+              "insn": 9326131,
+              "rd": 28,
+              "pdst": 32,
+              "slot": 0
+            },
+            "second": {
+              "id": 631,
+              "cycle": 1079,
+              "pc": 132,
+              "insn": 18746899,
+              "rd": 28,
+              "pdst": 47,
+              "slot": 1
+            }
+          }
+        }
+      },
+      {
+        "case": "wide_rename_retire",
+        "latency": 31,
+        "wide_evidence": {
+          "rename_pairs": 129,
+          "issue_pairs": 66,
+          "commit_pairs": 208,
+          "raw_waw": {
+            "first": {
+              "id": 630,
+              "cycle": 1229,
+              "pc": 128,
+              "insn": 9326131,
+              "rd": 28,
+              "pdst": 32,
+              "slot": 0
+            },
+            "second": {
+              "id": 631,
+              "cycle": 1229,
+              "pc": 132,
+              "insn": 18746899,
+              "rd": 28,
+              "pdst": 47,
+              "slot": 1
+            }
+          }
+        }
+      }
+    ],
+    "compatibility_scope": "Small and scalar runs keep architectural/commit and transaction checks, but waive default timing-specific speculation/width coverage. Default 156 runs require all coverage."
+  },
+  "framework_modified": false,
+  "same_source_verified": true,
+  "same_v5_framework_constraints_libraries_sram_model_verified": true,
+  "framework_sha256": {
+    "Makefile": "200247e351eaee15c4a90e8d927e7281d1c03ee07932d056982999e4a274e20f",
+    "config.linux.mk": "f7fe3456bfe9b3e58c89ff465cc5a2a9b801503d11ff50728673219db899ed0d",
+    "config.macos.mk": "113f58a5937bf3950cb72789503ef2b405f76bfb567edeedd73d7ae2f9120387",
+    "config.mk": "073551bf208ca7f7e8607757a88c0d01b0f45eb786d291f30c262e7133fbcda1",
+    "scripts/build.py": "53a696ea526986a67e5affeab447e81378d61eeedce3fb37b92a45fb16318a8b",
+    "scripts/fakeram.py": "bcad1312d66d279e22c932fc548cb5aaf3ab0f795e6fcf15115e393ac87dcc21",
+    "scripts/oj_io.py": "6c2930aeabec7abfe7c9d2ba649877ae4d192bb394cbf4f4e7a34c1093878cd6",
+    "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+    "scripts/run.py": "7c5db9d823531482586b47f28a06a1768ecacdb87c44852d219c8e79279d83c8",
+    "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec",
+    "scripts/synth.py": "f9456126fe0d35787a89f811947aa571dfd0c2bb09cacb1ec56ac69365eecbd6",
+    "scripts/synth_report.py": "e1f3967cb64786a73f112ccf17a29091cbcb094a55612285a19d09946a249924",
+    "scripts/testcase.py": "1bb479d37cac7d1f26aa1a016538429212ac49ed8ce7e73e5b56396f3d8c84f3",
+    "scripts/timing.py": "576be0b8273c7ee3616a414b759fc158634b9138500f61f2ea8db0fd133e5f3f",
+    "scripts/timing.tcl": "dc8314b75f29ef1ae483ece9d2dbbac076a4d0dd50bee6d9273f4a78c601b484",
+    "scripts/toolchain.py": "03a25cfc4b396214445e45b2b11c71a87cc7eb117ac8176c792b6d5c6f0a35fc",
+    "tools/dev": "5373fdb7fa93b0c9d5326891320a4c8a3da05bcfcd7542de0ece7bc9db948c52"
+  },
+  "verification_sha256": {
+    "verification/directed/control_cases.py": "c169bc35659272e072bd34e228d5d4f186bf34130d938772a421bec7deb44710",
+    "verification/directed/generate.py": "545c6f923e0c385fdf5ecc84d603e1d92a89e34813e7cf925744f5b1a5c1b3cf",
+    "verification/directed/lsu_cases.py": "0981acd3adaff0ee64a7ab7b36be9971e252a6e144729f801bead3af3f800238",
+    "verification/directed/selective_cases.py": "60dc67f0bf0acd74baab01915aa8a5d26f474ccd45797994bb3b41a1f23f47ae",
+    "verification/directed/wide_cases.py": "0fc386f5355602e2da1e80cb6557ea0e858270c97340e03ad5d4a23536ba66d7",
+    "verification/environment/student_top.sv": "9456333481279311ffe3bfa8c63083c28d27e819160d53ed9cab35ad7048666e",
+    "verification/runners/analyze_backend.py": "5949b8d9b1770019d1bbf9080795f3eecaf471af2fd57e1aa4cc069c0023bda4",
+    "verification/runners/analyze_dependencies.py": "7f486dea6cc255e4e10818d846c1cff8efb2c0ee82c7f116db2cabe658e734fe",
+    "verification/runners/analyze_trace.py": "67f4affbf4a21f57216afcc87c143ba489b3f13ab72976ec28b9f245f525df29",
+    "verification/runners/audit_cases.py": "f2a16c78200cd653ba08a48dff0b844ea8ea39557c9b92c509b6c8097f8c21e9",
+    "verification/runners/build_trace.py": "b863546b5deb9e346a1f17a1f86c7d08d1d19a36673e5f6bd9efdf406e06bd5c",
+    "verification/runners/compare_recovery.py": "f8172142404f97ef6b34a87294e6fa6617ea52f37d89c3bea8c0ef0a7fca3494",
+    "verification/runners/lsu_checks.py": "9fde24649b2d9f6f0f3cd63af3f79505b995a43dbf8419174e691eaf52ccc8b9",
+    "verification/runners/run_cpu.py": "b043da134b39a4421a99d2bc25f0f9385c7fa62f323d9d5f486d29c66f7740d6",
+    "verification/runners/run_faults.py": "362c53f01cccb857ed750740d6e764aebaf690a13483c1d5b9583235c9124ae5",
+    "verification/runners/run_linux_units.sh": "fe88280885c01782a76037c10963eacda4b4c6a2120082b64e20a42986c41735",
+    "verification/runners/run_writeback_faults.py": "460a852a97f9c7884d79a6d8333437fa2d059b5c49af055880917e7bbdf35184",
+    "verification/runners/rv32_reference.py": "fb8ca2e0d7ffdcf332ca33488ea2fb21aece85ec9bcacd40f2cb23d12e0cd115",
+    "verification/runners/screen_global_predictors.py": "c870d4c91b6b31e30c73f61ca21d4c7319ede234c06316890b458b673c025f9b",
+    "verification/runners/selective_checks.py": "80334aabd6690fc7c45a9e73cf53bb6ac8358e94a1d9b5c1201f1180d799dc7f",
+    "verification/runners/test_analysis.py": "ead3a10556927b9cd79bdb838e4b9454939ce325ff7d5b6ed43641a75b543baa",
+    "verification/runners/test_lsu_checks.py": "4709d6afa89d805b8df28ba83d2cd3a4943189b35f40759403242381b89330fa",
+    "verification/runners/test_reference.py": "d2a62b8993e37eba9aeed5aeb82c805d6e0489da684368fc26a38fd30ce65104",
+    "verification/runners/test_selective_checks.py": "ab5f4e9f1cf896100fe44b950737a17b1ca28d8c96cbaa9d33f85bd63435ecc8",
+    "verification/runners/test_wide_checks.py": "c700214d58f1fade4f4ea6a7ae8de16d29965358e6585436b9fa13b3726ddb20",
+    "verification/runners/wide_checks.py": "21e5d42c37e5a5315a49abed99bfdae2335828aa231b7fcbfd6d7a6d689832af",
+    "verification/runners/writeback_fault_sim.cpp": "0195cd68e9bec98de633aa8c6f7dd468558e55c03af97ac87b7340e6b81ea411",
+    "verification/unit/dcache_preread_tb.sv": "851864a90492fba652d81465eed63f45186179e5737adb16c5ab787740a0f716",
+    "verification/unit/execute_decode_alu_tb.sv": "289d0f0a7dd37e093da995109b331ba2db475cd6d5e306c2f06297fe1edb741b",
+    "verification/unit/execute_muldiv_tb.sv": "f8201c2360f0ff7ffc700a23640766d88df5e3a672706ffd52258ec553faa091",
+    "verification/unit/fetch_frontend_tb.sv": "76c58fdc672c1a62d85fadf6fb9c41ceb189281ebd46fc86ff18b220c51ce009",
+    "verification/unit/fetch_predictor_tb.sv": "59763b1694c0c21c716969fd1c7372666e45741fda95ab03ac97aa9215f0388e",
+    "verification/unit/icache_preread_tb.sv": "ce38ce4af6720f815f30930531354e83f2c5f08dd9118769f626e830f331eb92",
+    "verification/unit/memory_system_tb.sv": "4c84dc1f6bac8f517970683623e867f895b485652d95fd186c692a1762c2cc7b",
+    "verification/unit/run_dcache_preread.sh": "17c71fdedf4c162a4a48cc525f0176e412e39177edc9f70e4db2d2fa9d24a2dd",
+    "verification/unit/run_execute.sh": "b35aca883cbf776edcf13bd30ab49c1e7827a79e3976a855f8ea03449e306a1d",
+    "verification/unit/run_fetch.sh": "ec495991594b780b6ab8a7c06f3a127adcd67bf096b313259d3bcbf49320d157",
+    "verification/unit/run_icache_preread.sh": "e7ab63539e3c985587769bf98739eb6702d136a50c6ad2a2efd60b77e0ed1f0e",
+    "verification/unit/run_memory_system.sh": "b601ccf11ebaea05ef37bc63803faec1a87ba15420b0afc07d0e557cdacb1b2e",
+    "verification/unit/run_wide_fetch.sh": "ee8ac1fbf701a6b0ea345396f910bdc66d6605cacf7af7e5fa24ac43c05668ed",
+    "verification/unit/run_writeback_memory.sh": "3587fa31677981273233737e457a8d97b22595ab55965d9a5adf58092a3eb5b2",
+    "verification/unit/wide_fetch_tb.sv": "5577e2bbb430464c441e702ec1da187c02dfa48f8ab8fd079edadda1ed9327e1",
+    "verification/unit/writeback_memory_tb.sv": "237bde0e4d604e8875b422f18f22692194253f66ca51d1049ed500d9c2333bfe"
+  },
+  "binaries": {
+    "build/v6/final/sim": "c69ee348c5270ee9235ad0790582d26ed735f86d175fac99fad67bb7d57353be",
+    "build/v6/linux/sim": "4cddd78395ad630cb759c1f0e1cd505e141ff09add01f5514bae83556d87c044",
+    "build/v6/final-small/sim": "3dd769d7432bd533903e2e28b2248632719723170626d84f9b9c890310b46746",
+    "build/v6/final-scalar/sim": "49bdc00bec6054ab95326b2ac39a4d95f293314a7284dedf6a0f0eebaa023dc2",
+    "build/v6/final-wb-fault-sim/sim": "2ee7fcfb1c5822f291e99bf5cd0ecc35af43b69cbfc9551e94a8d75f7949d7da"
+  },
+  "contracts": [
+    "Second rename/retire slot accepts only legal simple integer instructions; paired dependencies and WAW are ordered.",
+    "Integer lane and complex lane have independent oldest-ready selection; no two simple integers issue in one cycle.",
+    "Branch checkpoints include branch own destination but exclude the second younger rename.",
+    "Both I-cache words wait for whole-line error aggregation on misses; 64-bit data SRAM remains synchronous with the original FakeRAM cost model.",
+    "Load plus retiring RAM Store can enqueue together with two free MQ slots; load snapshots older-store forwarded bytes. MMIO stays serialized.",
+    "Committed RAM Store late errors diagnose original instruction and halt, without rollback of already committed younger work.",
+    "Frequency is the course ideal-clock/no-parasitics estimate, not post-layout or silicon; 300 MHz setup margin is only 12.387 ps."
+  ]
+}

@@ -1,7 +1,8 @@
 // Four total CPU request credits: queued responses, one synchronous SRAM lookup,
-// and at most one miss. Hits accept and return one word per clock. A miss stops
+// and at most one miss. Hits return one word or an aligned pair per clock. A miss stops
 // new requests until all refill responses drain; older hit responses remain first.
 module icache_pipeline #(
+    parameter integer FETCH_WIDTH = 1,
     parameter integer CACHE_BYTES = 2048,
     parameter integer LINE_BYTES = 16,
     parameter integer FAST_INSTRUCTION_RESPONSE = 0
@@ -12,7 +13,7 @@ module icache_pipeline #(
     input wire [31:0] req_addr,
     output wire rsp_valid,
     input wire rsp_ready,
-    output wire [31:0] rsp_data,
+    output wire [31:0] rsp_data, rsp_data2,
     output wire rsp_error,
     output wire mem_rd_valid,
     input wire mem_rd_ready,
@@ -32,7 +33,8 @@ module icache_pipeline #(
     localparam integer CACHE_OFFSET = CACHE_BYTES >= 4 ? $clog2(CACHE_BYTES) : 2;
     localparam integer TAG_BITS = 32 - CACHE_OFFSET;
     generate
-        if (CACHE_BYTES < 4 || CACHE_BYTES > 2097152 || LINE_BYTES < 4 ||
+        if ((FETCH_WIDTH != 1 && FETCH_WIDTH != 2) ||
+            (FETCH_WIDTH == 2 && (CACHE_BYTES < 8 || LINE_BYTES < 8)) || CACHE_BYTES < 4 || CACHE_BYTES > 2097152 || LINE_BYTES < 4 ||
             LINE_BYTES > CACHE_BYTES || (CACHE_BYTES & (CACHE_BYTES - 1)) != 0 ||
             (LINE_BYTES & (LINE_BYTES - 1)) != 0 ||
             (FAST_INSTRUCTION_RESPONSE != 0 && FAST_INSTRUCTION_RESPONSE != 1)) begin : invalid_parameters
@@ -42,11 +44,11 @@ module icache_pipeline #(
 
     reg [LINES-1:0] valid_bits;
     reg miss_active, miss_cacheable, miss_error;
-    reg [31:0] miss_address, requested_data;
+    reg [31:0] miss_address, requested_data, requested_data2;
     reg [COUNT_BITS-1:0] issued_words, received_words;
     reg lookup_valid, lookup_error;
     reg [31:0] lookup_address;
-    reg [31:0] responses [0:3];
+    reg [31:0] responses [0:3], responses2 [0:3];
     reg [3:0] response_errors;
     reg [1:0] response_head, response_tail;
     reg [2:0] response_count;
@@ -76,6 +78,7 @@ module icache_pipeline #(
     wire final_error = miss_error || mem_rd_rsp_error;
     wire [31:0] final_data = !miss_cacheable || received_words == requested_word
         ? mem_rd_rsp_data : requested_data;
+    wire [31:0] final_data2 = received_words == requested_word + 1'b1 ? mem_rd_rsp_data : requested_data2;
     wire tag_write = miss_complete && miss_cacheable && !final_error;
     // A ready lookup slot may pre-read the presented address without accepting
     // a request. Only lookup_valid authorizes its result. The prior lookup is
@@ -87,7 +90,7 @@ module icache_pipeline #(
         .wmask(1'b1), .addr(tag_write ? miss_set : input_set),
         .wdata(miss_address[31:CACHE_OFFSET]), .rdata(tag_rdata)
     );
-    wire [31:0] ram_rdata;
+    wire [31:0] ram_rdata, ram_rdata2;
     // Tag and data SRAMs read together. A lookup miss stops the following
     // request before acceptance; accepted hits still complete every cycle.
     wire ram_read = tag_read;
@@ -95,15 +98,29 @@ module icache_pipeline #(
     wire [WORD_BITS-1:0] ram_addr = ram_write
         ? ((miss_word_index & ~WORD_BITS'(LINE_WORDS - 1)) | WORD_BITS'(received_words))
         : WORD_BITS'((req_addr >> 2) & (WORDS - 1));
-    sram_fakeram #(.DEPTH(WORDS), .WIDTH(32), .WRITE_GRANULARITY(8)) data_array (
-        .clk(clock), .en(!reset && (ram_read || ram_write)), .we(ram_write),
-        .wmask(4'hf), .addr(ram_addr), .wdata(mem_rd_rsp_data), .rdata(ram_rdata)
-    );
+    generate if (FETCH_WIDTH == 2 && CACHE_BYTES >= 8 && LINE_BYTES >= 8) begin : wide_fetch
+        localparam integer PAIR_BITS = WORDS > 2 ? $clog2(WORDS/2) : 1;
+        wire [63:0] pair_data;
+        sram_fakeram #(.DEPTH(WORDS/2), .WIDTH(64), .WRITE_GRANULARITY(32)) data_array (
+            .clk(clock), .en(!reset && (ram_read || ram_write)), .we(ram_write),
+            .wmask(ram_addr[0] ? 2'b10 : 2'b01), .addr(PAIR_BITS'(ram_addr >> 1)),
+            .wdata({mem_rd_rsp_data, mem_rd_rsp_data}), .rdata(pair_data)
+        );
+        assign ram_rdata = lookup_address[2] ? pair_data[63:32] : pair_data[31:0];
+        assign ram_rdata2 = pair_data[63:32];
+    end else begin : scalar_fetch
+        sram_fakeram #(.DEPTH(WORDS), .WIDTH(32), .WRITE_GRANULARITY(8)) data_array (
+            .clk(clock), .en(!reset && (ram_read || ram_write)), .we(ram_write),
+            .wmask(4'hf), .addr(ram_addr), .wdata(mem_rd_rsp_data), .rdata(ram_rdata)
+        );
+        assign ram_rdata2 = 0;
+    end endgenerate
     // Only a completed SRAM hit/alignment fault can bypass an empty FIFO. On
     // backpressure this same payload is saved before the next SRAM operation.
     // Refills always drain and aggregate every R error before entering the FIFO.
     assign rsp_valid = !reset && (response_count != 0 || fast_response);
     assign rsp_data = fast_response ? (lookup_error ? 32'b0 : ram_rdata) : responses[response_head];
+    assign rsp_data2 = fast_response ? ram_rdata2 : responses2[response_head];
     assign rsp_error = fast_response ? lookup_error : response_errors[response_head];
     assign mem_rd_valid = !reset && miss_active && issued_words < needed_words;
     assign mem_rd_addr = miss_cacheable
@@ -118,6 +135,7 @@ module icache_pipeline #(
             miss_error <= 0;
             miss_address <= 0;
             requested_data <= 0;
+            requested_data2 <= 0;
             issued_words <= 0;
             received_words <= 0;
             lookup_valid <= 0;
@@ -149,6 +167,7 @@ module icache_pipeline #(
                 miss_error <= final_error;
                 if (received_words == requested_word)
                     requested_data <= mem_rd_rsp_data;
+                if (received_words == requested_word + 1'b1) requested_data2 <= mem_rd_rsp_data;
                 if (miss_complete) begin
                     miss_active <= 0;
                     if (miss_cacheable) begin
@@ -159,6 +178,7 @@ module icache_pipeline #(
             if (response_push) begin
                 // A pending hit has completed before a miss can receive data.
                 responses[response_tail] <= miss_complete ? final_data : (lookup_error ? 32'b0 : ram_rdata);
+                responses2[response_tail] <= miss_complete ? final_data2 : ram_rdata2;
                 response_errors[response_tail] <= miss_complete ? final_error : lookup_error;
                 response_tail <= response_tail + 1'b1;
             end

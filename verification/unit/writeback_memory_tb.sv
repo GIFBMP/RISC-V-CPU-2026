@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
+module writeback_memory_tb #(parameter integer FETCH_WIDTH = 1, parameter integer CACHE_LINE_BYTES = 16,
     parameter integer ICACHE_LINE_BYTES = CACHE_LINE_BYTES,
     parameter integer DCACHE_BYTES = 256, parameter integer DCACHE_WAYS = 2,
     parameter integer FAST_HIT_RESPONSE = 0, parameter integer FAST_INSTRUCTION_RESPONSE = 0,
@@ -40,7 +40,10 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
     wire [1:0] bresp;
     wire bvalid;
 
-    memory_system #(.CACHE_LINE_BYTES(CACHE_LINE_BYTES), .ICACHE_LINE_BYTES(ICACHE_LINE_BYTES),
+    wire [31:0] i_rsp_data2;
+    reg [31:0] last_i_data2;
+
+    memory_system #(.FETCH_WIDTH(FETCH_WIDTH), .CACHE_LINE_BYTES(CACHE_LINE_BYTES), .ICACHE_LINE_BYTES(ICACHE_LINE_BYTES),
         .DCACHE_LINE_BYTES(CACHE_LINE_BYTES), .DCACHE_BYTES(DCACHE_BYTES),
         .DCACHE_WAYS(DCACHE_WAYS), .DCACHE_WRITE_BACK(1),
         .FAST_HIT_RESPONSE(FAST_HIT_RESPONSE), .FAST_INSTRUCTION_RESPONSE(FAST_INSTRUCTION_RESPONSE),
@@ -241,6 +244,7 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
             if (held_w && (!wvalid || wdata !== last_wdata || wstrb !== last_wstrb))
                 $fatal(1, "W payload/VALID changed under backpressure");
             if (held_i_rsp && (!i_rsp_valid || i_rsp_data !== last_i_data ||
+                              (FETCH_WIDTH == 2 && i_rsp_data2 !== last_i_data2) ||
                               i_rsp_error !== last_i_error))
                 $fatal(1, "I response changed under backpressure");
             if (held_d_rsp && (!d_rsp_valid || d_rsp_data !== last_d_data ||
@@ -256,6 +260,7 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
             last_wdata <= wdata;
             last_wstrb <= wstrb;
             last_i_data <= i_rsp_data;
+            last_i_data2 <= i_rsp_data2;
             last_d_data <= d_rsp_data;
             last_i_error <= i_rsp_error;
             last_d_error <= d_rsp_error;
@@ -277,6 +282,10 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
                 (!expected_error && i_rsp_data !== expected))
                 $fatal(1, "I read %h: got %h error=%b expected %h error=%b",
                        address, i_rsp_data, i_rsp_error, expected, expected_error);
+            if (FETCH_WIDTH == 2 && ICACHE_LINE_BYTES >= 8 && !expected_error
+                && address[31:28] == 0 && address[2:0] == 0
+                && i_rsp_data2 !== memory[(address >> 2) + 1])
+                $fatal(1, "I paired read second word at %h is wrong: %h", address + 4, i_rsp_data2);
             repeat (stall) @(posedge clock);
             @(negedge clock);
             i_rsp_ready = 1'b1;
@@ -343,6 +352,10 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
                             if (i_rsp_error !== expected_error ||
                                 (!expected_error && i_rsp_data !== memory[expected_address >> 2]))
                                 $fatal(1, "I stream response %0d at %h is wrong or out of order", received, expected_address);
+                            if (FETCH_WIDTH == 2 && ICACHE_LINE_BYTES >= 8 && !expected_error
+                                && expected_address[2:0] == 0
+                                && i_rsp_data2 !== memory[(expected_address >> 2) + 1])
+                                $fatal(1, "I paired stream second word at %h is wrong", expected_address + 4);
                             if (require_full_rate && previous_response >= 0 && cycle != previous_response + 1)
                                 $fatal(1, "I hit stream did not return one response per cycle");
                             previous_response = cycle;
@@ -773,8 +786,10 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
         count_before = ar_count;
         d_access(0, 32'ha004, 0, 0, expected_memory[32'ha004 >> 2], 0, 0);
         if (ar_count != count_before + LINE_WORDS) $fatal(1, "Faulting D stream line was installed");
-        i_read(32'h7000, memory[32'h7000 >> 2], 0, 0);
-        i_read(32'h7010, memory[32'h7010 >> 2], 0, 0);
+        // Warm every line in the eight-word throughput window, including
+        // the 8-byte paired-fetch minimum geometry.
+        for (integer warm_offset = 0; warm_offset < 32; warm_offset = warm_offset + ICACHE_LINE_BYTES)
+            i_read(32'h7000 + warm_offset, memory[(32'h7000 + warm_offset) >> 2], 0, 0);
         count_before = ar_count;
         i_stream(32'h7000, 48, 8, 0, 1);
         i_stream(32'h7000, 48, 8, 1, 0);
@@ -785,8 +800,19 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
         i_stream(32'h77f0, 12, 0, 1, 0);
         read_fault = 0;
         count_before = ar_count;
-        i_read(32'h7804, memory[32'h7804 >> 2], 0, 0);
+        i_read(read_fault_address & ~32'(ICACHE_LINE_BYTES-1),
+            memory[(read_fault_address & ~32'(ICACHE_LINE_BYTES-1)) >> 2], 0, 0);
         if (ar_count != count_before + I_LINE_WORDS) $fatal(1, "Erroneous I line was installed");
+        // The second word of an 8-byte pair, or the last beat of a long
+        // line, can fail after useful words arrived. Neither word may escape
+        // the aggregate error, and the failed line must not become a hit.
+        read_fault = 1;
+        read_fault_address = 32'h7c00 + 32'(ICACHE_LINE_BYTES - 4);
+        i_read(32'h7c00, 0, 1, 11);
+        read_fault = 0;
+        count_before = ar_count;
+        i_read(32'h7c00, memory[32'h7c00 >> 2], 0, 5);
+        if (ar_count != count_before + I_LINE_WORDS) $fatal(1, "Tail-faulted I pair was installed");
         flush_and_reset();
         d_access(0, 32'h904, 0, 0, expected_memory[32'h904 >> 2], 0, 0);
         if (ar_count != LINE_WORDS) $fatal(1, "Reset did not invalidate SRAM tags");

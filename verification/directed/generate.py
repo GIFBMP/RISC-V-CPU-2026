@@ -35,6 +35,7 @@ class Program:
         self.speculation: list[dict] = []
         self.prediction: list[dict] = []
         self.pipeline: dict = {}
+        self.wide: dict = {}
         self.lsu: list[dict] = []
         self.recovery: list[dict] = []
         self.li(28, 0x12345678)
@@ -707,6 +708,7 @@ def save(program: Program, output: Path) -> dict:
                                 "target_pcs": [program.labels[target] for target in probe["targets"]]}
                                for probe in program.prediction]
     metadata["pipeline"] = program.pipeline
+    metadata["wide"] = program.wide
     metadata["lsu"] = [{**probe, **{key[:-6] + "_pc": program.labels[value]
                                   for key, value in probe.items() if key.endswith("_label")},
                        **{key[:-7] + "_pcs": [program.labels[label] for label in value]
@@ -727,8 +729,8 @@ def main() -> None:
     parser.add_argument("--seeds", default="1,7,23,42,99,256,1024,65535")
     parser.add_argument("--random-count", type=int, default=250)
     parser.add_argument("--case", help="generate only one named case")
-    parser.add_argument("--recovery-mode", choices=("selective", "legacy"), default="selective",
-                        help="select timing stimuli explicitly; legacy preserves V4's original strict obligations")
+    parser.add_argument("--recovery-mode", choices=("selective", "legacy", "wide"), default="selective",
+                        help="timing profile: selective=V5, wide=V6, legacy=V4; all keep strict execution obligations")
     args = parser.parse_args()
     programs = [integer_isa(), memory_lanes(), multiply_divide(), dependencies(), jumps_branches(),
                 out_of_order("mdu"), out_of_order("load")]
@@ -744,7 +746,12 @@ def main() -> None:
     programs += build_control_programs(Program)
     from selective_cases import build_selective_programs
     if not legacy:
-        programs += build_selective_programs(Program)
+        programs += build_selective_programs(Program, wide=args.recovery_mode == "wide")
+    if args.recovery_mode == "wide":
+        from wide_cases import build_wide_programs
+        wide_programs = build_wide_programs(Program)
+        names = {p.name for p in wide_programs}
+        programs = [p for p in programs if p.name not in names] + wide_programs
     programs += [random_program(int(seed, 0), args.random_count) for seed in args.seeds.split(",") if seed]
     if args.case:
         programs = [p for p in programs if p.name == args.case]

@@ -28,6 +28,11 @@ module fetch_predictor_tb #(
     localparam [31:0] ALIAS_PC = BRANCH_PC ^ (32'd1 << (BI+2))
                                ^ (BTB_HASH != 0 ? 32'd4 : 32'd0);
 
+    logic instruction2_valid, instruction2_error;
+    logic instruction2_ready = 0;
+    logic [31:0] instruction2_pc, instruction2_data, instruction2_predicted_pc;
+    logic [31:0] i_rsp_data2 = 0;
+
     fetch_frontend #(
         .BTB_ENTRIES(BTB_SIZE), .BTB_INDEX_XOR(BTB_HASH),
         .LOCAL_HISTORY_BITS(HISTORY_BITS), .RAS_DEPTH(0),

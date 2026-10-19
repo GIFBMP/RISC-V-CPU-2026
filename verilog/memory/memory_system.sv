@@ -1,4 +1,5 @@
 module memory_system #(
+    parameter integer FETCH_WIDTH = 1,
     parameter integer ICACHE_BYTES = 2048,
     parameter integer DCACHE_BYTES = 4096,
     parameter integer CACHE_LINE_BYTES = 16,
@@ -18,7 +19,7 @@ module memory_system #(
     input  wire [31:0] i_req_addr,
     output wire        i_rsp_valid,
     input  wire        i_rsp_ready,
-    output wire [31:0] i_rsp_data,
+    output wire [31:0] i_rsp_data, i_rsp_data2,
     output wire        i_rsp_error,
     input  wire        d_req_valid,
     output wire        d_req_ready,
@@ -64,13 +65,14 @@ module memory_system #(
     wire [31:0] d_wr_addr, d_wr_data;
     wire [3:0] d_wr_strb;
     icache_pipeline #(
+        .FETCH_WIDTH(FETCH_WIDTH),
         .CACHE_BYTES(ICACHE_BYTES), .LINE_BYTES(ICACHE_LINE_BYTES),
         .FAST_INSTRUCTION_RESPONSE(FAST_INSTRUCTION_RESPONSE)
     ) instruction_cache (
         .clock(clock), .reset(reset),
         .req_valid(i_req_valid), .req_ready(i_req_ready), .req_addr(i_req_addr),
         .rsp_valid(i_rsp_valid), .rsp_ready(i_rsp_ready),
-        .rsp_data(i_rsp_data), .rsp_error(i_rsp_error),
+        .rsp_data(i_rsp_data), .rsp_data2(i_rsp_data2), .rsp_error(i_rsp_error),
         .mem_rd_valid(i_rd_valid), .mem_rd_ready(i_rd_ready), .mem_rd_addr(i_rd_addr),
         .mem_rd_rsp_valid(i_rd_rsp_valid), .mem_rd_rsp_ready(i_rd_rsp_ready),
         .mem_rd_rsp_data(i_rd_rsp_data), .mem_rd_rsp_error(i_rd_rsp_error)

@@ -22,6 +22,7 @@ import time
 
 from rv32_reference import Commit, RV32
 from lsu_checks import check_lsu, check_memory_transactions
+from wide_checks import check_wide
 from selective_checks import check_selective_invariants, check_selective_probe
 
 TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|FLUSH|DROP_LOAD|DROP_MDU|RECOVERY_HOLD|WB_STALL|WB_PAIR|CONFIG|RENAME_BYPASS|MEM_REQUEST|MEM_RESPONSE|STORE_RETIRE|LOAD_QUEUE|EARLY_FETCH|EARLY_BLOCK)\s+(.*)")
@@ -370,6 +371,11 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
             recovery_proof.append({"probe": probe, "evidence": evidence})
             if error:
                 errors.append(error)
+    wide_proof = {}
+    if not result_only and require_speculation and not errors and metadata.get("wide"):
+        error, wide_proof = check_wide(metadata["wide"], observed)
+        if error:
+            errors.append(error)
     report = {"case": case.name, "latency": latency, "passed": not errors, "errors": errors,
               "commits": commits, "cycles": pass_cycles, "elapsed_seconds": round(time.monotonic() - start, 3),
               "result_only": result_only, "command": command, "ooo_evidence": proof,
@@ -377,7 +383,7 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
               "prediction_evidence": prediction_proof, "pipeline_evidence": pipeline_proof,
               "lsu_evidence": lsu_proof, "memory_transaction_evidence": transaction_proof,
               "recovery_evidence": recovery_proof,
-              "selective_invariants": selective_proof,
+              "selective_invariants": selective_proof, "wide_evidence": wide_proof,
               "checks": {"commits": not result_only, "ooo": not result_only and require_ooo,
                          "speculation": not result_only and require_speculation},
               "image_sha256": hashlib.sha256((case / "program.data").read_bytes()).hexdigest()}
