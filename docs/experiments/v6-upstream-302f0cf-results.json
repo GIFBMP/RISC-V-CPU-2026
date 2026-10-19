@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-19",
+  "description": "V6 unchanged RTL measured after official upstream ABC buffering/cell-sizing update",
+  "v6_commit": "1515083",
+  "upstream_commit": "302f0cf3cccdaa5de084a2120e0d950c663e4cf5",
+  "merge_commit": "472be2bdaaac4e6e4b00cd49284f97ec6e67a2e7",
+  "parameters": {
+    "ROB_DEPTH": 16,
+    "PRF_SIZE": 48,
+    "IQ_DEPTH": 6,
+    "LSQ_DEPTH": 8,
+    "MEM_QUEUE_DEPTH": 8,
+    "ICACHE_BYTES": 2048,
+    "DCACHE_BYTES": 16384,
+    "CACHE_LINE_BYTES": 128,
+    "ICACHE_LINE_BYTES": 128,
+    "DCACHE_LINE_BYTES": 256,
+    "ICACHE_WAYS": 1,
+    "DCACHE_WAYS": 4,
+    "DCACHE_WRITE_BACK": 1,
+    "FAST_HIT_RESPONSE": 1,
+    "PIPELINED_STORE_HITS": 1,
+    "FAST_INSTRUCTION_RESPONSE": 1,
+    "FETCH_WIDTH": 2,
+    "ISSUE_WIDTH": 2,
+    "RENAME_WIDTH": 2,
+    "COMMIT_WIDTH": 2,
+    "FETCH_QUEUE_DEPTH": 8,
+    "FETCH_OUTSTANDING": 4,
+    "BTB_ENTRIES": 64,
+    "BTB_INDEX_XOR": 1,
+    "LOCAL_HISTORY_BITS": 1,
+    "REDIRECT_OVERLAP": 1,
+    "RESPONSE_BYPASS": 1,
+    "REDIRECT_REQUEST": 0,
+    "RAS_DEPTH": 0,
+    "EARLY_FETCH": 1,
+    "EARLY_RECOVERY": 1,
+    "PARALLEL_COMPLETION": 1,
+    "BRANCH_CHECKPOINTS": 4,
+    "TRAIN_EXECUTE": 0,
+    "LOAD_REQUEST_BYPASS": 1,
+    "PARALLEL_STORE_ENQUEUE": 1,
+    "PREDICT_ENABLE": 1,
+    "TRACE": 0
+  },
+  "rtl_sha256": {
+    "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+    "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+    "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+    "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+    "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+    "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+    "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+    "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+    "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+    "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+    "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+    "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+    "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+  },
+  "abc_constraints": {
+    "driving_cell": "INVx1_ASAP7_75t_R",
+    "output_load_ff": 5.0
+  },
+  "official_performance": {
+    "passed": 6,
+    "total": 6,
+    "ipc_geomean": 0.8676481522414352,
+    "cycles_unchanged": true,
+    "results": [
+      {
+        "case": "perf_median",
+        "dynamic_instructions": 6961,
+        "cycles": 10316,
+        "ipc": 0.6747770453664211,
+        "v5_cycles": 10549,
+        "v5_ipc": 0.6598729737415869
+      },
+      {
+        "case": "perf_multiply",
+        "dynamic_instructions": 21722,
+        "cycles": 18405,
+        "ipc": 1.180222765552839,
+        "v5_cycles": 24643,
+        "v5_ipc": 0.8814673538124417
+      },
+      {
+        "case": "perf_qsort",
+        "dynamic_instructions": 139900,
+        "cycles": 176407,
+        "ipc": 0.7930524298922378,
+        "v5_cycles": 190224,
+        "v5_ipc": 0.7354487341239802
+      },
+      {
+        "case": "perf_rsort",
+        "dynamic_instructions": 195719,
+        "cycles": 175109,
+        "ipc": 1.117698119457024,
+        "v5_cycles": 221759,
+        "v5_ipc": 0.8825752280628971
+      },
+      {
+        "case": "perf_towers",
+        "dynamic_instructions": 5278,
+        "cycles": 6465,
+        "ipc": 0.8163959783449343,
+        "v5_cycles": 7066,
+        "v5_ipc": 0.7469572601188791
+      },
+      {
+        "case": "perf_vvadd",
+        "dynamic_instructions": 4524,
+        "cycles": 6111,
+        "ipc": 0.7403043691703486,
+        "v5_cycles": 6630,
+        "v5_ipc": 0.6823529411764706
+      }
+    ],
+    "log": "build/upstream-sync-20261019/perf.log",
+    "simulator": "build/v6/linux/sim",
+    "simulator_sha256": "4cddd78395ad630cb759c1f0e1cd505e141ff09add01f5514bae83556d87c044",
+    "reuse_reason": "RTL, simulator and SRAM model sources are unchanged and match the previously validated official Linux build."
+  },
+  "area": {
+    "logic_area_um2": 11803.618080011809,
+    "sequential_area_um2": 4769.7012,
+    "combinational_area_um2": 7033.916880011809,
+    "sram_area_um2": 6259.592911999999,
+    "area_um2": 18063.21099201181
+  },
+  "timing": {
+    "clock_port": "clock",
+    "clock_period_ns": 2.0,
+    "input_delay_ns": 0.2,
+    "output_delay_ns": 0.2,
+    "input_transition_ns": 0.05,
+    "clock_transition_ns": 0.05,
+    "clock_uncertainty_ns": 0.05,
+    "output_load_ff": 5.0,
+    "reset_value": 0,
+    "clock_model": "ideal",
+    "interconnect": "no_parasitics",
+    "frequency_resolution_ns": 0.001,
+    "minimum_period_ns": 1.6611328125,
+    "estimated_fmax_mhz": 601.9988242210464,
+    "worst_setup_slack_ns": 0.339482,
+    "timing_analyzed": true
+  },
+  "targets": {
+    "ipc_geomean_over_0_845": true,
+    "frequency_over_300_mhz": true,
+    "area_at_most_18000_um2": false,
+    "area_excess_um2": 63.21099201180914
+  },
+  "report": "build/upstream-sync-20261019/synth/opt/report.json",
+  "report_sha256": "a5241ed9a822eb936bd9d5049f0df955aba59d9395b58a699b9ed9352772dd57",
+  "unchanged_from_v6": [
+    "RTL",
+    "official testcase images and cycles",
+    "simulator",
+    "OpenSTA clock and I/O constraints",
+    "standard-cell libraries",
+    "SRAM model"
+  ],
+  "synthesis_script_sha256": "34c3a8e9a7cab599c0f26e600d51e4e64b32c12bfbe2cd598b529058c4507c08",
+  "tools": {
+    "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+    "opensta": "3.1.0"
+  },
+  "measurement_scope": "Course ideal-clock, no-parasitics estimate. Default upstream ABC driving cell INVx1_ASAP7_75t_R and output load 5 fF; no local overrides."
+}
