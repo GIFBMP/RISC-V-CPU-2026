@@ -1,0 +1,115 @@
+diff --git a/verification/formal/v7_scheduler_predicates.sv b/verification/formal/v7_scheduler_predicates.sv
+new file mode 100644
+--- /dev/null
++++ b/verification/formal/v7_scheduler_predicates.sv
+@@ -0,0 +1,23 @@
++// Prove the production predicate tree for all candidate and age-mask inputs,
++// without assuming that age bits form a total order.
++module scheduler_predicates #(
++    parameter integer WIDTH = 12
++) (
++    input wire [WIDTH-1:0] candidates,
++    input wire [WIDTH-1:0] older,
++    input wire branch_occupied,
++    output wire ok
++);
++    wire none, one;
++    integer count;
++    zero_one_tree #(.WIDTH(WIDTH)) dut (
++        .bits(candidates & older), .none(none), .one(one)
++    );
++    always @* begin
++        count = 0;
++        for (integer k = 0; k < WIDTH; k = k + 1)
++            if (candidates[k] && older[k]) count = count + 1;
++    end
++    assign ok = (none == (count == 0)) && (one == (count == 1))
++        && ((branch_occupied ? none : one) == (count == (branch_occupied ? 0 : 1)));
++endmodule
+diff --git a/verilog/common/zero_one_tree.sv b/verilog/common/zero_one_tree.sv
+new file mode 100644
+--- /dev/null
++++ b/verilog/common/zero_one_tree.sv
+@@ -0,0 +1,30 @@
++// Balanced predicates for an arbitrary-width vector. Only the zero and one
++// cases are needed by the scheduler; a full population count adds carry depth.
++module zero_one_tree #(
++    parameter integer WIDTH = 1
++) (
++    input  wire [WIDTH-1:0] bits,
++    output wire none,
++    output wire one
++);
++    localparam integer LEAVES = 1 << $clog2(WIDTH);
++    wire [2*LEAVES-1:1] zeros, ones;
++    generate
++        for (genvar k = 0; k < LEAVES; k = k + 1) begin : leaves
++            if (k < WIDTH) begin : used
++                assign zeros[LEAVES+k] = !bits[k];
++                assign ones[LEAVES+k] = bits[k];
++            end else begin : padding
++                assign zeros[LEAVES+k] = 1'b1;
++                assign ones[LEAVES+k] = 1'b0;
++            end
++        end
++        for (genvar k = 1; k < LEAVES; k = k + 1) begin : branches
++            assign zeros[k] = zeros[2*k] && zeros[2*k+1];
++            assign ones[k] = (ones[2*k] && zeros[2*k+1])
++                          || (zeros[2*k] && ones[2*k+1]);
++        end
++    endgenerate
++    assign none = zeros[1];
++    assign one = ones[1];
++endmodule
+diff --git a/verilog/cpu_core.sv b/verilog/cpu_core.sv
+--- a/verilog/cpu_core.sv
++++ b/verilog/cpu_core.sv
+@@ -213,6 +213,18 @@
+     logic [IQ_DEPTH-1:0] second_match1, second_match2;
+     logic [IQ_DEPTH-1:0] iq_older [0:IQ_DEPTH-1];
+     logic [IQ_DEPTH-1:0] second_candidate, second_grant, integer_candidate, branch_candidate;
++    wire [IQ_DEPTH-1:0] integer_older_none, integer_older_one;
++    generate
++        for (genvar q = 0; q < IQ_DEPTH; q = q + 1) begin : integer_age
++            wire [IQ_DEPTH-1:0] older_candidates;
++            for (genvar k = 0; k < IQ_DEPTH; k = k + 1) begin : older_mask
++                assign older_candidates[k] = integer_candidate[k] && iq_older[k][q];
++            end
++            zero_one_tree #(.WIDTH(IQ_DEPTH)) count_predicates (
++                .bits(older_candidates), .none(integer_older_none[q]), .one(integer_older_one[q])
++            );
++        end
++    endgenerate
+     logic [IQ_PAYLOAD_BITS-1:0] second_payload;
+     logic [PW-1:0] second_src1, second_src2, second_dst;
+     logic [RW-1:0] second_selected_rob, second_rob;
+@@ -685,18 +697,13 @@
+         second_candidate = |branch_candidate ? branch_candidate : integer_candidate;
+         // Pairwise age comparisons avoid a serial best-age priority chain.
+         for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
+-            integer older_integer_count;
+-            older_integer_count = 0;
+-            for (integer k = 0; k < IQ_DEPTH; k = k + 1)
+-                if (integer_candidate[k] && iq_older[k][q])
+-                    older_integer_count = older_integer_count + 1;
+             grant[q] = candidate[q];
+             for (integer k = 0; k < IQ_DEPTH; k = k + 1)
+                 if (candidate[k] && iq_older[k][q]) grant[q] = 1'b0;
+             // Fill the primary lane with the oldest integer when the branch lane
+             // is occupied, otherwise take the second-oldest integer.
+             if (ISSUE_WIDTH == 2 && !(|candidate) && integer_candidate[q]) begin
+-                grant[q] = older_integer_count == ((|branch_candidate) ? 0 : 1);
++                grant[q] = |branch_candidate ? integer_older_none[q] : integer_older_one[q];
+             end
+         end
+         selected_wb1 = wb_dst != 0 && |(grant & wb_match1);
+diff --git a/verilog/filelist.f b/verilog/filelist.f
+--- a/verilog/filelist.f
++++ b/verilog/filelist.f
+@@ -1,5 +1,6 @@
+ # RTL paths are relative to this file in verilog/.
+ # The top-level module must be named student_top.
++common/zero_one_tree.sv
+ execute/decoder.sv
+ execute/alu.sv
+ execute/muldiv_unit.sv

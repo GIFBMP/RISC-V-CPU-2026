@@ -176,10 +176,10 @@ tools/dev linux synth FILELIST=build/v7-reproduce/verilog/filelist.f \
   SYNTH_OUT=build/v7-reproduce/synth MODE=opt
 ```
 
-地址加法的组合等价证明源文件为 [v7_address_equivalence.sv](../../verification/formal/v7_address_equivalence.sv)，与本次 SAT 输入逐字节相同。在含 Yosys 的课程环境中运行：
+地址加法的组合等价证明源文件为 [v7_address_equivalence.sv](../../verification/formal/v7_address_equivalence.sv)。当前工作树直接证明生产用加法器；历史 V7 的输入版本可由其提交和结果摘要核对。在含 Yosys 的课程环境中运行：
 
 ```sh
-yosys -p 'read_verilog verification/formal/v7_address_equivalence.sv; prep -top address_equivalence; sat -verify -prove ok 1 -show-inputs'
+yosys -p 'read_verilog -sv verilog/common/address_adder.sv verification/formal/v7_address_equivalence.sv; prep -top address_equivalence -flatten; sat -verify -prove ok 1 -show-inputs'
 ```
 
 完整参数筛选及每个实验的来源摘要保存在结果 JSON 中。所有较早原型的收益都只是该版本的实测筛选结果，不能替代最终候选的正确性、时序与面积验收。

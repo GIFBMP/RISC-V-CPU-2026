@@ -33,7 +33,7 @@ run_unit() {
 }
 
 run_unit decode_alu execute_decode_alu_tb verilog/execute/decoder.sv \
-    verilog/execute/alu.sv verification/unit/execute_decode_alu_tb.sv
+    verilog/common/address_adder.sv verilog/execute/alu.sv verification/unit/execute_decode_alu_tb.sv
 run_unit muldiv execute_muldiv_tb verilog/execute/muldiv_unit.sv \
     verification/unit/execute_muldiv_tb.sv
 

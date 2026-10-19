@@ -34,6 +34,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=Path("build/v7") / datetime.now(timezone.utc).strftime("release-%Y%m%d-%H%M%S"))
     parser.add_argument("--jobs", type=int, default=3)
+    parser.add_argument("--target", choices=("v7", "v7-500"), default="v7",
+                        help="enforce the original V7 or the 500 MHz acceptance gates")
     args = parser.parse_args()
     if platform.system() != "Linux":
         parser.error("run this entry point inside the course Linux container")
@@ -106,11 +108,24 @@ def main():
     environment = {**os.environ, "CPU2026_LINUX_UNIT_BUILD": str(out / "execute-frontend-units"), "CPU2026_UNIT_JOBS": str(args.jobs)}
     run("execute-frontend-units", ["sh", "verification/runners/run_linux_units.sh"], environment)
     run("memory-units", ["python3", "verification/runners/run_linux_memory.py", "--out", str(out / "memory-units"), "--jobs", str(args.jobs)])
-    run("formal", ["yosys", "-p", "read_verilog verification/formal/v7_address_equivalence.sv; prep -top address_equivalence; sat -verify -prove ok 1 -show-inputs"])
+    run("formal", ["yosys", "-p", "read_verilog -sv verilog/common/address_adder.sv verification/formal/v7_address_equivalence.sv; prep -top address_equivalence -flatten; sat -verify -prove ok 1 -show-inputs"])
+    run("alu-formal", ["yosys", "-p", "read_verilog -sv verilog/common/address_adder.sv verilog/execute/alu.sv verification/formal/v7_alu_equivalence.sv; prep -top alu_equivalence -flatten; sat -verify -prove ok 1 -show-inputs"])
+    run("load-immediate-formal", ["yosys", "-p", "read_verilog -sv verilog/common/address_adder.sv verilog/execute/decoder.sv verification/formal/v7_load_immediate_equivalence.sv; prep -top load_immediate_equivalence -flatten; memory_map; opt; sat -verify -prove ok 1 -show-inputs"])
+    run("store-align-formal", ["yosys", "-p", "read_verilog -sv verilog/common/store_byte_align.sv verification/formal/v7_store_align_equivalence.sv; prep -top store_align_equivalence -flatten; sat -verify -prove ok 1 -show-inputs"])
+    for width in (1, 3, 5, 12, 16, 24, 32):
+        run(f"scheduler-formal-{width}", ["yosys", "-p",
+            "read_verilog -sv verilog/common/zero_one_tree.sv verification/formal/v7_scheduler_predicates.sv; "
+            f"chparam -set WIDTH {width} scheduler_predicates; prep -top scheduler_predicates -flatten; "
+            "sat -verify -prove ok 1 -show-inputs"])
+        run(f"forward-formal-{width}", ["yosys", "-p",
+            "read_verilog -sv verilog/common/youngest_match.sv verification/formal/v7_forward_equivalence.sv; "
+            f"chparam -set WIDTH {width} forward_equivalence; prep -top forward_equivalence -flatten; "
+            "sat -verify -prove ok 1 -show-inputs"])
     run("synth", ["make", "CONFIG=config.linux.mk", "synth", f"SYNTH_OUT={out / 'synth'}", "MODE=opt"])
     if source_hashes() != frozen:
         raise RuntimeError("sources changed during qualification; results are not one frozen release")
-    run("acceptance", ["python3", "verification/runners/collect_v7_results.py", "--runs", str(out), "--out", str(out / "results.json")])
+    run("acceptance", ["python3", "verification/runners/collect_v7_results.py", "--runs", str(out),
+                       "--out", str(out / "results.json"), "--target", args.target])
     print(f"V7 qualification passed: {out / 'results.json'}", flush=True)
 
 

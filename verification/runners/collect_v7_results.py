@@ -29,6 +29,7 @@ def main():
     parser.add_argument("--runs", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--memory-directory", default="memory-units")
+    parser.add_argument("--target", choices=("v7", "v7-500"), default="v7")
     args = parser.parse_args()
     runs = args.runs.resolve()
     environment = read(runs / "tool-versions.json")
@@ -44,10 +45,20 @@ def main():
     timing, area = synth["timing"], synth["area"]
     targets = {"ipc": ipc > 1.0985, "frequency": timing["estimated_fmax_mhz"] > 300,
                "area": area["area_um2"] <= 36000}
+    frequency_target = 500 if args.target == "v7-500" else 300
+    if args.target == "v7-500":
+        targets.update(ipc=ipc >= 1.0985, frequency=timing["estimated_fmax_mhz"] >= 500)
     assert all(targets.values()), targets
     assert timing["timing_analyzed"] and timing["output_load_ff"] == 5.0
     assert timing["clock_period_ns"] == 2.0 and timing["input_delay_ns"] == timing["output_delay_ns"] == 0.2
     assert synth["abc_constraints"] == {"driving_cell": "BUFx2_ASAP7_75t_R", "output_load_ff": 1.0}
+    if args.target == "v7-500":
+        assert timing["minimum_period_ns"] <= 2.0 and timing["worst_setup_slack_ns"] >= 0
+        assert timing["clock_uncertainty_ns"] == timing["clock_transition_ns"] == timing["input_transition_ns"] == 0.05
+        assert timing["clock_model"] == "ideal" and timing["interconnect"] == "no_parasitics"
+        for source_input in synth["inputs"]:
+            source_path = Path(source_input["path"])
+            assert sha(source_path) == source_input["sha256"], f"synthesis source changed: {source_path}"
     assert math.isclose(area["area_um2"], area["logic_area_um2"] + area["sram_area_um2"], abs_tol=1e-6)
     trace_manifest = read(runs / "trace/build.json")
     assert trace_manifest["parameters"] == {"TRACE": "1"}
@@ -142,13 +153,39 @@ def main():
     assert re.search(r"Ran 46 tests", unit_text) and re.search(r"^OK$", unit_text, re.M)
     tests["checkers"] = {"passed":46, "total":46, "log": artifact(runs / "python-checks.log")}
     assert "SUCCESS!" in (runs / "formal.log").read_text()
-    tests["carry_select_equivalence"] = {"passed":True, "scope":"32-bit modular address addition for all two-input values",
+    tests["carry_select_equivalence"] = {"passed":True, "scope":"Production 32-bit modular adder for all two-input values and carry-in",
                                          "log":artifact(runs / "formal.log")}
+    if args.target == "v7-500":
+        assert "SUCCESS!" in (runs / "alu-formal.log").read_text()
+        tests["alu_equivalence"] = {"passed":True, "scope":"All 32 operation codes and all pairs of 32-bit operands",
+                                    "log":artifact(runs / "alu-formal.log")}
+        assert "SUCCESS!" in (runs / "load-immediate-formal.log").read_text()
+        tests["load_immediate_equivalence"] = {"passed":True,
+            "scope":"Production decoder and early-Load address specialization for every instruction and base value",
+            "log":artifact(runs / "load-immediate-formal.log")}
+        assert "SUCCESS!" in (runs / "store-align-formal.log").read_text()
+        tests["store_alignment"] = {"passed":True, "scope":"All 32-bit Store values and all four byte offsets",
+                                    "log":artifact(runs / "store-align-formal.log")}
+        predicate_proofs = []
+        forward_proofs = []
+        for width in (1, 3, 5, 12, 16, 24, 32):
+            log = runs / f"scheduler-formal-{width}.log"
+            assert "SUCCESS!" in log.read_text()
+            predicate_proofs.append({"width":width, "log":artifact(log)})
+            forward_log = runs / f"forward-formal-{width}.log"
+            assert "SUCCESS!" in forward_log.read_text()
+            forward_proofs.append({"width":width, "log":artifact(forward_log)})
+        tests["scheduler_predicates"] = {"passed":True, "proofs":predicate_proofs,
+            "scope":"Production zero/one tree versus full count for all candidate and age-mask inputs"}
+        tests["youngest_forwarding"] = {"passed":True, "proofs":forward_proofs,
+            "scope":"Production byte-selection network versus pairwise ROB age selection for all masks, values and head positions"}
     params = {}
     for name, value in re.findall(r"parameter integer (\w+) = ([^,\n]+)", (ROOT / "verilog/student_top.sv").read_text()):
         value = value.strip()
         params[name] = int(value) if value.isdecimal() else params[value]
     from run_v7_linux import source_hashes
+    if args.target == "v7-500":
+        assert read(runs / "source-sha256.json") == source_hashes(), "qualification sources changed"
     report = {"schema_version":1, "version":"V7", "date_utc":datetime.now(timezone.utc).isoformat(),
               "environment":environment,
               "base_commit":subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip(),
@@ -161,8 +198,10 @@ def main():
                   "performance":[{"case":n,"instructions":i,"cycles":c,"ipc":i/c} for n,(i,c) in performance.items()]},
               "synthesis": {"report":artifact(runs / "synth/opt/report.json"), "abc_constraints":synth["abc_constraints"],
                   "area":area, "timing":{k:v for k,v in timing.items() if k != "critical_paths"}, "tools":synth["tools"]},
-              "acceptance": {**targets,"all_met":all(targets.values()),"ipc_margin":ipc-1.0985,
-                  "frequency_margin_mhz":timing["estimated_fmax_mhz"]-300, "area_margin_um2":36000-area["area_um2"]},
+              "acceptance": {**targets,"all_met":all(targets.values()),"target":args.target,
+                  "minimum_ipc":1.0985, "minimum_frequency_mhz":frequency_target,"maximum_area_um2":36000,
+                  "ipc_margin":ipc-1.0985,
+                  "frequency_margin_mhz":timing["estimated_fmax_mhz"]-frequency_target, "area_margin_um2":36000-area["area_um2"]},
               "validation":tests, "profiles":profiles, "case_images":cases,
               "scope":"Official 19-case Linux correctness uses the official result protocol. The 6 performance cases and all directed/profile cases compare every commit. Compatibility profiles retain width, forwarding, ownership, retry and recovery invariants while skipping timing obligations specific to the default geometry. STA is ideal-clock/no-parasitics with the original course loads; this is not a routed silicon timing signoff."}
     args.out.parent.mkdir(parents=True, exist_ok=True)

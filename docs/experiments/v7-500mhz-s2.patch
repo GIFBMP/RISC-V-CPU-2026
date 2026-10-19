@@ -1,0 +1,172 @@
+diff --git a/verilog/cpu_core.sv b/verilog/cpu_core.sv
+--- a/verilog/cpu_core.sv
++++ b/verilog/cpu_core.sv
+@@ -213,6 +213,16 @@
+     logic [IQ_DEPTH-1:0] second_match1, second_match2;
+     logic [IQ_DEPTH-1:0] iq_older [0:IQ_DEPTH-1];
+     logic [IQ_DEPTH-1:0] second_candidate, second_grant, integer_candidate, branch_candidate;
++    logic [IQ_DEPTH-1:0] primary_grant;
++    logic [IQ_PAYLOAD_BITS-1:0] primary_payload;
++    logic [PW-1:0] primary_src1, primary_dst;
++    logic [RW-1:0] primary_rob;
++    logic [ROB_DEPTH-1:0] primary_stores;
++    logic [31:0] primary_a, primary_pc, primary_imm, primary_prediction;
++    logic [4:0] primary_op;
++    logic [2:0] primary_funct3;
++    logic [3:0] primary_fault;
++    logic primary_use_imm, primary_select;
+     wire [IQ_DEPTH-1:0] integer_older_none, integer_older_one;
+     generate
+         for (genvar q = 0; q < IQ_DEPTH; q = q + 1) begin : integer_age
+@@ -324,6 +334,7 @@
+     wire [RW-1:0] mem_rob = mq_rob[mq_head];
+     wire [PW-1:0] mem_dst = mq_dst[mq_head];
+     logic load_request_bypass;
++    logic load_request_payload;
+     logic mem_response, mem_completion_pending, load_completion, mem_space, mem_enqueue, load_enqueue, load_available;
+     logic [31:0] load_shifted, load_value, load_merged;
+     logic [ROB_DEPTH-1:0] issue_stores;
+@@ -495,36 +506,45 @@
+         : |(grant & second_match1) ? second_result : prf[selected_src1];
+     assign selected_b = selected_wb2 ? wb_value : selected_ex2 ? issue_value
+         : |(grant & second_match2) ? second_result : prf[selected_src2];
++    assign {primary_op, primary_dst, primary_funct3, primary_fault,
++            primary_pc, primary_imm, primary_use_imm, primary_prediction} = primary_payload;
++    // Noninteger selection never depends on the integer fill lane's rank.
++    // Prepare the early Load operands from this grant, in parallel with the
++    // ordinary execution payload. Both grants agree whenever a Load is chosen.
++    assign primary_a = (wb_dst != 0 && |(primary_grant & wb_match1)) ? wb_value
++        : (issue_dst != 0 && |(primary_grant & ex_match1)) ? issue_value
++        : |(primary_grant & second_match1) ? second_result : prf[primary_src1];
++    assign primary_select = |primary_grant && execute_slot_ready && !reset && !halted && !flush
++        && !(EARLY_RECOVERY != 0 && early_detect);
+     // Carry-select address generation bounds the two serial additions on
+     // an ALU-result-to-Load bypass path without adding a pipeline stage.
+     logic [16:0] selected_address_low;
+     logic [15:0] selected_address_high0, selected_address_high1;
+-    assign selected_address_low = {1'b0, selected_a[15:0]} + {1'b0, selected_imm[15:0]};
+-    assign selected_address_high0 = selected_a[31:16] + selected_imm[31:16];
+-    assign selected_address_high1 = selected_a[31:16] + selected_imm[31:16] + 16'd1;
++    assign selected_address_low = {1'b0, primary_a[15:0]} + {1'b0, primary_imm[15:0]};
++    assign selected_address_high0 = primary_a[31:16] + primary_imm[31:16];
++    assign selected_address_high1 = primary_a[31:16] + primary_imm[31:16] + 16'd1;
+     assign selected_address = {selected_address_low[16] ? selected_address_high1 : selected_address_high0,
+                                selected_address_low[15:0]};
+-    assign selected_misaligned = (selected_funct3[1:0] == 2'b01 && selected_address[0])
+-        || (selected_funct3[1:0] == 2'b10 && selected_address[1:0] != 0);
++    assign selected_misaligned = (primary_funct3[1:0] == 2'b01 && selected_address[0])
++        || (primary_funct3[1:0] == 2'b10 && selected_address[1:0] != 0);
+     always_comb begin
+         selected_load_hazard = 0;
+         for (integer r = 0; r < ROB_DEPTH; r = r + 1)
+-            if (selected_stores[r] && rob_valid[r] && !rob_done[r]
++            if (primary_stores[r] && rob_valid[r] && !rob_done[r]
+                 && rob_addr[r] == {selected_address[31:2],2'b0}) selected_load_hazard = 1;
+     end
+-    assign early_load = SELECT_LOAD != 0 && select_fire && selected_op == OP_LOAD
+-        && selected_fault == FAULT_NONE && !selected_misaligned && selected_address[31:28] == 0
++    assign early_load = SELECT_LOAD != 0 && primary_select && primary_op == OP_LOAD
++        && primary_fault == FAULT_NONE && !selected_misaligned && selected_address[31:28] == 0
+         && !selected_load_hazard && !(ex_valid && issue_op == OP_LOAD);
+     // Payload preparation is independent of recovery and admission. A live
+     // old EX Load always owns this path; otherwise a selected Load may prepare
+     // its data while only early_load authorizes queue/cache acceptance.
+-    assign load_payload_early = SELECT_LOAD != 0 && selected_op == OP_LOAD
+-        && !(ex_valid && issue_op == OP_LOAD);
++    assign load_payload_early = SELECT_LOAD != 0 && !(ex_valid && issue_op == OP_LOAD);
+     assign load_address = load_payload_early ? selected_address : issue_address;
+-    assign load_rob = load_payload_early ? selected_rob : issue_rob;
+-    assign load_dst = load_payload_early ? selected_dst : issue_dst;
+-    assign load_funct3 = load_payload_early ? selected_funct3 : issue_funct3;
+-    assign load_stores = load_payload_early ? selected_stores : issue_stores;
++    assign load_rob = load_payload_early ? primary_rob : issue_rob;
++    assign load_dst = load_payload_early ? primary_dst : issue_dst;
++    assign load_funct3 = load_payload_early ? primary_funct3 : issue_funct3;
++    assign load_stores = load_payload_early ? primary_stores : issue_stores;
+     assign load_enqueue = load_available && !reset && !halted && !flush;
+     assign mem_enqueue = load_enqueue || store_start;
+     assign mem_enqueue_count = {1'b0, load_enqueue} + {1'b0, store_start};
+@@ -634,10 +654,13 @@
+                             && load_address[31:28] == 0;
+         d_req_valid = load_request_bypass || (!reset && mq_unsent != 0
+             && (mq_addr[mq_send][31:28] == 0 || (mq_count == mq_unsent && !halted)));
+-        d_req_write = !load_request_bypass && mq_write[mq_send];
+-        d_req_addr = load_request_bypass ? {load_address[31:2], 2'b0} : mq_addr[mq_send];
+-        d_req_wdata = load_request_bypass ? 32'b0 : mq_data[mq_send];
+-        d_req_wstrb = load_request_bypass ? 4'b0 : mq_strb[mq_send];
++        // Queue ownership is known before Load admission. Invalid pre-read
++        // payloads may change, but an unsent queue entry always owns the port.
++        load_request_payload = LOAD_REQUEST_BYPASS != 0 && mq_unsent == 0;
++        d_req_write = !load_request_payload && mq_write[mq_send];
++        d_req_addr = load_request_payload ? {load_address[31:2], 2'b0} : mq_addr[mq_send];
++        d_req_wdata = load_request_payload ? 32'b0 : mq_data[mq_send];
++        d_req_wstrb = load_request_payload ? 4'b0 : mq_strb[mq_send];
+         d_rsp_ready = !reset && !flush && mem_busy && mem_sent;
+         mem_response = d_rsp_valid && d_rsp_ready;
+         mem_completion_pending = d_rsp_valid && mem_busy && mem_sent && !mem_write && !mem_killed;
+@@ -697,9 +720,10 @@
+         second_candidate = |branch_candidate ? branch_candidate : integer_candidate;
+         // Pairwise age comparisons avoid a serial best-age priority chain.
+         for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
+-            grant[q] = candidate[q];
++            primary_grant[q] = candidate[q];
+             for (integer k = 0; k < IQ_DEPTH; k = k + 1)
+-                if (candidate[k] && iq_older[k][q]) grant[q] = 1'b0;
++                if (candidate[k] && iq_older[k][q]) primary_grant[q] = 1'b0;
++            grant[q] = primary_grant[q];
+             // Fill the primary lane with the oldest integer when the branch lane
+             // is occupied, otherwise take the second-oldest integer.
+             if (ISSUE_WIDTH == 2 && !(|candidate) && integer_candidate[q]) begin
+@@ -715,12 +739,20 @@
+         selected_src2 = 0;
+         selected_rob = 0;
+         selected_stores = 0;
++        primary_payload = 0;
++        primary_src1 = 0;
++        primary_rob = 0;
++        primary_stores = 0;
+         for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
+             selected_payload |= iq_payload[q] & {IQ_PAYLOAD_BITS{grant[q]}};
+             selected_src1 |= iq_src1[q] & {PW{grant[q]}};
+             selected_src2 |= iq_src2[q] & {PW{grant[q]}};
+             selected_rob |= iq_rob[q] & {RW{grant[q]}};
+             selected_stores |= iq_stores[q] & {ROB_DEPTH{grant[q]}};
++            primary_payload |= iq_payload[q] & {IQ_PAYLOAD_BITS{primary_grant[q]}};
++            primary_src1 |= iq_src1[q] & {PW{primary_grant[q]}};
++            primary_rob |= iq_rob[q] & {RW{primary_grant[q]}};
++            primary_stores |= iq_stores[q] & {ROB_DEPTH{primary_grant[q]}};
+         end
+         issue_index = '0;
+         for (integer q = 0; q < IQ_DEPTH; q = q + 1)
+@@ -1559,6 +1591,23 @@
+                 end
+                 if (commit2) assert (commit_fire && rob_count >= 2 && (head2_op != OP_STORE || (store_start && store_select_second && store_bufferable)) && !head2_redirect && !(head_control && head2_control));
+                 assert ($onehot0(grant) && $onehot0(second_grant));
++                assert ($onehot0(primary_grant));
++                if (|primary_grant) begin
++                    assert (primary_grant == grant && primary_payload == selected_payload);
++                    assert (primary_a == selected_a && primary_rob == selected_rob);
++                    assert (primary_stores == selected_stores);
++                    assert (selected_address == selected_a + selected_imm);
++                end
++                if (early_load) assert (select_fire && selected_op == OP_LOAD);
++                if (load_enqueue && ex_valid && issue_op == OP_LOAD) begin
++                    assert (!load_payload_early && !early_load);
++                    assert (load_rob == issue_rob && load_address == issue_address);
++                end
++                if (d_req_valid && mq_unsent != 0) begin
++                    assert (!load_request_payload && !load_request_bypass);
++                    assert ({d_req_write,d_req_addr,d_req_wdata,d_req_wstrb}
++                        == {mq_write[mq_send],mq_addr[mq_send],mq_data[mq_send],mq_strb[mq_send]});
++                end
+                 if (second_wb) begin
+                     assert (rob_valid[second_rob] && !rob_done[second_rob] && rob_dst[second_rob] == second_dst);
+                     assert (!wb_valid || wb_rob != second_rob);
+@@ -1576,6 +1625,7 @@
+                 if (load_request_bypass) begin
+                     assert (load_enqueue && mem_enqueue && mq_unsent == 0 && mq_send == mq_tail);
+                     assert (!d_req_write && load_address[31:28] == 0);
++                    assert (load_request_payload && d_req_addr == {load_address[31:2],2'b0});
+                 end
+                 if (mem_enqueue) assert (load_available == load_enqueue);
+                 if (mem_space) assert (!mq_valid[mq_tail]);

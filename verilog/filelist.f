@@ -1,5 +1,9 @@
 # RTL paths are relative to this file in verilog/.
 # The top-level module must be named student_top.
+common/zero_one_tree.sv
+common/address_adder.sv
+common/youngest_match.sv
+common/store_byte_align.sv
 execute/decoder.sv
 execute/alu.sv
 execute/muldiv_unit.sv

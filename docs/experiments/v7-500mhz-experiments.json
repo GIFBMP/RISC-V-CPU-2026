@@ -1,0 +1,1367 @@
+{
+  "status": "qualified",
+  "base_commit": "690c35ba5f61a6015766e5db1c3a8893b611ebde",
+  "baseline": {
+    "ipc_geomean": 1.100201368597644,
+    "frequency_mhz": 314.78635106055947,
+    "area_um2": 30717.500924009517
+  },
+  "targets": {
+    "ipc_geomean_min": 1.0985,
+    "frequency_mhz_min": 500,
+    "area_um2_max": 36000
+  },
+  "scope": "Candidate cycle screening uses native Verilator; all synthesis uses the unchanged Linux course flow. The selected S23 production RTL subsequently passed the complete frozen-source Linux qualification. Its final metadata collector was rerun after installing the missing Git dependency; original failure and successful retry are retained.",
+  "stages": [
+    {
+      "stage": "s1",
+      "parent": "baseline",
+      "change": "整数年龄计数改为平衡的零/一谓词树",
+      "frequency_mhz": 333.4418756105503,
+      "period_ns": 2.9990234375,
+      "area_um2": 30731.03116400742,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s1/synth/opt/report.json",
+        "sha256": "ca6790b2a187030c541a76c5f7945df733d6ae8be9c1bc70d52027b7dbe751ef"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "07aa2dd4319587b53e6b88bec14318b7c72a69f978d0063823d8506430ce5b6d",
+        "execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "d792475f083552b758c0b9215594f1f0884b6ebfc8144946d5eeda4190b4a0eb",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s2",
+      "parent": "s1",
+      "change": "提前 Load 地址准备与准入控制分离",
+      "frequency_mhz": 341.3333333333333,
+      "period_ns": 2.9296875,
+      "area_um2": 30892.577564009116,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s2/synth/opt/report.json",
+        "sha256": "dde3ca258ef307f38e7f1dfb9d746259edee9cfec3fd4c0157e657942166a241"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "4544d5c80456a3992debc5dc9c2d2ff56433129f540b124450928cef4be9b7ee",
+        "execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "d792475f083552b758c0b9215594f1f0884b6ebfc8144946d5eeda4190b4a0eb",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s3a",
+      "parent": "s2",
+      "change": "Cache 标签安装载荷与比较地址分离",
+      "frequency_mhz": 372.7702948671278,
+      "period_ns": 2.6826171875,
+      "area_um2": 30911.473244008455,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s3a/synth/opt/report.json",
+        "sha256": "dcb2404f3a8af63e1446f265b4e39353d7a3f963f9a084f66267406cdfc47874"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "4544d5c80456a3992debc5dc9c2d2ff56433129f540b124450928cef4be9b7ee",
+        "execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "d792475f083552b758c0b9215594f1f0884b6ebfc8144946d5eeda4190b4a0eb",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "8ac488bfb59f0a9dbf6ca91a7a680db0aefc6c6746a6aa9337cb345683bc0a2d",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s3b",
+      "parent": "s3a",
+      "change": "按命中位直接选择 Cache 数据",
+      "frequency_mhz": 365.4532476802284,
+      "period_ns": 2.736328125,
+      "area_um2": 30952.64716400832,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s3b/synth/opt/report.json",
+        "sha256": "1577537e0e6d8a22b749ff92c748b11cac2d52650d32eeacefa53224c284d884"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "4544d5c80456a3992debc5dc9c2d2ff56433129f540b124450928cef4be9b7ee",
+        "execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "d792475f083552b758c0b9215594f1f0884b6ebfc8144946d5eeda4190b4a0eb",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "2e551b8cd6fdca3b54145d89bde575923b29220a1d160a0c89ce8ba24fa4bccf",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s4a",
+      "parent": "s3b",
+      "change": "提前 Load 使用分组并行进位加法器",
+      "frequency_mhz": 373.04189435336974,
+      "period_ns": 2.6806640625,
+      "area_um2": 30925.280504008995,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s4a/synth/opt/report.json",
+        "sha256": "1c83c0e2c228c26ad594ec42d5d290aed4d5a1a3e1ff99cf0a014ccc8cbe8f20"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "2bf90edb389bb90be16bc0aa99a6572cf88271bc81da9b65ea69d0a6a6dd8654",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "74e031c271d39ff9e3aa7f14321661c779f54d2ea915fb39a6bb698c57d8d155",
+        "execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "8f21056ed026e3a8c49ddb9d1c89398a5efed697c0b1284523fb0b3b9e63c9fa",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "2e551b8cd6fdca3b54145d89bde575923b29220a1d160a0c89ce8ba24fa4bccf",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s4b",
+      "parent": "s4a",
+      "change": "ALU 与执行 AGU 使用并行进位加法器",
+      "frequency_mhz": 421.2258329905389,
+      "period_ns": 2.3740234375,
+      "area_um2": 30796.334984009794,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s4b/synth/opt/report.json",
+        "sha256": "a593963a175800d96cca45a3aa3c3b2b0d8ec91dc78b196c9b0d1d71baf93725"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "5c53870f3f27593c46dbe579b43079059af34fb0b2a3537b3164ac24ab19d594",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "7b32ff962f381109eee94152ae2e6f8829c3cd84a8a56fe1df3fcbc9e85f20e7",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "8f21056ed026e3a8c49ddb9d1c89398a5efed697c0b1284523fb0b3b9e63c9fa",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "2e551b8cd6fdca3b54145d89bde575923b29220a1d160a0c89ce8ba24fa4bccf",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s5a",
+      "parent": "s4b",
+      "change": "并行完成目的寄存器比较，分离预测器训练载荷",
+      "frequency_mhz": 425.42584129621935,
+      "period_ns": 2.3505859375,
+      "area_um2": 30899.43016400824,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s5a/synth/opt/report.json",
+        "sha256": "ea162c154d75c420ef077649c34494fa7a6f23445e662b990472d0269ab5da1f"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "5c53870f3f27593c46dbe579b43079059af34fb0b2a3537b3164ac24ab19d594",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "35b1d6940437a0ce99326b856a54d73b85095faf03a05be7869e68a2cdd34978",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "8f21056ed026e3a8c49ddb9d1c89398a5efed697c0b1284523fb0b3b9e63c9fa",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "2e551b8cd6fdca3b54145d89bde575923b29220a1d160a0c89ce8ba24fa4bccf",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s5b",
+      "parent": "s5a",
+      "change": "平衡选择最年轻的匹配 Store 字节",
+      "frequency_mhz": 450.5059392872855,
+      "period_ns": 2.2197265625,
+      "area_um2": 30751.42858400956,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s5b/synth/opt/report.json",
+        "sha256": "9af389ea7130614733eb4d4c71a70ef5f47a8b398cae893e00c9a5a2d79677d1"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "5c53870f3f27593c46dbe579b43079059af34fb0b2a3537b3164ac24ab19d594",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "3a9687a2b2829946b3c70996060ecf38fbe6337ebf5818dde5392e1ffd06cc01",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "04f97712cc935090fdd1a63ccc533440173d0c42f23b70f4d1135c89908d0aa4",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "2e551b8cd6fdca3b54145d89bde575923b29220a1d160a0c89ce8ba24fa4bccf",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s5c",
+      "parent": "s5b",
+      "change": "访存队列分别准备 Load 与 Store 载荷",
+      "frequency_mhz": 448.14004376367615,
+      "period_ns": 2.2314453125,
+      "area_um2": 31108.02622400853,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s5c/synth/opt/report.json",
+        "sha256": "82eefb91ed088b8ba68f6fe8aa47fc98035e2f3ddd4e2d6a6e3db21cc66a5fcf"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "5c53870f3f27593c46dbe579b43079059af34fb0b2a3537b3164ac24ab19d594",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "1c29452b9d0738466fb0a42bc74a25affe8bc7490cd5a9fac25e4bb2b98ecf74",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "04f97712cc935090fdd1a63ccc533440173d0c42f23b70f4d1135c89908d0aa4",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "2e551b8cd6fdca3b54145d89bde575923b29220a1d160a0c89ce8ba24fa4bccf",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s6",
+      "parent": "s5c",
+      "change": "Cache 端口地址选择并行化",
+      "frequency_mhz": 444.0589765828274,
+      "period_ns": 2.251953125,
+      "area_um2": 31111.02970400841,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s6/synth/opt/report.json",
+        "sha256": "5bd106b891bd992e60097018aebd89deb43e86a58dc9b15a7a9731865e436e15"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "5c53870f3f27593c46dbe579b43079059af34fb0b2a3537b3164ac24ab19d594",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "1c29452b9d0738466fb0a42bc74a25affe8bc7490cd5a9fac25e4bb2b98ecf74",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "04f97712cc935090fdd1a63ccc533440173d0c42f23b70f4d1135c89908d0aa4",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "d512ffec574f2f6c5589d177a444c2012698e971aeb1df58d80104cf107e2f09",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s7",
+      "parent": "s6",
+      "change": "地址候选准备不等待访存队列信用",
+      "frequency_mhz": 450.5059392872855,
+      "period_ns": 2.2197265625,
+      "area_um2": 31196.39560400846,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s7/synth/opt/report.json",
+        "sha256": "59d1c633fef439a60b8c27599576cf88a5f578584d585b7a45f6e9efe26c22b9"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "5c53870f3f27593c46dbe579b43079059af34fb0b2a3537b3164ac24ab19d594",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "5136ae665c2985df2acfc82b8a373acbe80e0c44cb891b34a1681763453265cb",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "04f97712cc935090fdd1a63ccc533440173d0c42f23b70f4d1135c89908d0aa4",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "d512ffec574f2f6c5589d177a444c2012698e971aeb1df58d80104cf107e2f09",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s8",
+      "parent": "s7",
+      "change": "显式区分阻塞 EX 的 MDU 与重试 Load",
+      "frequency_mhz": 433.714527742482,
+      "period_ns": 2.3056640625,
+      "area_um2": 31113.887384008893,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s8/synth/opt/report.json",
+        "sha256": "8f333adb9938216deda1f7affb0cbd616ce3d07328ccb522b460379840c52e49"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "5c53870f3f27593c46dbe579b43079059af34fb0b2a3537b3164ac24ab19d594",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "b7f5448bc236073dbb6888723593514786bcbe3924ae9b50081c9f4d87692040",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "04f97712cc935090fdd1a63ccc533440173d0c42f23b70f4d1135c89908d0aa4",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "d512ffec574f2f6c5589d177a444c2012698e971aeb1df58d80104cf107e2f09",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s9",
+      "parent": "s8",
+      "change": "Store 字节对齐与整数移位器分离",
+      "frequency_mhz": 470.5882352941176,
+      "period_ns": 2.125,
+      "area_um2": 31000.061324009686,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s9/synth/opt/report.json",
+        "sha256": "e9c5a3caaac0f7ea6a38210391c794fe856050704636a3e7c7bc6e2353d1a341"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "5c53870f3f27593c46dbe579b43079059af34fb0b2a3537b3164ac24ab19d594",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "eae886b41bcbe3f45aeec4bbc0c9c45137330651e2f6778339b6b6c3ca29a364",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "d512ffec574f2f6c5589d177a444c2012698e971aeb1df58d80104cf107e2f09",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s9lean",
+      "parent": "s5b",
+      "change": "仅增加专用 Store 字节对齐的精简对照",
+      "frequency_mhz": 468.86446886446885,
+      "period_ns": 2.1328125,
+      "area_um2": 30786.478904009946,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s9lean/synth/opt/report.json",
+        "sha256": "d70e80b667788ee909fdae449e688af6b773ac1e883952116a5f1790f8e82753"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "5c53870f3f27593c46dbe579b43079059af34fb0b2a3537b3164ac24ab19d594",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "8c51171caa48deaec3a993b3ab1175873d5b8331583239b1008b2860ddf5cfa1",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "2e551b8cd6fdca3b54145d89bde575923b29220a1d160a0c89ce8ba24fa4bccf",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s10",
+      "parent": "s9lean",
+      "change": "逐位并行前缀加法器",
+      "frequency_mhz": 468.86446886446885,
+      "period_ns": 2.1328125,
+      "area_um2": 30834.330464010312,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s10/synth/opt/report.json",
+        "sha256": "9ea81121af08997166110028892bcc25f5431b120fe36ab0aec4335794ccea61"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "8c51171caa48deaec3a993b3ab1175873d5b8331583239b1008b2860ddf5cfa1",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "2e551b8cd6fdca3b54145d89bde575923b29220a1d160a0c89ce8ba24fa4bccf",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s11",
+      "parent": "s10",
+      "change": "分支目标与 PC 增量使用前缀加法器",
+      "frequency_mhz": 469.0792487402657,
+      "period_ns": 2.1318359375,
+      "area_um2": 30722.633084010664,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s11/synth/opt/report.json",
+        "sha256": "4097c2703ca85a1e5f44a5abbfeb8fc285c1ec4e5a2ba08050b4a9f378329667"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "8170c6b8754b8152b8f72b4459954d3f7f390f85f741ebb39d55414268132d3d",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "2e551b8cd6fdca3b54145d89bde575923b29220a1d160a0c89ce8ba24fa4bccf",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s12",
+      "parent": "s9",
+      "change": "在完整候选上合并逐位前缀与分支加法器",
+      "frequency_mhz": 464.6098003629764,
+      "period_ns": 2.15234375,
+      "area_um2": 31150.002044009423,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s12/synth/opt/report.json",
+        "sha256": "b8d39b51b840a2c7140873e1b9c4812455a011ef5fbb77bc302d616376bbf6fe"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "41497f295084daa10cf76e7d9f519bc39a2caf94a6776384fcd909f267c9f41f",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "d512ffec574f2f6c5589d177a444c2012698e971aeb1df58d80104cf107e2f09",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s13",
+      "parent": "s12",
+      "change": "访存响应队头独热化，并行比较目的寄存器",
+      "frequency_mhz": 437.6068376068376,
+      "period_ns": 2.28515625,
+      "area_um2": 31554.05758400811,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s13/synth/opt/report.json",
+        "sha256": "81bc92e33a10d9b37df899eff9628f7883beeb422332a86a98f86c787293973f"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "d847ecc825c13dbb6cd7a6fcfe8fda8f12a73180bdf04a872bcc7f9b81fdcee9",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "d512ffec574f2f6c5589d177a444c2012698e971aeb1df58d80104cf107e2f09",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s14",
+      "parent": "s13",
+      "change": "提前 Load 的 PRF 源提前译码",
+      "frequency_mhz": 470.3720716582453,
+      "period_ns": 2.1259765625,
+      "area_um2": 31524.766364009407,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s14/synth/opt/report.json",
+        "sha256": "e9ebd4f142be7954a37e9905a0dd0a73ac8e3c4304e4f4ad5ad1e88b5c612b37"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "096bf32d6d99da11ad5dd57c96d45da5f0e2dae13f57dc8fa37b8ce38e627c58",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "d512ffec574f2f6c5589d177a444c2012698e971aeb1df58d80104cf107e2f09",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s15",
+      "parent": "s14",
+      "change": "提前地址载荷仅由赢得原有优先级的 Load 驱动",
+      "frequency_mhz": 470.5882352941176,
+      "period_ns": 2.125,
+      "area_um2": 31555.267724008372,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s15/synth/opt/report.json",
+        "sha256": "0511cc643c6a07c9662a2160afc26ca496524221d77f7a1d3e404a8f296eb0f0"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "f0320029da6e95a90aa23384cc8325eb106de5ffa5a6fbca05562c2597586103",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "d512ffec574f2f6c5589d177a444c2012698e971aeb1df58d80104cf107e2f09",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s16",
+      "parent": "s15",
+      "change": "Cache 有效位与同步标签在同一拍预读",
+      "frequency_mhz": 469.9403396053235,
+      "period_ns": 2.1279296875,
+      "area_um2": 31504.339784008316,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s16/synth/opt/report.json",
+        "sha256": "82160805510d1965b739946715f2a44375bd194c055c7e33df9877901c7747a3"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "f0320029da6e95a90aa23384cc8325eb106de5ffa5a6fbca05562c2597586103",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "7b3cc8ec79a5a38f214c98415f4716614616d393bf1ec0a19a81971c3498a875",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s17",
+      "parent": "s16",
+      "change": "Load 就绪判定显式忽略未使用的第二源",
+      "frequency_mhz": 465.24307133121306,
+      "period_ns": 2.1494140625,
+      "area_um2": 31489.162004007543,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s17/synth/opt/report.json",
+        "sha256": "c499d529fd8da0773f564db50a24a9291740c60b9600a21565f2374ee456cb9e"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "451ba7a3e0120384fcb43155ae62db5c61701b56812afcf1c4cfc9f21bebcb7a",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "7b3cc8ec79a5a38f214c98415f4716614616d393bf1ec0a19a81971c3498a875",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s18",
+      "parent": "s17",
+      "change": "Cache 直通返回载荷按队列归属提前准备",
+      "frequency_mhz": 465.24307133121306,
+      "period_ns": 2.1494140625,
+      "area_um2": 31480.734764007888,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s18/synth/opt/report.json",
+        "sha256": "bc18be4d8f7aa6605d6638a2b17c5836ac9a61ed70393462bbf2d7112995505d"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "451ba7a3e0120384fcb43155ae62db5c61701b56812afcf1c4cfc9f21bebcb7a",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s19",
+      "parent": "s18",
+      "change": "并行后缀优先级的 Store 字节选择对照",
+      "frequency_mhz": 446.38186573670447,
+      "period_ns": 2.240234375,
+      "area_um2": 31508.64088400748,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s19/synth/opt/report.json",
+        "sha256": "c1663548bfbeb44c8703e42fad2296dcf5c2570cbeaccb4ebd72c1f9b4d3a6e2"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "4de92805aef1c96e43eebadf6fab8013d56d5b41e0cae89b4cb8ec600a986588",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "451ba7a3e0120384fcb43155ae62db5c61701b56812afcf1c4cfc9f21bebcb7a",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s20",
+      "parent": "s19",
+      "change": "提前 Load 重建 12 位有符号立即数",
+      "frequency_mhz": 448.72918492550394,
+      "period_ns": 2.228515625,
+      "area_um2": 31454.534504009483,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s20/synth/opt/report.json",
+        "sha256": "92eb362352c53f07c3dd32c912a64aaa880f6ec841d2c764e4ede30229fb48d9"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "4de92805aef1c96e43eebadf6fab8013d56d5b41e0cae89b4cb8ec600a986588",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "320fb62ea433dc58a144da09faa57d6d5363b69c2080463450354781b3086a83",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s21",
+      "parent": "s20",
+      "change": "根据 RAM/MMIO 顺序不变量缩短转发比较",
+      "frequency_mhz": 464.1885766092475,
+      "period_ns": 2.154296875,
+      "area_um2": 31459.258424009156,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s21/synth/opt/report.json",
+        "sha256": "968a120b12286fdc4529892ffca739bad03d3271aaae05634d624ca82df5d72e"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "4de92805aef1c96e43eebadf6fab8013d56d5b41e0cae89b4cb8ec600a986588",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "5c5e1b556dfcff47fd9ddd40fa775d98e377d1c1857fad435b7faadc208a62a5",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s22",
+      "parent": "s21",
+      "change": "恢复平衡字节选择树；在 IQ 内缓存已就绪 Load 地址，唤醒地址与年龄选择并行",
+      "frequency_mhz": 471.02115915363385,
+      "period_ns": 2.123046875,
+      "area_um2": 32242.56892400568,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s22/synth/opt/report.json",
+        "sha256": "be9025673fa25755f7b177fdff056c9e762c9b4226e1eceda83faa853a4c498c"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "eb6b0579def1a370b7daa1e56046b842e9f7176aac89d2b6570f864b93244a7d",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    },
+    {
+      "stage": "s23",
+      "parent": "s22",
+      "change": "分离重定向目标载荷与误预测检测",
+      "frequency_mhz": 504.1851304775972,
+      "period_ns": 1.9833984375,
+      "area_um2": 32287.898144006373,
+      "ipc_geomean": 1.100201368597644,
+      "performance_cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "native_trace_directed_passed": 189,
+      "native_trace_directed_total": 189,
+      "synthesis_environment": "Linux cpu2026:arm64",
+      "report": {
+        "path": "build/v7-500/s23/synth/opt/report.json",
+        "sha256": "b037f2a77927ea7ab57bfe5193987a5e0bfbc743a3c833d8d6c82e29e2dbc301"
+      },
+      "rtl_sha256": {
+        "bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+        "common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+        "common/youngest_match.sv": "87b73cda0ad7159a438bc21fc096a0ced4fac7a172e4caadc6a5ae1c63edff1b",
+        "common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+        "cpu_core.sv": "40359c4bacb150a8d270a7e0687cc44e7b36dc18bf6a3aae56e6ad28c1a67836",
+        "execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+        "execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+        "frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "memory/dcache_writeback.sv": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291",
+        "memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+      }
+    }
+  ],
+  "initial_step_validation": {
+    "step1": {
+      "stage": "s1",
+      "predicate_equivalence": [
+        {
+          "width": 1,
+          "path": "build/v7-500/s1/formal-1.log",
+          "sha256": "aa1c9f974700932f06d2c84e7ef8102e439d7e78095d3486017cefd8e4e151e2"
+        },
+        {
+          "width": 3,
+          "path": "build/v7-500/s1/formal-3.log",
+          "sha256": "baceaff42b18a0348491e33cc1a8e6a9c6ab68a316904a8cabe7cc9fd55a36eb"
+        },
+        {
+          "width": 5,
+          "path": "build/v7-500/s1/formal-5.log",
+          "sha256": "55a0236a300be8322ab75bc5e297cc7a21787233fcfefd62c0ac5d89c5ff63d4"
+        },
+        {
+          "width": 12,
+          "path": "build/v7-500/s1/formal-12.log",
+          "sha256": "92473f40d53830a7abb70af712d4e469fe393559327705b66542b222470f04da"
+        },
+        {
+          "width": 16,
+          "path": "build/v7-500/s1/formal-16.log",
+          "sha256": "2e44ace6b6f60eda834750f09dc94b2dce308e715983c953367d0fbef31e3e82"
+        },
+        {
+          "width": 24,
+          "path": "build/v7-500/s1/formal-24.log",
+          "sha256": "70857ea356351a3536226a711be54829a63fc9c278e4e7c901147847b3f4eb00"
+        },
+        {
+          "width": 32,
+          "path": "build/v7-500/s1/formal-32.log",
+          "sha256": "be34c1bc8919f83daff98cbd6586cc1d1d2175bfeac9b40e67e98af2b2219405"
+        }
+      ],
+      "directed_matrix": "63 cases x latencies 1,10,31; native trace checks",
+      "replay_patch": {
+        "path": "docs/experiments/v7-500mhz-s1.patch",
+        "sha256": "771e12aabb8de9a3f7553bacb7c8b06ff03e20d78f9903a520540fd71a8b399b",
+        "replay_verified": true
+      }
+    },
+    "step2": {
+      "stage": "s2",
+      "directed_matrix": "63 cases x latencies 1,10,31; native trace checks",
+      "runtime_invariants": [
+        "old EX Load owns the payload",
+        "one-hot grants agree for an admitted Load",
+        "queue request identity and payload survive backpressure",
+        "admission alone authorizes effects"
+      ],
+      "replay_patch": {
+        "path": "docs/experiments/v7-500mhz-s2.patch",
+        "sha256": "9f935e91e735d05a963a5d5d9a9835b57c4a765d9861b27305287f3e89e6e6b3",
+        "replay_verified": true
+      }
+    },
+    "replay_order": "Apply S1 then S2 to base commit 690c35ba5f61a6015766e5db1c3a8893b611ebde. Each replay was checked against its measured RTL snapshot byte for byte."
+  },
+  "selected_candidate": "s23",
+  "note": "S19/S20/S21 used a slower suffix-selection network; S22 restores the balanced tournament. All measured candidates preserve the six baseline cycle counts.",
+  "completed_utc": "2026-10-19T16:32:06.475531+00:00",
+  "qualification": {
+    "results": {
+      "path": "docs/experiments/v7-500mhz-results.json",
+      "sha256": "73f4b7f43cf168b01f4f71a9dbde4437f0048f6f803ca748eda2f4019ac7e8a3"
+    },
+    "completion_audit": {
+      "path": "build/v7-500/linux-final/qualification-completion.json",
+      "sha256": "624172575ed9060dd0964ed51d1c53dbc24680c305dc89d247ad9fd287889b32"
+    },
+    "original_runner_exit_code": 1,
+    "original_failed_step": "acceptance",
+    "environment_issue": "Git missing in the course runtime image",
+    "acceptance_retry_returncode": 0,
+    "all_functional_formal_and_synthesis_steps_passed": true,
+    "sources_unchanged": true,
+    "frozen_source_entries": 164,
+    "validation_counts": {
+      "directed": {
+        "passed": 189,
+        "total": 189
+      },
+      "perf-trace": {
+        "passed": 6,
+        "total": 6
+      },
+      "small-runs": {
+        "passed": 189,
+        "total": 189
+      },
+      "scalar-runs": {
+        "passed": 189,
+        "total": 189
+      },
+      "legacy-runs": {
+        "passed": 189,
+        "total": 189
+      },
+      "no-early-runs": {
+        "passed": 189,
+        "total": 189
+      },
+      "single-completion-runs": {
+        "passed": 189,
+        "total": 189
+      },
+      "faults": {
+        "passed": 27,
+        "total": 27
+      },
+      "writeback-faults": {
+        "passed": 12,
+        "total": 12
+      },
+      "memory_units": {
+        "passed": 69,
+        "total": 69
+      },
+      "execute_frontend_units": {
+        "passed": 32,
+        "total": 32
+      },
+      "checkers": {
+        "passed": 46,
+        "total": 46
+      },
+      "carry_select_equivalence": {
+        "passed": true
+      },
+      "alu_equivalence": {
+        "passed": true
+      },
+      "load_immediate_equivalence": {
+        "passed": true
+      },
+      "store_alignment": {
+        "passed": true
+      },
+      "scheduler_predicates": {
+        "passed": true
+      },
+      "youngest_forwarding": {
+        "passed": true
+      }
+    },
+    "official_correctness_passed": 19,
+    "strict_commits_compared": 1019098,
+    "formal_proofs": 18,
+    "combinational_loop_checks": 2,
+    "acceptance": {
+      "ipc": true,
+      "frequency": true,
+      "area": true,
+      "all_met": true,
+      "target": "v7-500",
+      "minimum_ipc": 1.0985,
+      "minimum_frequency_mhz": 500,
+      "maximum_area_um2": 36000,
+      "ipc_margin": 0.0017013685976439152,
+      "frequency_margin_mhz": 4.185130477597227,
+      "area_margin_um2": 3712.1018559936274
+    },
+    "steps": {
+      "path": "build/v7-500/linux-final/steps.json",
+      "sha256": "1e2f2d2303f01555e454ed37ab300bea8ca78d63d8d89590d935585bef9122c0"
+    },
+    "acceptance_retry_log": {
+      "path": "build/v7-500/linux-final/acceptance-retry.log",
+      "sha256": "56efa43e1fb3eb1390b7124d008e27fd2dd2b4c2ec35e094b313775383fd2553"
+    }
+  },
+  "production_path_reconfirmation": {
+    "report": {
+      "path": "build/v7-500/root-confirm/synth/opt/report.json",
+      "sha256": "a351a83c9a0ada31fb7d99555f9a95f37c515d4b5e7728e16f8d4abe02c34496"
+    },
+    "same_final_metrics_and_critical_paths": true
+  },
+  "reproduction": {
+    "requires": "Course Linux container with Git installed before running the collector",
+    "command": [
+      "python3",
+      "verification/runners/run_v7_linux.py",
+      "--out",
+      "build/v7-500/reproduce",
+      "--jobs",
+      "3",
+      "--target",
+      "v7-500"
+    ]
+  }
+}

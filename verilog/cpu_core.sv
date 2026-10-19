@@ -206,13 +206,39 @@ module cpu_core #(
     end
 
     localparam integer IQ_PAYLOAD_BITS = 5 + PW + 3 + 4 + 32*3 + 1;
+    localparam integer IQ_IMMEDIATE_LSB = 33;
     logic [IQ_PAYLOAD_BITS-1:0] iq_payload [0:IQ_DEPTH-1];
+    logic [31:0] iq_load_address [0:IQ_DEPTH-1];
+    wire [31:0] iq_wakeup_address [0:IQ_DEPTH-1];
     logic [IQ_PAYLOAD_BITS-1:0] selected_payload;
     logic [PW-1:0] selected_src1, selected_src2;
     logic [IQ_DEPTH-1:0] wb_match1, wb_match2, ex_match1, ex_match2;
+    logic [IQ_DEPTH-1:0] iq_nonzero1, iq_nonzero2;
     logic [IQ_DEPTH-1:0] second_match1, second_match2;
     logic [IQ_DEPTH-1:0] iq_older [0:IQ_DEPTH-1];
     logic [IQ_DEPTH-1:0] second_candidate, second_grant, integer_candidate, branch_candidate;
+    logic [IQ_DEPTH-1:0] primary_grant, address_candidate;
+    logic [IQ_PAYLOAD_BITS-1:0] primary_payload;
+    logic [PW-1:0] primary_src1, primary_dst;
+    logic [RW-1:0] primary_rob;
+    logic [ROB_DEPTH-1:0] primary_stores;
+    logic [31:0] primary_a, primary_pc, primary_imm, primary_prediction;
+    logic [4:0] primary_op;
+    logic [2:0] primary_funct3;
+    logic [3:0] primary_fault;
+    logic primary_use_imm, primary_select;
+    wire [IQ_DEPTH-1:0] integer_older_none, integer_older_one;
+    generate
+        for (genvar q = 0; q < IQ_DEPTH; q = q + 1) begin : integer_age
+            wire [IQ_DEPTH-1:0] older_candidates;
+            for (genvar k = 0; k < IQ_DEPTH; k = k + 1) begin : older_mask
+                assign older_candidates[k] = integer_candidate[k] && iq_older[k][q];
+            end
+            zero_one_tree #(.WIDTH(IQ_DEPTH)) count_predicates (
+                .bits(older_candidates), .none(integer_older_none[q]), .one(integer_older_one[q])
+            );
+        end
+    endgenerate
     logic [IQ_PAYLOAD_BITS-1:0] second_payload;
     logic [PW-1:0] second_src1, second_src2, second_dst;
     logic [RW-1:0] second_selected_rob, second_rob;
@@ -294,11 +320,14 @@ module cpu_core #(
     // requests. Send and response pointers advance independently; no finite
     // generation tag can alias a late response after a branch recovery.
     logic [MW-1:0] mq_head, mq_send, mq_tail;
+    logic [MEM_QUEUE_DEPTH-1:0] mq_head_onehot;
     logic [MW-1:0] mq_store_tail;
     logic [1:0] mem_enqueue_count;
     logic [MCW-1:0] mq_count, mq_unsent;
     logic [MEM_QUEUE_DEPTH-1:0] mq_valid, mq_killed, mq_write, mq_committed;
     logic [31:0] mq_addr [0:MEM_QUEUE_DEPTH-1], mq_data [0:MEM_QUEUE_DEPTH-1];
+    logic [31:0] mq_load_addr [0:MEM_QUEUE_DEPTH-1], mq_store_addr [0:MEM_QUEUE_DEPTH-1];
+    logic [RW-1:0] mq_load_rob [0:MEM_QUEUE_DEPTH-1], mq_store_rob [0:MEM_QUEUE_DEPTH-1];
     logic [31:0] mq_forward [0:MEM_QUEUE_DEPTH-1];
     logic [3:0] mq_strb [0:MEM_QUEUE_DEPTH-1], mq_mask [0:MEM_QUEUE_DEPTH-1];
     logic [1:0] mq_offset [0:MEM_QUEUE_DEPTH-1];
@@ -307,17 +336,22 @@ module cpu_core #(
     logic [PW-1:0] mq_dst [0:MEM_QUEUE_DEPTH-1];
     wire mem_busy = mq_count != 0;
     wire mem_sent = mq_count > mq_unsent;
-    wire mem_killed = mq_killed[mq_head];
-    wire mem_write = mq_write[mq_head];
-    wire [RW-1:0] mem_rob = mq_rob[mq_head];
-    wire [PW-1:0] mem_dst = mq_dst[mq_head];
+    logic mem_killed, mem_write, mem_committed;
+    logic [RW-1:0] mem_rob;
+    logic [PW-1:0] mem_dst;
+    logic [3:0] mem_forward_mask;
+    logic [31:0] mem_forward_data;
+    logic [1:0] mem_offset;
+    logic [2:0] mem_funct3;
+    logic [IQ_DEPTH-1:0] mem_match1, mem_match2;
     logic load_request_bypass;
+    logic load_request_payload;
     logic mem_response, mem_completion_pending, load_completion, mem_space, mem_enqueue, load_enqueue, load_available;
     logic [31:0] load_shifted, load_value, load_merged;
     logic [ROB_DEPTH-1:0] issue_stores;
     logic [31:0] forward_data;
     logic [3:0] forward_mask;
-    logic [ROB_DEPTH-1:0] forward_match [0:3], forward_grant [0:3];
+    logic [ROB_DEPTH-1:0] forward_match [0:3];
 
     logic mdu_req_valid, mdu_req_available, mdu_result_pending, mdu_result_valid, mdu_result_ready;
     logic [31:0] mdu_result;
@@ -364,8 +398,17 @@ module cpu_core #(
     assign head_control = head_op == OP_BRANCH || head_op == OP_JAL || head_op == OP_JALR;
     assign head2_control = head2_op == OP_BRANCH || head2_op == OP_JAL || head2_op == OP_JALR;
     assign retire_control_second = commit2 && head2_control;
+    wire train_second_payload = !head_control && head2_control;
     localparam bit DIRECT_EXECUTE_REDIRECT = EXECUTE_REDIRECT != 0 && EARLY_RECOVERY != 0;
     localparam bit TRAIN_EARLY = TRAIN_EXECUTE != 0 && RAS_DEPTH == 0;
+    wire frontend_redirect_valid = (DIRECT_EXECUTE_REDIRECT && early_detect)
+        || early_pulse || (flush && !recovery_prepared);
+    // Recovery owns its registered payload. Otherwise a direct redirect can
+    // only belong to the executing branch; prepare its target before the
+    // target/prediction comparison authorizes the redirect.
+    wire [31:0] frontend_redirect_pc = DIRECT_EXECUTE_REDIRECT
+        ? (flush ? recovery_pc : branch_target)
+        : (flush && !recovery_prepared ? recovery_pc : early_target);
     fetch_frontend #(
         .DECODE_WIDTH(RENAME_WIDTH), .FETCH_WIDTH(FETCH_WIDTH),
         .FETCH_QUEUE_DEPTH(FETCH_QUEUE_DEPTH), .FETCH_OUTSTANDING(FETCH_OUTSTANDING),
@@ -373,9 +416,8 @@ module cpu_core #(
         .REDIRECT_OVERLAP(REDIRECT_OVERLAP), .RESPONSE_BYPASS(RESPONSE_BYPASS), .REDIRECT_REQUEST(REDIRECT_REQUEST), .RAS_DEPTH(RAS_DEPTH), .PREDICT_ENABLE(PREDICT_ENABLE)
     ) frontend (
         .clock(clock), .reset(reset),
-        .redirect_valid((DIRECT_EXECUTE_REDIRECT && early_detect) || early_pulse || (flush && !recovery_prepared)),
-        .redirect_pc(DIRECT_EXECUTE_REDIRECT && early_detect ? branch_target
-            : flush && !recovery_prepared ? recovery_pc : early_target),
+        .redirect_valid(frontend_redirect_valid),
+        .redirect_pc(frontend_redirect_pc),
         .instruction_valid(fetch_buffer_valid), .instruction_ready(dispatch),
         .instruction2_valid(fetch2_valid), .instruction2_ready(dispatch2),
         .instruction2_pc(fetch2_pc), .instruction2_data(fetch2_insn),
@@ -387,11 +429,11 @@ module cpu_core #(
         .i_rsp_data(i_rsp_data), .i_rsp_data2(i_rsp_data2), .i_rsp_error(i_rsp_error),
         .update_valid(TRAIN_EARLY ? branch_valid && branch_fault == FAULT_NONE
                      : (commit_fire && head_control) || retire_control_second),
-        .update_pc(TRAIN_EARLY ? branch_pc : retire_control_second ? head2_pc : head_pc),
-        .update_insn(TRAIN_EARLY ? rob_insn[branch_rob] : retire_control_second ? head2_insn : head_insn),
-        .update_target(TRAIN_EARLY ? branch_dest : retire_control_second ? head2_branch_dest : head_branch_dest),
-        .update_conditional(TRAIN_EARLY ? branch_op == OP_BRANCH : retire_control_second ? head2_op == OP_BRANCH : head_op == OP_BRANCH),
-        .update_taken(TRAIN_EARLY ? branch_taken : retire_control_second ? head2_taken : head_taken)
+        .update_pc(TRAIN_EARLY ? branch_pc : train_second_payload ? head2_pc : head_pc),
+        .update_insn(TRAIN_EARLY ? rob_insn[branch_rob] : train_second_payload ? head2_insn : head_insn),
+        .update_target(TRAIN_EARLY ? branch_dest : train_second_payload ? head2_branch_dest : head_branch_dest),
+        .update_conditional(TRAIN_EARLY ? branch_op == OP_BRANCH : train_second_payload ? head2_op == OP_BRANCH : head_op == OP_BRANCH),
+        .update_taken(TRAIN_EARLY ? branch_taken : train_second_payload ? head2_taken : head_taken)
     );
 
     generate
@@ -475,6 +517,31 @@ module cpu_core #(
         && !(rob_count != 0 && head_done && head_fault == FAULT_NONE && head_redirect)
         && (!early_pending || older(branch_rob, early_rob, rob_head));
     assign mem_space = mq_count < MCW'(MEM_QUEUE_DEPTH);
+    // Keep the response owner decoded across cycles. Selecting a binary
+    // destination and then comparing it in every IQ entry serializes the
+    // descriptor read and wakeup. Payload reads are parallel masked reductions.
+    always_comb begin
+        mem_killed = 0;
+        mem_write = 0;
+        mem_committed = 0;
+        mem_rob = 0;
+        mem_dst = 0;
+        mem_forward_mask = 0;
+        mem_forward_data = 0;
+        mem_offset = 0;
+        mem_funct3 = 0;
+        for (integer m = 0; m < MEM_QUEUE_DEPTH; m = m + 1) begin
+            mem_killed |= mq_killed[m] && mq_head_onehot[m];
+            mem_write |= mq_write[m] && mq_head_onehot[m];
+            mem_committed |= mq_committed[m] && mq_head_onehot[m];
+            mem_rob |= mq_rob[m] & {RW{mq_head_onehot[m]}};
+            mem_dst |= mq_dst[m] & {PW{mq_head_onehot[m]}};
+            mem_forward_mask |= mq_mask[m] & {4{mq_head_onehot[m]}};
+            mem_forward_data |= mq_forward[m] & {32{mq_head_onehot[m]}};
+            mem_offset |= mq_offset[m] & {2{mq_head_onehot[m]}};
+            mem_funct3 |= mq_funct3[m] & {3{mq_head_onehot[m]}};
+        end
+    end
     assign load_available = early_load || (ex_valid && execute_resources_ready
                          && issue_op == OP_LOAD && issue_fault == FAULT_NONE);
     assign {selected_op, selected_dst, selected_funct3, selected_fault,
@@ -483,36 +550,82 @@ module cpu_core #(
         : |(grant & second_match1) ? second_result : prf[selected_src1];
     assign selected_b = selected_wb2 ? wb_value : selected_ex2 ? issue_value
         : |(grant & second_match2) ? second_result : prf[selected_src2];
-    // Carry-select address generation bounds the two serial additions on
-    // an ALU-result-to-Load bypass path without adding a pipeline stage.
-    logic [16:0] selected_address_low;
-    logic [15:0] selected_address_high0, selected_address_high1;
-    assign selected_address_low = {1'b0, selected_a[15:0]} + {1'b0, selected_imm[15:0]};
-    assign selected_address_high0 = selected_a[31:16] + selected_imm[31:16];
-    assign selected_address_high1 = selected_a[31:16] + selected_imm[31:16] + 16'd1;
-    assign selected_address = {selected_address_low[16] ? selected_address_high1 : selected_address_high0,
-                               selected_address_low[15:0]};
-    assign selected_misaligned = (selected_funct3[1:0] == 2'b01 && selected_address[0])
-        || (selected_funct3[1:0] == 2'b10 && selected_address[1:0] != 0);
+    assign {primary_op, primary_dst, primary_funct3, primary_fault,
+            primary_pc, primary_imm, primary_use_imm, primary_prediction} = primary_payload;
+    // Noninteger selection never depends on the integer fill lane's rank.
+    // Prepare the early Load operands from this grant, in parallel with the
+    // ordinary execution payload. Both grants agree whenever a Load is chosen.
+    // Reference operand view for the address-cache assertions. The actual
+    // early address is selected from per-IQ prepared addresses below.
+    logic [PRF_SIZE-1:0] primary_prf_select;
+    logic [31:0] primary_prf_value;
+    always_comb begin
+        primary_prf_select = 0;
+        primary_prf_value = 0;
+        // Decode each stable IQ source before the late age grant. This avoids
+        // grant -> binary source encoding -> PRF address decoding in the AGU.
+        for (integer p = 0; p < PRF_SIZE; p = p + 1) begin
+            for (integer q = 0; q < IQ_DEPTH; q = q + 1)
+                primary_prf_select[p] |= primary_grant[q] && iq_src1[q] == PW'(p);
+            primary_prf_value |= prf[p] & {32{primary_prf_select[p]}};
+        end
+    end
+    assign primary_a = |(primary_grant & wb_match1 & iq_nonzero1) ? wb_value
+        : (issue_dst != 0 && |(primary_grant & ex_match1)) ? issue_value
+        : |(primary_grant & second_match1) ? second_result : primary_prf_value;
+    assign primary_select = |primary_grant && execute_slot_ready && !reset && !halted && !flush
+        && !(EARLY_RECOVERY != 0 && early_detect);
+    // A Load's I-immediate has only 12 independent bits. Reconstruct its
+    // extension after selection rather than carrying unrelated U/J immediate
+    // bits through the address mux and upper carry network.
+    wire [31:0] primary_load_immediate = {{20{primary_imm[11]}}, primary_imm[11:0]};
+    wire [31:0] rename_load_base = dispatch_src1 == 0 ? 32'b0
+        : wb_valid && wb_dst == dispatch_src1 ? wb_value
+        : ex_wb_valid && issue_dst == dispatch_src1 ? issue_value
+        : second_wb && second_dst == dispatch_src1 ? second_result : prf[dispatch_src1];
+    wire [31:0] rename2_load_base = dispatch2_src1 == 0 ? 32'b0
+        : wb_valid && wb_dst == dispatch2_src1 ? wb_value
+        : ex_wb_valid && issue_dst == dispatch2_src1 ? issue_value
+        : second_wb && second_dst == dispatch2_src1 ? second_result : prf[dispatch2_src1];
+    wire [31:0] rename_load_address, rename2_load_address;
+    address_adder rename_address (
+        .a(rename_load_base), .b({{20{dec_imm[11]}},dec_imm[11:0]}),
+        .carry_in(1'b0), .sum(rename_load_address));
+    address_adder rename2_address (
+        .a(rename2_load_base), .b({{20{dec2_imm[11]}},dec2_imm[11:0]}),
+        .carry_in(1'b0), .sum(rename2_load_address));
+    generate
+        for (genvar q = 0; q < IQ_DEPTH; q = q + 1) begin : load_addresses
+            wire [31:0] immediate = {{20{iq_payload[q][IQ_IMMEDIATE_LSB+11]}},
+                iq_payload[q][IQ_IMMEDIATE_LSB +: 12]};
+            wire [31:0] waking_base = iq_src1[q] == 0 ? 32'b0
+                : wb_match1[q] ? wb_value : ex_match1[q] ? issue_value
+                : second_match1[q] ? second_result : 32'b0;
+            address_adder waking_address (.a(waking_base), .b(immediate),
+                .carry_in(1'b0), .sum(iq_wakeup_address[q]));
+        end
+    endgenerate
+    assign selected_misaligned = (primary_funct3[1:0] == 2'b01 && selected_address[0])
+        || (primary_funct3[1:0] == 2'b10 && selected_address[1:0] != 0);
     always_comb begin
         selected_load_hazard = 0;
         for (integer r = 0; r < ROB_DEPTH; r = r + 1)
-            if (selected_stores[r] && rob_valid[r] && !rob_done[r]
-                && rob_addr[r] == {selected_address[31:2],2'b0}) selected_load_hazard = 1;
+            if (primary_stores[r] && rob_valid[r] && !rob_done[r]
+                && rob_addr[r][31:28] == 0
+                && rob_addr[r][27:2] == selected_address[27:2]) selected_load_hazard = 1;
     end
-    assign early_load = SELECT_LOAD != 0 && select_fire && selected_op == OP_LOAD
-        && selected_fault == FAULT_NONE && !selected_misaligned && selected_address[31:28] == 0
+    assign early_load = SELECT_LOAD != 0 && mem_space && primary_select && primary_op == OP_LOAD
+        && primary_fault == FAULT_NONE && !selected_misaligned && selected_address[31:28] == 0
         && !selected_load_hazard && !(ex_valid && issue_op == OP_LOAD);
     // Payload preparation is independent of recovery and admission. A live
     // old EX Load always owns this path; otherwise a selected Load may prepare
     // its data while only early_load authorizes queue/cache acceptance.
-    assign load_payload_early = SELECT_LOAD != 0 && selected_op == OP_LOAD
-        && !(ex_valid && issue_op == OP_LOAD);
+    assign load_payload_early = SELECT_LOAD != 0 && !(ex_valid && issue_op == OP_LOAD);
     assign load_address = load_payload_early ? selected_address : issue_address;
-    assign load_rob = load_payload_early ? selected_rob : issue_rob;
-    assign load_dst = load_payload_early ? selected_dst : issue_dst;
-    assign load_funct3 = load_payload_early ? selected_funct3 : issue_funct3;
-    assign load_stores = load_payload_early ? selected_stores : issue_stores;
+    assign load_rob = load_payload_early ? primary_rob : issue_rob;
+    assign load_dst = load_payload_early ? primary_dst : issue_dst;
+    assign load_funct3 = load_payload_early ? primary_funct3 : issue_funct3;
+    assign load_stores = load_payload_early ? primary_stores : issue_stores;
     assign load_enqueue = load_available && !reset && !halted && !flush;
     assign mem_enqueue = load_enqueue || store_start;
     assign mem_enqueue_count = {1'b0, load_enqueue} + {1'b0, store_start};
@@ -622,10 +735,13 @@ module cpu_core #(
                             && load_address[31:28] == 0;
         d_req_valid = load_request_bypass || (!reset && mq_unsent != 0
             && (mq_addr[mq_send][31:28] == 0 || (mq_count == mq_unsent && !halted)));
-        d_req_write = !load_request_bypass && mq_write[mq_send];
-        d_req_addr = load_request_bypass ? {load_address[31:2], 2'b0} : mq_addr[mq_send];
-        d_req_wdata = load_request_bypass ? 32'b0 : mq_data[mq_send];
-        d_req_wstrb = load_request_bypass ? 4'b0 : mq_strb[mq_send];
+        // Queue ownership is known before Load admission. Invalid pre-read
+        // payloads may change, but an unsent queue entry always owns the port.
+        load_request_payload = LOAD_REQUEST_BYPASS != 0 && mq_unsent == 0;
+        d_req_write = !load_request_payload && mq_write[mq_send];
+        d_req_addr = load_request_payload ? {load_address[31:2], 2'b0} : mq_addr[mq_send];
+        d_req_wdata = load_request_payload ? 32'b0 : mq_data[mq_send];
+        d_req_wstrb = load_request_payload ? 4'b0 : mq_strb[mq_send];
         d_rsp_ready = !reset && !flush && mem_busy && mem_sent;
         mem_response = d_rsp_valid && d_rsp_ready;
         mem_completion_pending = d_rsp_valid && mem_busy && mem_sent && !mem_write && !mem_killed;
@@ -633,9 +749,9 @@ module cpu_core #(
 
         load_merged = d_rsp_data;
         for (integer b = 0; b < 4; b = b + 1)
-            if (mq_mask[mq_head][b]) load_merged[b*8 +: 8] = mq_forward[mq_head][b*8 +: 8];
-        load_shifted = load_merged >> {mq_offset[mq_head], 3'b000};
-        case (mq_funct3[mq_head])
+            if (mem_forward_mask[b]) load_merged[b*8 +: 8] = mem_forward_data[b*8 +: 8];
+        load_shifted = load_merged >> {mem_offset, 3'b000};
+        case (mem_funct3)
             3'b000: load_value = {{24{load_shifted[7]}}, load_shifted[7:0]};
             3'b001: load_value = {{16{load_shifted[15]}}, load_shifted[15:0]};
             3'b010: load_value = load_shifted;
@@ -654,8 +770,26 @@ module cpu_core #(
         for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
             // Reuse local wakeup comparisons for operand bypass. Do not turn
             // the grant back into a binary register number and compare again.
-            wb_match1[q] = wb_available && wb_dst == iq_src1[q];
-            wb_match2[q] = wb_available && wb_dst == iq_src2[q];
+            // Compare registered destination identities before the late Load
+            // response arbitration. Selecting a binary destination first
+            // serializes its mux and the wakeup equality comparators.
+            iq_nonzero1[q] = iq_src1[q] != 0;
+            iq_nonzero2[q] = iq_src2[q] != 0;
+            mem_match1[q] = 0;
+            mem_match2[q] = 0;
+            for (integer m = 0; m < MEM_QUEUE_DEPTH; m = m + 1) begin
+                mem_match1[q] |= mq_head_onehot[m] && mq_dst[m] == iq_src1[q];
+                mem_match2[q] |= mq_head_onehot[m] && mq_dst[m] == iq_src2[q];
+            end
+            if (PARALLEL_COMPLETION != 0) begin
+                wb_match1[q] = (mem_completion_pending && mem_match1[q])
+                    || (!mem_completion_pending && mdu_result_pending && mdu_dst == iq_src1[q]);
+                wb_match2[q] = (mem_completion_pending && mem_match2[q])
+                    || (!mem_completion_pending && mdu_result_pending && mdu_dst == iq_src2[q]);
+            end else begin
+                wb_match1[q] = wb_available && wb_dst == iq_src1[q];
+                wb_match2[q] = wb_available && wb_dst == iq_src2[q];
+            end
             ex_match1[q] = ex_wb_available && issue_dst == iq_src1[q];
             ex_match2[q] = ex_wb_available && issue_dst == iq_src2[q];
             second_match1[q] = second_valid && second_dst != 0 && second_dst == iq_src1[q];
@@ -664,14 +798,20 @@ module cpu_core #(
                 && !(ex_valid && issue_op == OP_LOAD && iq_rob[q] == issue_rob)
                 && (iq_ready1[q] || wb_match1[q] || ex_match1[q] || second_match1[q])
                 && (iq_payload[q][IQ_PAYLOAD_BITS-1 -: 5] == OP_STORE
+                    || iq_payload[q][IQ_PAYLOAD_BITS-1 -: 5] == OP_LOAD
                     || iq_ready2[q] || wb_match2[q] || ex_match2[q] || second_match2[q]);
             if (iq_kind[q] == 1)
                 // Select on the old context's response cycle. Operands enter
                 // EX at that edge, after the LSU context has become free.
-                candidate[q] = candidate[q] && !(|(iq_stores[q] & ~rob_store_address_ready)) && mem_space;
+                candidate[q] = candidate[q] && !(|(iq_stores[q] & ~rob_store_address_ready));
             if (iq_kind[q] == 2)
                 candidate[q] = candidate[q] && mdu_req_available
                              && !(ex_valid && issue_op == OP_MULDIV);
+            // Queue credit decides admission, not the prospective address.
+            // If credit exists these masks are identical; otherwise no early
+            // Load can be accepted and its prepared payload is irrelevant.
+            address_candidate[q] = candidate[q];
+            if (iq_kind[q] == 1) candidate[q] = candidate[q] && mem_space;
         end
         for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
             integer_candidate[q] = ISSUE_WIDTH == 2 && candidate[q]
@@ -681,26 +821,30 @@ module cpu_core #(
                     || iq_payload[q][IQ_PAYLOAD_BITS-1 -: 5] == OP_JAL
                     || iq_payload[q][IQ_PAYLOAD_BITS-1 -: 5] == OP_JALR);
             if (integer_candidate[q] || branch_candidate[q]) candidate[q] = 0;
+            if (ISSUE_WIDTH == 2 && iq_payload[q][IQ_PAYLOAD_BITS-1 -: 5] <= OP_BRANCH)
+                address_candidate[q] = 0;
         end
         second_candidate = |branch_candidate ? branch_candidate : integer_candidate;
         // Pairwise age comparisons avoid a serial best-age priority chain.
         for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
-            integer older_integer_count;
-            older_integer_count = 0;
-            for (integer k = 0; k < IQ_DEPTH; k = k + 1)
-                if (integer_candidate[k] && iq_older[k][q])
-                    older_integer_count = older_integer_count + 1;
+            // Only a Load consumes this preparation path. Older Store/MDU
+            // candidates still suppress it, exactly as on the execution lane.
+            // Their payloads need not drive the early address arithmetic.
+            primary_grant[q] = address_candidate[q]
+                && iq_payload[q][IQ_PAYLOAD_BITS-1 -: 5] == OP_LOAD;
             grant[q] = candidate[q];
+            for (integer k = 0; k < IQ_DEPTH; k = k + 1)
+                if (address_candidate[k] && iq_older[k][q]) primary_grant[q] = 1'b0;
             for (integer k = 0; k < IQ_DEPTH; k = k + 1)
                 if (candidate[k] && iq_older[k][q]) grant[q] = 1'b0;
             // Fill the primary lane with the oldest integer when the branch lane
             // is occupied, otherwise take the second-oldest integer.
             if (ISSUE_WIDTH == 2 && !(|candidate) && integer_candidate[q]) begin
-                grant[q] = older_integer_count == ((|branch_candidate) ? 0 : 1);
+                grant[q] = |branch_candidate ? integer_older_none[q] : integer_older_one[q];
             end
         end
-        selected_wb1 = wb_dst != 0 && |(grant & wb_match1);
-        selected_wb2 = wb_dst != 0 && |(grant & wb_match2);
+        selected_wb1 = |(grant & wb_match1 & iq_nonzero1);
+        selected_wb2 = |(grant & wb_match2 & iq_nonzero2);
         selected_ex1 = issue_dst != 0 && |(grant & ex_match1);
         selected_ex2 = issue_dst != 0 && |(grant & ex_match2);
         selected_payload = '0;
@@ -708,12 +852,26 @@ module cpu_core #(
         selected_src2 = 0;
         selected_rob = 0;
         selected_stores = 0;
+        primary_payload = 0;
+        primary_src1 = 0;
+        primary_rob = 0;
+        primary_stores = 0;
+        selected_address = 0;
         for (integer q = 0; q < IQ_DEPTH; q = q + 1) begin
             selected_payload |= iq_payload[q] & {IQ_PAYLOAD_BITS{grant[q]}};
             selected_src1 |= iq_src1[q] & {PW{grant[q]}};
             selected_src2 |= iq_src2[q] & {PW{grant[q]}};
             selected_rob |= iq_rob[q] & {RW{grant[q]}};
             selected_stores |= iq_stores[q] & {ROB_DEPTH{grant[q]}};
+            primary_payload |= iq_payload[q] & {IQ_PAYLOAD_BITS{primary_grant[q]}};
+            primary_src1 |= iq_src1[q] & {PW{primary_grant[q]}};
+            primary_rob |= iq_rob[q] & {RW{primary_grant[q]}};
+            primary_stores |= iq_stores[q] & {ROB_DEPTH{primary_grant[q]}};
+            // Address arithmetic overlaps wakeup/age selection. A ready
+            // source's address is retained; a same-cycle wakeup uses its
+            // prepared bypass address without adding a scheduling cycle.
+            selected_address |= (iq_ready1[q] ? iq_load_address[q] : iq_wakeup_address[q])
+                & {32{primary_grant[q]}};
         end
         issue_index = '0;
         for (integer q = 0; q < IQ_DEPTH; q = q + 1)
@@ -763,8 +921,8 @@ module cpu_core #(
             second_src2 |= iq_src2[q] & {PW{second_grant[q]}};
             second_selected_rob |= iq_rob[q] & {RW{second_grant[q]}};
         end
-        second_wb1 = wb_dst != 0 && |(second_grant & wb_match1);
-        second_wb2 = wb_dst != 0 && |(second_grant & wb_match2);
+        second_wb1 = |(second_grant & wb_match1 & iq_nonzero1);
+        second_wb2 = |(second_grant & wb_match2 & iq_nonzero2);
         second_ex1 = issue_dst != 0 && |(second_grant & ex_match1);
         second_ex2 = issue_dst != 0 && |(second_grant & ex_match2);
         second_own1 = |(second_grant & second_match1);
@@ -783,6 +941,10 @@ module cpu_core #(
         second_b <= second_wb2 ? wb_value : second_ex2 ? issue_value
                   : second_own2 ? second_result : prf[second_src2];
     end
+    wire [31:0] second_pc_next, second_pc_relative, second_register_relative;
+    address_adder branch_pc_increment (.a(second_pc), .b(32'd4), .carry_in(1'b0), .sum(second_pc_next));
+    address_adder branch_pc_target (.a(second_pc), .b(second_imm), .carry_in(1'b0), .sum(second_pc_relative));
+    address_adder branch_register_target (.a(second_a), .b(second_imm), .carry_in(1'b0), .sum(second_register_relative));
     alu second_alu (.op(second_op), .lhs(second_op == OP_AUIPC ? second_pc : second_a),
         .rhs(second_use_imm ? second_imm : second_b), .result(second_alu_result));
     always_comb begin
@@ -800,12 +962,12 @@ module cpu_core #(
             endcase
         end
         second_branch_dest = second_op == OP_JALR
-            ? (second_a + second_imm) & 32'hffff_fffe : second_pc + second_imm;
-        second_target = second_control && second_taken ? second_branch_dest : second_pc + 32'd4;
+            ? second_register_relative & 32'hffff_fffe : second_pc_relative;
+        second_target = second_control && second_taken ? second_branch_dest : second_pc_next;
         second_fault = second_initial_fault;
         if (second_initial_fault == FAULT_NONE && second_control && second_target[1:0] != 0)
             second_fault = FAULT_ALIGN;
-        second_result = second_op == OP_JAL || second_op == OP_JALR ? second_pc + 32'd4 : second_alu_result;
+        second_result = second_op == OP_JAL || second_op == OP_JALR ? second_pc_next : second_alu_result;
     end
     assign second_wb = second_valid && !reset && !flush && !halted;
 
@@ -813,14 +975,19 @@ module cpu_core #(
     assign alu_rhs = issue_use_imm ? issue_imm : issue_b;
     alu integer_alu (.op(issue_op), .lhs(alu_lhs), .rhs(alu_rhs), .result(alu_result));
 
+    wire [31:0] issue_pc_next, issue_pc_relative;
+    address_adder execute_pc_increment (.a(issue_pc), .b(32'd4), .carry_in(1'b0), .sum(issue_pc_next));
+    address_adder execute_pc_target (.a(issue_pc), .b(issue_imm), .carry_in(1'b0), .sum(issue_pc_relative));
+    address_adder execute_address (.a(issue_a), .b(issue_imm), .carry_in(1'b0), .sum(issue_address));
+    store_byte_align execute_store_alignment (
+        .value(issue_store_value), .offset(issue_address[1:0]), .aligned(issue_store_data)
+    );
     always_comb begin
-        issue_address = issue_a + issue_imm;
         issue_store_value_ready = issue_store_ready
             || (wb_available && wb_dst != 0 && wb_dst == issue_store_source)
             || (second_valid && second_dst != 0 && second_dst == issue_store_source);
         issue_store_value = issue_store_ready ? issue_b
             : (wb_available && wb_dst != 0 && wb_dst == issue_store_source) ? wb_value : second_result;
-        issue_store_data = issue_store_value << {issue_address[1:0], 3'b000};
         load_data_hazard = 0;
         for (integer r = 0; r < ROB_DEPTH; r = r + 1)
             if (issue_stores[r] && rob_valid[r] && !rob_done[r]
@@ -841,16 +1008,16 @@ module cpu_core #(
             3'b111: issue_branch_taken = issue_a >= issue_b;
             default: issue_branch_taken = 1'b0;
         endcase
-        issue_target = issue_pc + 32'd4;
+        issue_target = issue_pc_next;
         if (issue_op == OP_JAL || (issue_op == OP_BRANCH && issue_branch_taken))
-            issue_target = issue_pc + issue_imm;
+            issue_target = issue_pc_relative;
         if (issue_op == OP_JALR)
-            issue_target = (issue_a + issue_imm) & 32'hffff_fffe;
+            issue_target = issue_address & 32'hffff_fffe;
         issue_branch_dest = (issue_op == OP_JALR)
-                          ? (issue_a + issue_imm) & 32'hffff_fffe : issue_pc + issue_imm;
+                          ? issue_address & 32'hffff_fffe : issue_pc_relative;
         issue_redirect = issue_target != issue_predicted;
         issue_value = (issue_op == OP_JAL || issue_op == OP_JALR)
-                    ? issue_pc + 32'd4 : alu_result;
+                    ? issue_pc_next : alu_result;
         issue_fault = issue_initial_fault;
         if (issue_fault == FAULT_NONE) begin
             if ((issue_op == OP_LOAD || issue_op == OP_STORE) && issue_misaligned)
@@ -880,31 +1047,39 @@ module cpu_core #(
         issue_valid = ex_valid && execute_resources_ready && !reset && !halted && !flush;
         // A blocked Load stays in its IQ entry and retries, allowing older
         // data producers to use EX instead of deadlocking behind the Load.
-        execute_slot_ready = !ex_valid || execute_resources_ready || issue_op == OP_LOAD;
+        // In parallel-completion mode only a nonfaulting MDU operation can
+        // hold EX. A Load always retries from its IQ entry, so its address,
+        // Store-alias checks and queue admission must not gate replacement of
+        // the EX slot. Spell this out before resource arbitration.
+        if (PARALLEL_COMPLETION != 0)
+            execute_slot_ready = !ex_valid || issue_op != OP_MULDIV
+                || issue_initial_fault != FAULT_NONE || mdu_req_available;
+        else execute_slot_ready = !ex_valid || execute_resources_ready || issue_op == OP_LOAD;
         mdu_req_valid = issue_valid && issue_op == OP_MULDIV && issue_fault == FAULT_NONE;
     end
 
     always_comb begin
-        forward_data = 0;
-        forward_mask = 0;
         for (integer b = 0; b < 4; b = b + 1) begin
             forward_match[b] = '0;
-            forward_grant[b] = '0;
             for (integer r = 0; r < ROB_DEPTH; r = r + 1)
                 forward_match[b][r] = load_stores[r] && rob_valid[r] && rob_done[r]
                     && rob_fault[r] == FAULT_NONE && rob_strb[r][b]
-                    && rob_addr[r] == {load_address[31:2], 2'b0};
-            for (integer r = 0; r < ROB_DEPTH; r = r + 1) begin
-                forward_grant[b][r] = forward_match[b][r];
-                for (integer k = 0; k < ROB_DEPTH; k = k + 1)
-                    if (forward_match[b][k] && older(RW'(r), RW'(k), rob_head))
-                        forward_grant[b][r] = 0;
-                forward_data[b*8 +: 8] = forward_data[b*8 +: 8]
-                    | (rob_data[r][b*8 +: 8] & {8{forward_grant[b][r]}});
-            end
-            forward_mask[b] = |forward_match[b];
+                    && rob_addr[r][31:28] == 0
+                    && rob_addr[r][27:2] == load_address[27:2];
         end
     end
+    generate
+        for (genvar b = 0; b < 4; b = b + 1) begin : forwarding_bytes
+            wire [ROB_DEPTH*8-1:0] byte_values;
+            for (genvar r = 0; r < ROB_DEPTH; r = r + 1) begin : sources
+                assign byte_values[r*8 +: 8] = rob_data[r][b*8 +: 8];
+            end
+            youngest_match #(.WIDTH(ROB_DEPTH)) select_byte (
+                .match_bits(forward_match[b]), .data(byte_values), .head(rob_head),
+                .valid(forward_mask[b]), .result(forward_data[b*8 +: 8])
+            );
+        end
+    endgenerate
 
     muldiv_unit mdu (
         .clock(clock), .reset(reset), .flush(flush && (EARLY_RECOVERY == 0 || recovery_kill[mdu_rob])),
@@ -1027,6 +1202,10 @@ module cpu_core #(
             wire store_data_capture = rob_valid[r] && rob_is_store[r] && rob_store_address_ready[r] && !rob_done[r]
                 && (store_source_wb || store_source_ex || store_source_second);
             wire [31:0] captured_store_data = store_source_wb ? wb_value : store_source_ex ? issue_value : second_result;
+            wire [31:0] captured_store_aligned;
+            store_byte_align late_store_alignment (
+                .value(captured_store_data), .offset(rob_store_offset[r]), .aligned(captured_store_aligned)
+            );
             wire store_complete = mem_response && mem_write && !mq_committed[mq_head] && !mem_killed && mem_rob == RW'(r);
 `ifndef SYNTHESIS
             always @(posedge clock) if (!reset && !halted && TRACE != 0) begin
@@ -1120,7 +1299,7 @@ module cpu_core #(
                     rob_taken[r] <= issue_op != OP_BRANCH || issue_branch_taken;
                 end
                 if (store_data_capture)
-                    rob_data[r] <= captured_store_data << {rob_store_offset[r], 3'b000};
+                    rob_data[r] <= captured_store_aligned;
                 if (complete_second && second_control) begin
                     rob_target[r] <= second_target;
                     rob_branch_dest[r] <= second_branch_dest;
@@ -1145,6 +1324,11 @@ module cpu_core #(
                 iq_stores[q] <= iq_stores[q] & ~retiring_store & ~(flush ? recovery_kill : {ROB_DEPTH{1'b0}});
                 if ((wb_valid && wb_dst == iq_src1[q]) || (ex_wb_valid && issue_dst == iq_src1[q]) || (second_wb && second_dst == iq_src1[q])) iq_ready1[q] <= 1'b1;
                 if ((wb_valid && wb_dst == iq_src2[q]) || (ex_wb_valid && issue_dst == iq_src2[q]) || (second_wb && second_dst == iq_src2[q])) iq_ready2[q] <= 1'b1;
+                if (iq_valid[q] && !iq_ready1[q]
+                    && ((wb_valid && wb_dst == iq_src1[q])
+                        || (ex_wb_valid && issue_dst == iq_src1[q])
+                        || (second_wb && second_dst == iq_src1[q])))
+                    iq_load_address[q] <= iq_wakeup_address[q];
                 for (integer k = 0; k < IQ_DEPTH; k = k + 1) begin
                     if (allocate2) iq_older[q][k] <= 0;
                     else if (allocate1) iq_older[q][k] <= dispatch2 && iq_free2_index == QW'(k);
@@ -1154,6 +1338,7 @@ module cpu_core #(
                 // Invalid slots may prepare payload independently of global
                 // rename/flush control; the chosen slot becomes valid on dispatch.
                 if (!iq_valid[q]) begin
+                    iq_load_address[q] <= rename_load_address;
                     iq_rob[q] <= rob_tail;
                     iq_payload[q] <= {dispatch_op, dec_has_dst ? free_index : {PW{1'b0}},
                         dec_funct3, fetch_buffer_error ? FAULT_FETCH : dec_illegal ? FAULT_ILLEGAL : FAULT_NONE,
@@ -1167,6 +1352,7 @@ module cpu_core #(
                     iq_kind[q] <= dispatch_op == OP_LOAD ? 2'd1 : dispatch_op == OP_MULDIV ? 2'd2 : 2'd0;
                     iq_stores[q] <= rob_is_store & ~retiring_store;
                     if (RENAME_WIDTH == 2 && iq_free2_index == QW'(q) && iq_free2_found) begin
+                        iq_load_address[q] <= rename2_load_address;
                         iq_rob[q] <= tail2_index;
                         iq_payload[q] <= {dec2_op, dec2_has_dst ? free2_index : PW'(0),
                             dec2_funct3, FAULT_NONE, fetch2_pc, dec2_imm, dec2_use_imm, fetch2_prediction};
@@ -1222,7 +1408,7 @@ module cpu_core #(
                     recovery_prepared <= DIRECT_EXECUTE_REDIRECT;
                 end
             end
-            if (mem_response && mem_write && mq_committed[mq_head] && d_rsp_error)
+            if (mem_response && mem_write && mem_committed && d_rsp_error)
                 halted <= 1'b1;
             if (flush) begin
                 if (EARLY_RECOVERY != 0) begin
@@ -1271,6 +1457,7 @@ module cpu_core #(
     always_ff @(posedge clock) begin
         if (reset) begin
             mq_head <= 0;
+            mq_head_onehot <= {{(MEM_QUEUE_DEPTH-1){1'b0}}, 1'b1};
             mq_send <= 0;
             mq_tail <= 0;
             mq_count <= 0;
@@ -1278,13 +1465,21 @@ module cpu_core #(
         end else begin
             if (mem_enqueue) mq_tail <= mem_enqueue_count == 2 ? next_mem(next_mem(mq_tail)) : next_mem(mq_tail);
             if (d_req_valid && d_req_ready) mq_send <= next_mem(mq_send);
-            if (mem_response) mq_head <= next_mem(mq_head);
+            if (mem_response) begin
+                mq_head <= next_mem(mq_head);
+                mq_head_onehot <= (mq_head_onehot << 1) | (mq_head_onehot >> (MEM_QUEUE_DEPTH-1));
+            end
             mq_count <= mq_count + MCW'(mem_enqueue_count) - MCW'(mem_response);
             mq_unsent <= mq_unsent + MCW'(mem_enqueue_count) - MCW'(d_req_valid && d_req_ready);
         end
     end
     generate
         for (genvar m = 0; m < MEM_QUEUE_DEPTH; m = m + 1) begin : memory_descriptors
+            // Both payloads can be prepared before the late Load admission
+            // predicate. The registered owner selects the accepted payload on
+            // subsequent cycles, without adding queue latency.
+            assign mq_addr[m] = mq_write[m] ? mq_store_addr[m] : mq_load_addr[m];
+            assign mq_rob[m] = mq_write[m] ? mq_store_rob[m] : mq_load_rob[m];
             always_ff @(posedge clock) begin
                 if (reset) begin
                     mq_valid[m] <= 0;
@@ -1304,15 +1499,17 @@ module cpu_core #(
                 if (mem_space && mq_tail == MW'(m)) begin
                     mq_write[m] <= !load_available;
                     mq_committed[m] <= !load_available && store_bufferable;
-                    mq_addr[m] <= !load_available ? selected_store_addr : {load_address[31:2], 2'b0};
-                    mq_data[m] <= !load_available ? selected_store_data : 32'b0;
-                    mq_strb[m] <= !load_available ? selected_store_strb : 4'b0;
-                    mq_rob[m] <= !load_available ? selected_store_rob : load_rob;
-                    mq_dst[m] <= !load_available ? PW'(0) : load_dst;
+                    mq_load_addr[m] <= {load_address[31:2], 2'b0};
+                    mq_store_addr[m] <= selected_store_addr;
+                    mq_data[m] <= selected_store_data;
+                    mq_strb[m] <= selected_store_strb;
+                    mq_load_rob[m] <= load_rob;
+                    mq_store_rob[m] <= selected_store_rob;
+                    mq_dst[m] <= load_dst;
                     mq_offset[m] <= load_address[1:0];
                     mq_funct3[m] <= load_funct3;
                     mq_forward[m] <= forward_data;
-                    mq_mask[m] <= !load_available ? 4'b0 : forward_mask;
+                    mq_mask[m] <= forward_mask;
                 end
                 // A second admission lane lets a ready RAM Store retire while
                 // EX enqueues a Load. The Load stays first and snapshots the
@@ -1323,10 +1520,10 @@ module cpu_core #(
                     && next_mem(mq_tail) == MW'(m)) begin
                     mq_write[m] <= 1;
                     mq_committed[m] <= 1;
-                    mq_addr[m] <= selected_store_addr;
+                    mq_store_addr[m] <= selected_store_addr;
                     mq_data[m] <= selected_store_data;
                     mq_strb[m] <= selected_store_strb;
-                    mq_rob[m] <= selected_store_rob;
+                    mq_store_rob[m] <= selected_store_rob;
                     mq_dst[m] <= 0;
                     mq_mask[m] <= 0;
                 end
@@ -1552,6 +1749,58 @@ module cpu_core #(
                 end
                 if (commit2) assert (commit_fire && rob_count >= 2 && (head2_op != OP_STORE || (store_start && store_select_second && store_bufferable)) && !head2_redirect && !(head_control && head2_control));
                 assert ($onehot0(grant) && $onehot0(second_grant));
+                if (frontend_redirect_valid)
+                    assert (frontend_redirect_pc == (DIRECT_EXECUTE_REDIRECT && early_detect
+                        ? branch_target : flush && !recovery_prepared ? recovery_pc : early_target));
+                assert (execute_slot_ready == (!ex_valid || execute_resources_ready || issue_op == OP_LOAD));
+                assert ($onehot0(primary_grant));
+                for (integer q = 0; q < IQ_DEPTH; q = q + 1) if (iq_valid[q]) begin
+                    // Loads carry x0 as their unused second source. Make the
+                    // invariant explicit while bypassing that wakeup network.
+                    if (iq_payload[q][IQ_PAYLOAD_BITS-1 -: 5] == OP_LOAD)
+                        assert (iq_src2[q] == 0 && iq_ready2[q]);
+                    if (iq_payload[q][IQ_PAYLOAD_BITS-1 -: 5] == OP_LOAD && iq_ready1[q])
+                        assert (iq_load_address[q] == prf[iq_src1[q]]
+                            + iq_payload[q][IQ_IMMEDIATE_LSB +: 32]);
+                    assert (mem_match1[q] == (mem_dst == iq_src1[q]));
+                    assert (mem_match2[q] == (mem_dst == iq_src2[q]));
+                    assert (wb_match1[q] == (wb_available && wb_dst == iq_src1[q]));
+                    assert (wb_match2[q] == (wb_available && wb_dst == iq_src2[q]));
+                end
+                if (!TRAIN_EARLY && ((commit_fire && head_control) || retire_control_second))
+                    assert (train_second_payload == retire_control_second);
+                if (|primary_grant && mem_space) begin
+                    assert (primary_grant == grant && primary_payload == selected_payload);
+                    assert (primary_a == selected_a && primary_rob == selected_rob);
+                    assert (primary_stores == selected_stores);
+                    assert (selected_address == selected_a + selected_imm);
+                end
+                if (|primary_grant) begin
+                    assert (primary_prf_value == prf[primary_src1]);
+                    assert (primary_imm == primary_load_immediate);
+                end
+                if (early_load) assert (select_fire && selected_op == OP_LOAD);
+                if (load_enqueue && ex_valid && issue_op == OP_LOAD) begin
+                    assert (!load_payload_early && !early_load);
+                    assert (load_rob == issue_rob && load_address == issue_address);
+                end
+                if (load_enqueue) begin
+                    // Early Loads are RAM-only. An uncached EX Load waits
+                    // for every older Store to retire, so it cannot forward.
+                    // Store RAM classification is stable before the AGU; the
+                    // late upper carry bits need not reach each byte selector.
+                    assert (load_address[31:28] == 0 || load_stores == 0);
+                    for (integer b = 0; b < 4; b = b + 1)
+                        for (integer r = 0; r < ROB_DEPTH; r = r + 1)
+                            assert (forward_match[b][r] == (load_stores[r] && rob_valid[r] && rob_done[r]
+                                && rob_fault[r] == FAULT_NONE && rob_strb[r][b]
+                                && rob_addr[r] == {load_address[31:2],2'b0}));
+                end
+                if (d_req_valid && mq_unsent != 0) begin
+                    assert (!load_request_payload && !load_request_bypass);
+                    assert ({d_req_write,d_req_addr,d_req_wdata,d_req_wstrb}
+                        == {mq_write[mq_send],mq_addr[mq_send],mq_data[mq_send],mq_strb[mq_send]});
+                end
                 if (second_wb) begin
                     assert (rob_valid[second_rob] && !rob_done[second_rob] && rob_dst[second_rob] == second_dst);
                     assert (!wb_valid || wb_rob != second_rob);
@@ -1569,10 +1818,17 @@ module cpu_core #(
                 if (load_request_bypass) begin
                     assert (load_enqueue && mem_enqueue && mq_unsent == 0 && mq_send == mq_tail);
                     assert (!d_req_write && load_address[31:28] == 0);
+                    assert (load_request_payload && d_req_addr == {load_address[31:2],2'b0});
                 end
                 if (mem_enqueue) assert (load_available == load_enqueue);
                 if (mem_space) assert (!mq_valid[mq_tail]);
                 assert (mq_count <= MCW'(MEM_QUEUE_DEPTH) && mq_unsent <= mq_count);
+                assert (mq_head_onehot == ({{(MEM_QUEUE_DEPTH-1){1'b0}}, 1'b1} << mq_head));
+                assert ({mem_write, mem_killed, mem_committed, mem_rob, mem_dst,
+                         mem_forward_mask, mem_forward_data, mem_offset, mem_funct3}
+                    == {mq_write[mq_head], mq_killed[mq_head], mq_committed[mq_head],
+                        mq_rob[mq_head], mq_dst[mq_head], mq_mask[mq_head],
+                        mq_forward[mq_head], mq_offset[mq_head], mq_funct3[mq_head]});
                 for (integer q = 0; q < IQ_DEPTH; q = q + 1)
                     if (iq_valid[q] && iq_kind[q] == 1)
                         for (integer r = 0; r < ROB_DEPTH; r = r + 1)

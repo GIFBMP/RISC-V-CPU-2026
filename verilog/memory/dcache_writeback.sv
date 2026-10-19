@@ -74,6 +74,11 @@ module dcache_writeback #(
         RESPONSE = 15;
     reg [3:0] state;
     reg [31:0] address, store_data, response_data;
+    // Tag comparison follows the pre-read address every ready cycle. The
+    // installation payload belongs only to an accepted transaction; keeping
+    // its distinct enable avoids loading the hit-comparison register with all
+    // tag SRAM write-data pins.
+    reg [TAG_BITS-1:0] install_tag;
     reg [3:0] store_strobe;
     reg request_write, response_error, refill_error;
     reg lookup_valid;
@@ -136,8 +141,14 @@ module dcache_writeback #(
     wire response_produce = lookup_hit || lookup_fault || state == RESPONSE;
     wire fast_response = FAST_HIT_RESPONSE != 0 && response_count == 0 && (lookup_hit || lookup_fault);
     wire response_push = response_produce && !(fast_response && rsp_ready);
+    reg [31:0] hit_data;
+    always @* begin
+        hit_data = 0;
+        for (integer w = 0; w < SAFE_WAYS; w = w + 1)
+            hit_data = hit_data | (data_rdata[w] & {32{hits[w]}});
+    end
     wire [31:0] response_push_data = state == RESPONSE ? response_data :
-        ((lookup_fault || request_write) ? 32'b0 : data_rdata[hit_way]);
+        ((lookup_fault || request_write) ? 32'b0 : hit_data);
     wire response_push_error = state == RESPONSE ? response_error : lookup_fault;
     integer select_way;
     always @* begin
@@ -173,15 +184,28 @@ module dcache_writeback #(
     genvar way;
     generate
         for (way = 0; way < SAFE_WAYS; way = way + 1) begin : arrays
-            assign hits[way] = valid_bits[way * SETS + int'(request_set)] &&
+            // Read validity on the same edge as the synchronous tag SRAM.
+            // Installation/eviction never overlaps req_ready; Store hits only
+            // change dirty state. Thus this removes the set-index mux from
+            // hit -> wakeup without changing any accepted lookup's latency.
+            reg lookup_line_valid;
+            always @(posedge clock) begin
+                if (reset) lookup_line_valid <= 0;
+                else if (req_ready) lookup_line_valid <= valid_bits[way * SETS + int'(input_set)];
+            end
+            assign hits[way] = lookup_line_valid &&
                 tag_rdata[way] == address[31:TAG_SHIFT];
+`ifndef SYNTHESIS
+            always @(posedge clock) if (!reset && state == IDLE && lookup_valid)
+                assert (lookup_line_valid == valid_bits[way * SETS + int'(request_set)]);
+`endif
             wire tag_write = state == INSTALL && selected_way == WAY_BITS'(way);
             wire tag_read = initial_lookup || state == FLUSH_SCAN;
             wire [SET_BITS-1:0] tag_addr = tag_write ? request_set :
                 (state == FLUSH_SCAN ? scan_set : input_set);
             sram_fakeram #(.DEPTH(SETS), .WIDTH(TAG_BITS)) tags (
                 .clk(clock), .en(!reset && (tag_read || tag_write)), .we(tag_write),
-                .wmask(1'b1), .addr(tag_addr), .wdata(address[31:TAG_SHIFT]),
+                .wmask(1'b1), .addr(tag_addr), .wdata(install_tag),
                 .rdata(tag_rdata[way])
             );
             wire selected = selected_way == WAY_BITS'(way);
@@ -190,16 +214,38 @@ module dcache_writeback #(
                 (lookup_store && hit_way == WAY_BITS'(way));
             wire victim_read = wb_read_issue && selected;
             wire data_write = refill_write || store_write;
-            wire [WORD_BITS-1:0] data_addr = refill_write ?
-                ((request_word & ~WORD_BITS'(LINE_WORDS - 1)) | WORD_BITS'(received_words)) :
-                (store_write ? request_word :
-                 (victim_read ? (WORD_BITS'(victim_set) * WORD_BITS'(LINE_WORDS) + WORD_BITS'(wb_read_word)) :
-                  WORD_BITS'((req_addr >> 2) & (WORDS - 1))));
+            // Prepare each port's address from its registered operation. A
+            // pending Store can put its address on every way before the tag
+            // comparison settles; only the actual hit authorizes a write.
+            // Such a Store lookup cannot overlap an incoming data read.
+            wire refill_address = state == REFILL && selected;
+            wire store_address = (state == STORE_HIT && selected)
+                || (state == IDLE && lookup_valid && request_write);
+            wire victim_address = state == WB_READ && selected;
+            wire input_address = !(refill_address || store_address || victim_address);
+            wire [WORD_BITS-1:0] refill_word =
+                (request_word & ~WORD_BITS'(LINE_WORDS - 1)) | WORD_BITS'(received_words);
+            wire [WORD_BITS-1:0] victim_word =
+                WORD_BITS'(victim_set) * WORD_BITS'(LINE_WORDS) + WORD_BITS'(wb_read_word);
+            wire [WORD_BITS-1:0] data_addr =
+                (refill_word & {WORD_BITS{refill_address}})
+                | (request_word & {WORD_BITS{store_address}})
+                | (victim_word & {WORD_BITS{victim_address}})
+                | (WORD_BITS'((req_addr >> 2) & (WORDS - 1)) & {WORD_BITS{input_address}});
             sram_fakeram #(.DEPTH(WORDS), .WIDTH(32), .WRITE_GRANULARITY(8)) data (
                 .clk(clock), .en(!reset && (initial_data_lookup || victim_read || data_write)),
                 .we(data_write), .wmask(store_write ? store_strobe : 4'hf), .addr(data_addr),
                 .wdata(store_write ? store_data : mem_rd_rsp_data), .rdata(data_rdata[way])
             );
+`ifndef SYNTHESIS
+            wire [WORD_BITS-1:0] previous_address = refill_write ? refill_word
+                : store_write ? request_word : victim_read ? victim_word
+                : WORD_BITS'((req_addr >> 2) & (WORDS - 1));
+            always @(posedge clock) if (!reset && (initial_data_lookup || victim_read || data_write)) begin
+                assert (data_addr == previous_address);
+                assert ($onehot({refill_address,store_address,victim_address,input_address}));
+            end
+`endif
         end
     endgenerate
 
@@ -272,8 +318,18 @@ module dcache_writeback #(
             response_selected_error = response_selected_error | (response_errors[slot] && response_head == 2'(slot));
         end
     end
-    assign rsp_data = fast_response ? response_push_data : response_selected_data;
-    assign rsp_error = fast_response ? response_push_error : response_selected_error;
+    // FIFO ownership is available before the tag comparison. With an empty
+    // FIFO, prepare the direct lookup payload even before it is authorized;
+    // rsp_valid/response_push retain the original hit and response protocol.
+    wire direct_response_payload = FAST_HIT_RESPONSE != 0 && response_count == 0;
+    assign rsp_data = direct_response_payload ? response_push_data : response_selected_data;
+    assign rsp_error = direct_response_payload ? response_push_error : response_selected_error;
+`ifndef SYNTHESIS
+    always @(posedge clock) if (!reset && rsp_valid) begin
+        assert (rsp_data == (fast_response ? response_push_data : response_selected_data));
+        assert (rsp_error == (fast_response ? response_push_error : response_selected_error));
+    end
+`endif
     generate
         for (genvar slot = 0; slot < 4; slot = slot + 1) begin : response_slots
             always @(posedge clock) begin
@@ -300,6 +356,7 @@ module dcache_writeback #(
         if (reset) begin
             state <= IDLE;
             address <= 0;
+            install_tag <= 0;
             store_data <= 0;
             store_strobe <= 0;
             request_write <= 0;
@@ -337,6 +394,7 @@ module dcache_writeback #(
                 default: ;
             endcase
             lookup_valid <= request_fire;
+            if (request_fire) install_tag <= req_addr[31:TAG_SHIFT];
             if (req_ready) begin
                 address <= req_addr;
                 store_data <= req_wdata;
@@ -481,6 +539,9 @@ module dcache_writeback #(
         assert (!response_push || response_count < 4 || queue_pop);
         assert (!request_fire || state == IDLE);
         assert (!(lookup_store && initial_data_lookup));
+        if (state == INSTALL) assert (install_tag == address[31:TAG_SHIFT]);
+        if (state == IDLE && lookup_valid && lookup_aligned && lookup_cacheable)
+            assert ($onehot0(hits));
         assert (wb_count + 3'(wb_read_pending) <= 4);
         assert (!wb_read_pending || wb_active);
         assert (!wb_active || wb_word <= wb_read_word);

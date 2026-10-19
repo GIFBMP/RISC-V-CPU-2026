@@ -1,0 +1,69 @@
+{
+  "kind": "planning_analysis_no_candidate_measurement",
+  "base_commit": "690c35ba5f61a6015766e5db1c3a8893b611ebde",
+  "baseline": {
+    "ipc_geomean": 1.100201368597644,
+    "minimum_period_ns": 3.1767578125,
+    "frequency_mhz": 314.78635106055947,
+    "total_area_um2": 30717.500924009517
+  },
+  "target": {
+    "ipc_geomean_at_least": 1.100201368597644,
+    "frequency_mhz_at_least": 500,
+    "total_area_um2_at_most": 36000
+  },
+  "period_reduction_ns": 1.1767578125,
+  "period_reduction_fraction": 0.37042729787888107,
+  "area_remaining_um2": 5282.499075990483,
+  "timing_diagnostics": {
+    "paths-200": {
+      "path_count": 200,
+      "startpoints": {
+        "_326473_/QN": 200
+      },
+      "worst_slack_ns": -1.1760000000000002,
+      "worst_arrival_ns": 3.076,
+      "endpoint": "memory.write_back.data_cache.arrays[1].data.lane_0/addr_in[3]"
+    },
+    "ff-paths": {
+      "path_count": 30,
+      "startpoints": {
+        "_326473_/QN": 30
+      },
+      "worst_slack_ns": -1.147,
+      "worst_arrival_ns": 3.102,
+      "endpoint": "_339562_/D"
+    },
+    "output-paths": {
+      "path_count": 20,
+      "startpoints": {
+        "_349153_/QN": 20
+      },
+      "worst_slack_ns": 1.405,
+      "worst_arrival_ns": 0.34459999999999996,
+      "endpoint": "wdata[8]"
+    }
+  },
+  "critical_net": "memory.write_back.data_cache.address[13]",
+  "heavy_arcs": [
+    {
+      "cell": "_174674_",
+      "load_ff": 20.7344,
+      "delay_ns": 0.2697
+    },
+    {
+      "cell": "_202715_",
+      "load_ff": 20.0,
+      "delay_ns": 0.2518
+    }
+  ],
+  "artifacts": {
+    "build/v7-500-analysis/timing-diagnosis.tcl": "69f4d3abfd6f5bb709af68d577c770edaa5585570dca7d075c7be291f468bf7c",
+    "build/v7-500-analysis/paths-200.json": "da77a7b8f78659ba4719cc1f5380672200f0ae7dbd981faa47da1279d8918180",
+    "build/v7-500-analysis/ff-paths.json": "0d19af1123380cf1f8d6ade69efb83d3357758f96f547fb14e570629251e0e46",
+    "build/v7-500-analysis/output-paths.json": "9fb891c8a0b5510ebd5667f3422bce9fd5b7cad8a1469294fa0587b0018ea7f6",
+    "build/v7-500-analysis/paths-30.rpt": "9532b92e154fe0b0914acaf7dda90dd9498437c8cee6fd0b9d3ac31dc26c6f42",
+    "build/v7/linux-final/synth/opt/report.json": "d132175a5bf84f145877d04cd29c3ece3af91ba4e6153b2b251c019ee355bdaa"
+  },
+  "limitations": "No candidate RTL, frequency improvement or area estimate was measured in this analysis. The nine-stage XOR/XNOR chain is observed in the mapped path; attributing it to the integer-rank population count is an RTL/topology inference to verify by isolated synthesis. Path arrival summaries use OpenSTA JSON rounded to about 1 ps."
+}
