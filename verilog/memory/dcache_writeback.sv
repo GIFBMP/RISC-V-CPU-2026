@@ -9,7 +9,9 @@
 module dcache_writeback #(
     parameter integer CACHE_BYTES = 4096,
     parameter integer LINE_BYTES = 16,
-    parameter integer WAYS = 2
+    parameter integer WAYS = 2,
+    parameter integer FAST_HIT_RESPONSE = 0,
+    parameter integer PIPELINED_STORE_HITS = 0
 ) (
     input wire clock, reset,
     input wire req_valid,
@@ -58,7 +60,9 @@ module dcache_writeback #(
         if ((WAYS != 1 && WAYS != 2 && WAYS != 4) || CACHE_BYTES < WAYS * 4 ||
             CACHE_BYTES > 2097152 || LINE_BYTES < 4 || LINE_BYTES > WAY_BYTES ||
             (CACHE_BYTES & (CACHE_BYTES - 1)) != 0 ||
-            (LINE_BYTES & (LINE_BYTES - 1)) != 0) begin : invalid_parameters
+            (LINE_BYTES & (LINE_BYTES - 1)) != 0 ||
+            (FAST_HIT_RESPONSE != 0 && FAST_HIT_RESPONSE != 1) ||
+            (PIPELINED_STORE_HITS != 0 && PIPELINED_STORE_HITS != 1)) begin : invalid_parameters
             dcache_writeback_requires_one_two_or_four_ways_and_power_of_two_sizes invalid_configuration();
         end
     endgenerate
@@ -101,7 +105,13 @@ module dcache_writeback #(
     wire [LINE_BITS-1:0] selected_line = LINE_BITS'(selected_way) * LINE_BITS'(SETS) + LINE_BITS'(victim_set);
     wire [LINE_BITS-1:0] request_line = LINE_BITS'(selected_way) * LINE_BITS'(SETS) + LINE_BITS'(request_set);
     wire request_fire = req_valid && req_ready;
-    wire initial_lookup = request_fire && req_addr[1:0] == 0 && req_addr[31:28] == 0;
+    // A ready lookup slot may pre-read an unaccepted address. Only the actual
+    // handshake sets lookup_valid; idle payloads cannot write or start AXI work.
+    // req_ready also preserves the old Store's exclusive data-array write edge.
+    wire initial_lookup = req_ready && req_addr[1:0] == 0 && req_addr[31:28] == 0;
+    // Stores need a tag lookup but never consume the initial data read. Their
+    // next edge may update the data SRAM while another Store reads the tags.
+    wire initial_data_lookup = initial_lookup && (PIPELINED_STORE_HITS == 0 || !req_write);
     wire rd_fire = mem_rd_rsp_valid && mem_rd_rsp_ready;
     wire wr_fire = mem_wr_rsp_valid && mem_wr_rsp_ready;
     wire wb_active = state == WB_READ || state == WB_WAIT;
@@ -119,9 +129,13 @@ module dcache_writeback #(
     wire lookup_miss = state == IDLE && lookup_valid && lookup_aligned && lookup_cacheable && !hit;
     wire lookup_fault = state == IDLE && lookup_valid && !lookup_aligned;
     wire lookup_store = lookup_hit && request_write;
-    wire lookup_blocks = lookup_valid && !(lookup_aligned && lookup_cacheable && hit && !request_write);
+    wire lookup_blocks = lookup_valid && !(lookup_aligned && lookup_cacheable && hit &&
+        (!request_write || (PIPELINED_STORE_HITS != 0 && req_write)));
     wire response_pop = rsp_valid && rsp_ready;
-    wire response_push = lookup_hit || lookup_fault || state == RESPONSE;
+    wire queue_pop = response_pop && response_count != 0;
+    wire response_produce = lookup_hit || lookup_fault || state == RESPONSE;
+    wire fast_response = FAST_HIT_RESPONSE != 0 && response_count == 0 && (lookup_hit || lookup_fault);
+    wire response_push = response_produce && !(fast_response && rsp_ready);
     wire [31:0] response_push_data = state == RESPONSE ? response_data :
         ((lookup_fault || request_write) ? 32'b0 : data_rdata[hit_way]);
     wire response_push_error = state == RESPONSE ? response_error : lookup_fault;
@@ -182,7 +196,7 @@ module dcache_writeback #(
                  (victim_read ? (WORD_BITS'(victim_set) * WORD_BITS'(LINE_WORDS) + WORD_BITS'(wb_read_word)) :
                   WORD_BITS'((req_addr >> 2) & (WORDS - 1))));
             sram_fakeram #(.DEPTH(WORDS), .WIDTH(32), .WRITE_GRANULARITY(8)) data (
-                .clk(clock), .en(!reset && (initial_lookup || victim_read || data_write)),
+                .clk(clock), .en(!reset && (initial_data_lookup || victim_read || data_write)),
                 .we(data_write), .wmask(store_write ? store_strobe : 4'hf), .addr(data_addr),
                 .wdata(store_write ? store_data : mem_rd_rsp_data), .rdata(data_rdata[way])
             );
@@ -243,7 +257,11 @@ module dcache_writeback #(
     // Registered credit accounting keeps rsp_ready out of the request path.
     // The executing lookup/miss already owns its eventual response FIFO slot.
     assign req_ready = !reset && state == IDLE && !lookup_blocks && cpu_count < 3'd4;
-    assign rsp_valid = !reset && response_count != 0;
+    // An empty FIFO may expose the completed synchronous lookup directly. A
+    // stalled direct response is captured at this edge before the SRAM output
+    // changes, so the following queued response holds identical data and error.
+    // Miss/WB responses keep their existing fully validated, registered path.
+    assign rsp_valid = !reset && (response_count != 0 || fast_response);
     reg [31:0] response_selected_data;
     reg response_selected_error;
     always @* begin
@@ -254,8 +272,8 @@ module dcache_writeback #(
             response_selected_error = response_selected_error | (response_errors[slot] && response_head == 2'(slot));
         end
     end
-    assign rsp_data = response_selected_data;
-    assign rsp_error = response_selected_error;
+    assign rsp_data = fast_response ? response_push_data : response_selected_data;
+    assign rsp_error = fast_response ? response_push_error : response_selected_error;
     generate
         for (genvar slot = 0; slot < 4; slot = slot + 1) begin : response_slots
             always @(posedge clock) begin
@@ -319,7 +337,7 @@ module dcache_writeback #(
                 default: ;
             endcase
             lookup_valid <= request_fire;
-            if (request_fire) begin
+            if (req_ready) begin
                 address <= req_addr;
                 store_data <= req_wdata;
                 store_strobe <= req_wstrb;
@@ -328,13 +346,13 @@ module dcache_writeback #(
                 response_error <= 0;
             end
             if (response_push) response_tail <= response_tail + 1'b1;
-            if (response_pop) response_head <= response_head + 1'b1;
+            if (queue_pop) response_head <= response_head + 1'b1;
             case ({request_fire, response_pop})
                 2'b10: cpu_count <= cpu_count + 1'b1;
                 2'b01: cpu_count <= cpu_count - 1'b1;
                 default: ;
             endcase
-            case ({response_push, response_pop})
+            case ({response_push, queue_pop})
                 2'b10: response_count <= response_count + 1'b1;
                 2'b01: response_count <= response_count - 1'b1;
                 default: ;
@@ -460,9 +478,9 @@ module dcache_writeback #(
     always @(posedge clock) if (!reset) begin
         assert (cpu_count <= 4 && response_count <= cpu_count);
         assert (cpu_count == response_count + 3'((state != IDLE) || lookup_valid));
-        assert (!response_push || response_count < 4 || response_pop);
+        assert (!response_push || response_count < 4 || queue_pop);
         assert (!request_fire || state == IDLE);
-        assert (!(lookup_store && initial_lookup));
+        assert (!(lookup_store && initial_data_lookup));
         assert (wb_count + 3'(wb_read_pending) <= 4);
         assert (!wb_read_pending || wb_active);
         assert (!wb_active || wb_word <= wb_read_word);

@@ -3,7 +3,8 @@
 // new requests until all refill responses drain; older hit responses remain first.
 module icache_pipeline #(
     parameter integer CACHE_BYTES = 2048,
-    parameter integer LINE_BYTES = 16
+    parameter integer LINE_BYTES = 16,
+    parameter integer FAST_INSTRUCTION_RESPONSE = 0
 ) (
     input wire clock, reset,
     input wire req_valid,
@@ -33,7 +34,8 @@ module icache_pipeline #(
     generate
         if (CACHE_BYTES < 4 || CACHE_BYTES > 2097152 || LINE_BYTES < 4 ||
             LINE_BYTES > CACHE_BYTES || (CACHE_BYTES & (CACHE_BYTES - 1)) != 0 ||
-            (LINE_BYTES & (LINE_BYTES - 1)) != 0) begin : invalid_parameters
+            (LINE_BYTES & (LINE_BYTES - 1)) != 0 ||
+            (FAST_INSTRUCTION_RESPONSE != 0 && FAST_INSTRUCTION_RESPONSE != 1)) begin : invalid_parameters
             icache_requires_power_of_two_sizes invalid_configuration();
         end
     endgenerate
@@ -62,18 +64,24 @@ module icache_pipeline #(
     wire [COUNT_BITS-1:0] requested_word = COUNT_BITS'((miss_address >> 2) & (LINE_WORDS - 1));
     wire [COUNT_BITS-1:0] needed_words = miss_cacheable ? COUNT_BITS'(LINE_WORDS) : COUNT_BITS'(1);
     wire response_pop = rsp_valid && rsp_ready;
+    wire queue_pop = response_pop && response_count != 0;
+    wire fast_response = FAST_INSTRUCTION_RESPONSE != 0 && response_count == 0 && lookup_complete;
     wire [3:0] reserved_responses = {1'b0, response_count} + {3'b0, lookup_valid};
     assign req_ready = !reset && !miss_active && !lookup_miss &&
         (reserved_responses < 4'd4 || response_pop);
     wire request_fire = req_valid && req_ready;
     wire read_fire = mem_rd_rsp_valid && mem_rd_rsp_ready;
     wire miss_complete = read_fire && received_words + 1'b1 == needed_words;
-    wire response_push = lookup_complete || miss_complete;
+    wire response_push = miss_complete || (lookup_complete && !(fast_response && rsp_ready));
     wire final_error = miss_error || mem_rd_rsp_error;
     wire [31:0] final_data = !miss_cacheable || received_words == requested_word
         ? mem_rd_rsp_data : requested_data;
     wire tag_write = miss_complete && miss_cacheable && !final_error;
-    wire tag_read = request_fire && input_aligned && input_cacheable;
+    // A ready lookup slot may pre-read the presented address without accepting
+    // a request. Only lookup_valid authorizes its result. The prior lookup is
+    // consumed or saved at this edge before SRAM outputs/payload are replaced;
+    // miss/refill work holds req_ready low and retains exclusive array access.
+    wire tag_read = req_ready && input_aligned && input_cacheable;
     sram_fakeram #(.DEPTH(LINES), .WIDTH(TAG_BITS)) tag_array (
         .clk(clock), .en(!reset && (tag_read || tag_write)), .we(tag_write),
         .wmask(1'b1), .addr(tag_write ? miss_set : input_set),
@@ -91,9 +99,12 @@ module icache_pipeline #(
         .clk(clock), .en(!reset && (ram_read || ram_write)), .we(ram_write),
         .wmask(4'hf), .addr(ram_addr), .wdata(mem_rd_rsp_data), .rdata(ram_rdata)
     );
-    assign rsp_valid = !reset && response_count != 0;
-    assign rsp_data = responses[response_head];
-    assign rsp_error = response_errors[response_head];
+    // Only a completed SRAM hit/alignment fault can bypass an empty FIFO. On
+    // backpressure this same payload is saved before the next SRAM operation.
+    // Refills always drain and aggregate every R error before entering the FIFO.
+    assign rsp_valid = !reset && (response_count != 0 || fast_response);
+    assign rsp_data = fast_response ? (lookup_error ? 32'b0 : ram_rdata) : responses[response_head];
+    assign rsp_error = fast_response ? lookup_error : response_errors[response_head];
     assign mem_rd_valid = !reset && miss_active && issued_words < needed_words;
     assign mem_rd_addr = miss_cacheable
         ? ((miss_address & ~32'(LINE_BYTES - 1)) | (32'(issued_words) << 2)) : miss_address;
@@ -118,7 +129,7 @@ module icache_pipeline #(
             response_count <= 0;
         end else begin
             lookup_valid <= request_fire;
-            if (request_fire) begin
+            if (req_ready) begin
                 lookup_error <= !input_aligned;
                 lookup_address <= req_addr;
             end
@@ -151,13 +162,22 @@ module icache_pipeline #(
                 response_errors[response_tail] <= miss_complete ? final_error : lookup_error;
                 response_tail <= response_tail + 1'b1;
             end
-            if (response_pop)
+            if (queue_pop)
                 response_head <= response_head + 1'b1;
-            case ({response_push, response_pop})
+            case ({response_push, queue_pop})
                 2'b10: response_count <= response_count + 1'b1;
                 2'b01: response_count <= response_count - 1'b1;
                 default: begin end
             endcase
         end
     end
+`ifndef SYNTHESIS
+    always @(posedge clock) if (!reset) begin
+        assert (reserved_responses + 4'(miss_active) <= 4);
+        assert (!response_push || response_count < 4 || queue_pop);
+        assert (!(lookup_valid && miss_active));
+        assert (!(ram_read && ram_write));
+        assert (!(tag_read && tag_write));
+    end
+`endif
 endmodule

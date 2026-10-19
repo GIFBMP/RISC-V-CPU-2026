@@ -6,7 +6,60 @@ TRACE runner to prove that the intended concurrent execution actually occurred.
 from __future__ import annotations
 
 
-def build_lsu_programs(Program):
+def build_lsu_programs(Program, legacy=False):
+    def hit_window(p, kill):
+        """A Store-to-Load port bubble queues hits across a real recovery.
+
+        With one-cycle hits and direct requests, straight-line single issue
+        has only one accepted hit outstanding. A queued Store burst plus the
+        recovery response hold exercises two accepted contexts without slowing
+        or backpressuring the simulator artificially.
+        """
+        p.li(1, 0x12345678)
+        p.li(20, 0x18000)
+        p.li(18, 1)
+        p.data.setdefault(0x10000, 1)
+        for offset in range(16):
+            p.data[0x18000 + offset] = (offset * 17 + 1) & 255
+        p.load("lw", 12, 20)
+        p.load("lw", 13, 31)
+        p.branch("bne", 13, 0, "window_ready")
+        p.label("window_wait")
+        p.jal(0, "window_wait")
+        p.label("window_ready")
+        p.jal(0, "window_warm")
+        while p.pc % 128:
+            p.i("addi", 0, 0, 0)
+        p.label("window_critical")
+        for offset in (0, 4, 8):
+            p.store("sw", 1, 31, offset)
+        if kill:
+            p.load("lw", 3, 20)
+            p.label("window_branch")
+            p.branch("bne", 3, 0, "window_safe")
+        loads = []
+        for index in range(3):
+            label = f"window_load_{index}"
+            loads.append(label)
+            p.label(label)
+            p.load("lw", 7 + index, 20, 4 * (index + 1))
+        if not kill:
+            p.label("window_branch")
+            p.branch("beq", 0, 0, "window_safe")
+        p.label("window_warm")
+        p.branch("bne", 18, 0, "window_back")
+        p.label("window_safe")
+        p.checksum(1)
+        p.jal(0, "window_done")
+        p.label("window_back")
+        p.i("addi", 18, 0, 0)
+        p.jal(0, "window_critical")
+        p.label("window_done")
+        p.lsu.append({"kind": "kill_multiple" if kill else "concurrent",
+                      "branch_label": "window_branch", "load_labels": loads,
+                      "replacement_labels": [], "minimum": 2,
+                      "minimum_accepted_at_flush": 2, "require_reuse": False})
+
     def forwarding(partial):
         p = Program("lsu_forward_partial" if partial else "lsu_forward_youngest",
                     "Warm repeated pending Stores forward youngest matching bytes to a younger Load")
@@ -111,8 +164,11 @@ def build_lsu_programs(Program):
             p.load("lw", 4 + index, 31, 128 + index * 32)
         for register in range(4, 12):
             p.checksum(register)
+        if legacy:
+            p.lsu.append({"kind": "concurrent", "load_labels": labels, "minimum": 2})
+        else:
+            hit_window(p, False)
         p.finish()
-        p.lsu.append({"kind": "concurrent", "load_labels": labels, "minimum": 2})
         return p
 
     def younger_store():
@@ -142,9 +198,17 @@ def build_lsu_programs(Program):
     def multiple_killed(cold):
         p = Program("lsu_killed_reuse" if cold else "lsu_killed_hits",
                     "Two younger Load contexts survive redirect only as canceled ordered responses")
+        if not cold and not legacy:
+            hit_window(p, True)
+            p.finish()
+            return p
         p.li(1, 0x18000)
         p.li(2, 1)
         p.li(6, 0)
+        if not legacy:
+            p.li(20, 0x1A000)
+        if not cold and not legacy:
+            p.load("lw", 3, 20)
         for base in (0x18000, 0x19000):
             for offset in range(16):
                 p.data[base + offset] = (base // 256 + offset * 17 + 1) & 255
@@ -154,32 +218,45 @@ def build_lsu_programs(Program):
         while p.pc % 16:
             p.i("addi", 0, 0, 0)
         p.label("producer")
-        p.r("divu", 3, 1, 2)
+        if legacy:
+            p.r("divu", 3, 1, 2)
+        elif cold:
+            p.r("divu", 3, 6, 2)
+        else:
+            p.load("lw", 3, 20)
         p.label("branch")
-        p.branch("bne", 6, 0, "safe")
+        p.branch("bne", 6 if legacy else 3, 0, "safe")
         labels = []
         for index in range(3):
             label = f"wrong_{index}"
             labels.append(label)
             p.label(label)
-            p.load("lw", 7 + index, 3, index * 4)
-        p.jal(0, "warm_back")
+            p.load("lw", 7 + index, 3 if legacy else 1, index * 4)
+        # Wait for every warm-up response before changing phase; a speculative
+        # second iteration behind a cold first miss would alter the intended
+        # branch/response timing and physical free-list state.
+        if legacy:
+            p.jal(0, "warm_back")
+        else:
+            p.branch("bne", 9, 0, "warm_back")
         while p.pc % 16:
             p.i("addi", 0, 0, 0)
         p.label("safe")
         p.r("divu", 14, 1, 2)
         replacement = []
-        for index in range(3):
+        for index, register in enumerate((7, 8, 9) if legacy else (7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19)):
             label = f"replacement_{index}"
             replacement.append(label)
             p.label(label)
-            p.i("addi", 7 + index, 0, 0x123 + index)
+            p.i("addi", register, 0, 0x123 + index)
         p.branch("beq", 6, 0, "producer")
         for register in (7, 8, 9, 14):
             p.checksum(register)
         p.finish()
         p.label("warm_back")
         p.li(6, 1)
+        if not cold and not legacy:
+            p.store("sw", 6, 20)
         p.li(1, 0x19000 if cold else 0x18000)
         p.jal(0, "producer")
         p.lsu.append({"kind": "kill_multiple", "branch_label": "branch", "load_labels": labels,

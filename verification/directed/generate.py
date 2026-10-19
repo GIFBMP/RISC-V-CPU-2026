@@ -282,9 +282,9 @@ def out_of_order(kind: str) -> Program:
     return p
 
 
-def wrong_path(kind: str) -> Program:
+def wrong_path(kind: str, legacy: bool = False) -> Program:
     p = Program(f"flush_{kind}", f"Prewarmed taken branch squashes a dispatched/issued younger {kind}")
-    p.li(1, 0xF0000000 if kind in ("bad_load", "writeback_load") else 0x18000 if kind == "load" else 0x70000000)
+    p.li(1, 0xF0000000 if kind in ("bad_load", "writeback_load") else (0x18000 if legacy else 0x19000) if kind == "load" else 0x70000000)
     p.li(2, 1)
     p.li(5, 0x80000000)
     p.li(6, 0x18000)
@@ -304,20 +304,37 @@ def wrong_path(kind: str) -> Program:
         for offset in (0, 4, 8, 12):
             p.li(11, 0x76543210 + offset)
             p.store("sw", 11, 31, offset)
-    for lane, byte in enumerate((0x78, 0x56, 0x34, 0x12)):
+    for lane, byte in enumerate((0x78, 0x56, 0x34, 0x12) if legacy else (0x00, 0x80, 0x01, 0x00)):
         p.data[0x18000 + lane] = byte
+        p.data[0x19000 + lane] = byte ^ 0xA5
+    if not legacy and kind in ("load", "bad_load", "writeback_load", "mdu"):
+        p.load("lw", 12, 6)  # Bound the branch producer to a warm-hit delay.
+    if not legacy and kind in ("load", "bad_load", "writeback_load", "mdu", "dirty_store"):
+        # Do not let speculative warm-up jumps overlap initialization misses
+        # or buffered Stores. Enter the critical region only after its initial
+        # data read has really returned (all older D transactions are ordered).
+        p.branch("bne", 12, 0, "warm_ready")
+        p.label("warm_wait")
+        p.jal(0, "warm_wait")
+        p.label("warm_ready")
     # Warm the recovery line first, then the critical line. Jumping into each
     # line's final instruction avoids executing the intentional wrong path.
     p.jal(0, "warm_safe")
-    while p.pc % 16:
+    while p.pc % (16 if legacy else 128):
         p.i("addi", 0, 0, 0)
     p.label("producer")
-    if kind == "mdu":
+    if kind == "mdu" or (not legacy and kind in ("load", "bad_load", "writeback_load")):
         p.load("lw", 3, 6)
+        if not legacy:
+            # Two true dependent hit loads leave a wrong-path issue window
+            # even when a hit responds in one cycle and requests bypass MQ.
+            p.load("lw", 3, 3)
     else:
         p.r("divu", 3, 1, 2)
     p.label("branch")
-    p.branch("beq", 0, 0, "safe")
+    # The branch must await a real producer. Selective recovery otherwise
+    # correctly kills its fallthrough before the target operation can issue.
+    p.branch("beq" if legacy else "bne", 0 if legacy else 3, 0, "safe")
     p.label("wrong_path")
     if kind == "store":
         p.store("sw", 7, 31)
@@ -328,11 +345,9 @@ def wrong_path(kind: str) -> Program:
     elif kind == "illegal":
         p.emit(0xFFFFFFFF, ".word 0xffffffff")
     elif kind in ("bad_load", "load", "writeback_load"):
-        # The branch is already done, but cannot retire before producer. The
-        # load wakes up as producer retires and is killed on the next cycle.
-        p.load("lw", 7, 3)
+        p.load("lw", 7, 3 if legacy else 1)
     else:
-        p.r("div", 7, 3, 2)
+        p.r("div", 7, 3 if legacy else 1, 2)
     p.label("warm_tail")
     p.jal(0, "warm_back")
     p.label("safe")
@@ -344,6 +359,13 @@ def wrong_path(kind: str) -> Program:
         p.i("addi", 9, 0, 0x456)
     p.label("replacement")
     p.i("addi", 7, 0, 0x123)
+    replacements = ["replacement"]
+    if kind == "load" and not legacy:
+        for index in range(1, 8):
+            label = f"replacement_{index}"
+            replacements.append(label)
+            p.label(label)
+            p.i("addi", 7, 0, 0x123 + index)
     p.i("addi", 10, 0, 0x789)
     p.label("warm_safe")
     p.branch("bne", 8, 0, "warm_tail")
@@ -357,7 +379,7 @@ def wrong_path(kind: str) -> Program:
     p.i("addi", 8, 0, 0)
     p.jal(0, "producer")
     p.speculation.append({"kind": kind, "branch": "branch", "wrong": "wrong_path", "replacement": "replacement",
-                          "require_reuse": kind == "load"})
+                          "replacements": replacements, "require_reuse": kind == "load"})
     return p
 
 
@@ -438,8 +460,8 @@ def prediction_jalr_switch() -> Program:
     return p
 
 
-def prediction_alias() -> Program:
-    p = Program("prediction_btb_alias", "PCs separated by 256 bytes alias a 64-entry BTB without borrowing the wrong target")
+def prediction_alias(legacy: bool = False) -> Program:
+    p = Program("prediction_btb_alias", "Full-PC tags distinguish colliding entries under both low-bit and XOR-folded BTB indexing")
     p.li(1, 0)
     p.li(2, 3)
     p.jal(0, "site_a")
@@ -447,15 +469,25 @@ def prediction_alias() -> Program:
         p.i("addi", 0, 0, 0)
     p.label("site_a")
     p.jal(10, "after_a")
-    while p.pc < 0x200:
+    while p.pc < (0x200 if legacy else 0x4100):
         p.i("addi", 0, 0, 0)
     p.label("site_b")
     p.jal(11, "after_b")
     p.label("after_a")
     p.i("addi", 1, 1, 1)
     p.checksum(10)
-    p.branch("blt", 1, 2, "site_a")
-    p.branch("beq", 1, 2, "site_b")
+    if legacy:
+        p.branch("blt", 1, 2, "site_a")
+        p.branch("beq", 1, 2, "site_b")
+    else:
+        # Both low6(PC>>2) and low6(PC>>8) match at 0x100/0x4100.
+        # Local conditional branches plus JAL avoid the +/-4 KiB B limit.
+        p.branch("bge", 1, 2, "after_loop")
+        p.jal(0, "site_a")
+        p.label("after_loop")
+        p.branch("bne", 1, 2, "end")
+        p.jal(0, "site_b")
+        p.label("end")
     p.finish()
     p.label("after_b")
     p.checksum(11)
@@ -668,7 +700,8 @@ def save(program: Program, output: Path) -> dict:
     metadata = {"name": program.name, "description": program.description, "labels": program.labels,
                 "probes": probes, "result": machine.result, "dynamic_instructions": machine.retired}
     metadata["speculation"] = [{**probe, **{key + "_pc": program.labels[probe[key]]
-                              for key in ("branch", "wrong", "replacement")}}
+                              for key in ("branch", "wrong", "replacement")},
+                               "replacement_pcs": [program.labels[label] for label in probe.get("replacements", [probe["replacement"]])]}
                               for probe in program.speculation]
     metadata["prediction"] = [{**probe, "site_pc": program.labels[probe["site"]],
                                 "target_pcs": [program.labels[target] for target in probe["targets"]]}
@@ -680,7 +713,9 @@ def save(program: Program, output: Path) -> dict:
                           for key, value in probe.items() if key.endswith("_labels")}}
                       for probe in program.lsu]
     metadata["recovery"] = [{**probe, **{key[:-6] + "_pc": program.labels[value]
-                                       for key, value in probe.items() if key.endswith("_label")}}
+                                       for key, value in probe.items() if key.endswith("_label")},
+                            **{key[:-7] + "_pcs": [program.labels[label] for label in value]
+                               for key, value in probe.items() if key.endswith("_labels")}}
                            for probe in program.recovery]
     (folder / "meta.json").write_text(json.dumps(metadata, indent=2) + "\n")
     return metadata
@@ -692,18 +727,24 @@ def main() -> None:
     parser.add_argument("--seeds", default="1,7,23,42,99,256,1024,65535")
     parser.add_argument("--random-count", type=int, default=250)
     parser.add_argument("--case", help="generate only one named case")
+    parser.add_argument("--recovery-mode", choices=("selective", "legacy"), default="selective",
+                        help="select timing stimuli explicitly; legacy preserves V4's original strict obligations")
     args = parser.parse_args()
     programs = [integer_isa(), memory_lanes(), multiply_divide(), dependencies(), jumps_branches(),
                 out_of_order("mdu"), out_of_order("load")]
-    programs += [wrong_path(kind) for kind in ("store", "mmio", "illegal", "bad_load", "load", "mdu")]
-    programs += [prediction_loop_exit(), prediction_jalr_switch(), prediction_alias(),
+    legacy = args.recovery_mode == "legacy"
+    programs += [wrong_path(kind, legacy) for kind in ("store", "mmio", "illegal", "bad_load", "load", "mdu")]
+    programs += [prediction_loop_exit(), prediction_jalr_switch(), prediction_alias(legacy),
                  pipeline_contention(), memory_order_wrap()]
     programs += [cache_conflict_dirty(), cache_partial_allocate(), cache_exit_dirty(),
-                 wrong_path("dirty_store"), wrong_path("writeback_load")]
+                 wrong_path("dirty_store", legacy), wrong_path("writeback_load", legacy)]
     from lsu_cases import build_lsu_programs
-    programs += build_lsu_programs(Program)
+    programs += build_lsu_programs(Program, legacy=legacy)
     from control_cases import build_control_programs
     programs += build_control_programs(Program)
+    from selective_cases import build_selective_programs
+    if not legacy:
+        programs += build_selective_programs(Program)
     programs += [random_program(int(seed, 0), args.random_count) for seed in args.seeds.split(",") if seed]
     if args.case:
         programs = [p for p in programs if p.name == args.case]

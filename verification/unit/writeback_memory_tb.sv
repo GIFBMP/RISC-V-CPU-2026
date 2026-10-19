@@ -1,8 +1,13 @@
 `timescale 1ns/1ps
 module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
-    parameter integer DCACHE_BYTES = 256, parameter integer DCACHE_WAYS = 2);
+    parameter integer ICACHE_LINE_BYTES = CACHE_LINE_BYTES,
+    parameter integer DCACHE_BYTES = 256, parameter integer DCACHE_WAYS = 2,
+    parameter integer FAST_HIT_RESPONSE = 0, parameter integer FAST_INSTRUCTION_RESPONSE = 0,
+    parameter integer PIPELINED_STORE_HITS = 0);
     localparam integer WAY_BYTES = DCACHE_BYTES / DCACHE_WAYS;
     localparam integer LINE_WORDS = CACHE_LINE_BYTES / 4;
+    localparam integer I_LINE_WORDS = ICACHE_LINE_BYTES / 4;
+    localparam integer CONCURRENT_WORDS = LINE_WORDS < I_LINE_WORDS ? LINE_WORDS : I_LINE_WORDS;
     localparam integer WRITE_CREDITS = 16;
     localparam integer CACHE_LINES = DCACHE_BYTES / CACHE_LINE_BYTES;
     localparam integer FLUSH_GROUP_SIZE = CACHE_LINES >= 8 ? 8 : CACHE_LINES;
@@ -35,8 +40,11 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
     wire [1:0] bresp;
     wire bvalid;
 
-    memory_system #(.CACHE_LINE_BYTES(CACHE_LINE_BYTES), .DCACHE_BYTES(DCACHE_BYTES),
-        .DCACHE_WAYS(DCACHE_WAYS), .DCACHE_WRITE_BACK(1)) dut (.*);
+    memory_system #(.CACHE_LINE_BYTES(CACHE_LINE_BYTES), .ICACHE_LINE_BYTES(ICACHE_LINE_BYTES),
+        .DCACHE_LINE_BYTES(CACHE_LINE_BYTES), .DCACHE_BYTES(DCACHE_BYTES),
+        .DCACHE_WAYS(DCACHE_WAYS), .DCACHE_WRITE_BACK(1),
+        .FAST_HIT_RESPONSE(FAST_HIT_RESPONSE), .FAST_INSTRUCTION_RESPONSE(FAST_INSTRUCTION_RESPONSE),
+        .PIPELINED_STORE_HITS(PIPELINED_STORE_HITS)) dut (.*);
 
     reg [31:0] memory [0:16383];
     reg [31:0] expected_memory [0:16383];
@@ -297,6 +305,7 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
                             input integer wrap_words, input bit stall_response,
                             input bit require_full_rate);
         integer sent, received, previous_accept, previous_response, ticks;
+        integer accepted_cycle [0:127];
         reg [31:0] expected_address;
         reg expected_error;
         begin
@@ -308,6 +317,7 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
                         i_req_valid = 1;
                         i_req_addr = base + 4 * (wrap_words == 0 ? sent : sent % wrap_words);
                         do @(posedge clock); while (!i_req_ready);
+                        accepted_cycle[sent] = cycle;
                         if (require_full_rate && previous_accept >= 0 && cycle != previous_accept + 1)
                             $fatal(1, "I hit stream did not accept one request per cycle");
                         previous_accept = cycle;
@@ -324,10 +334,12 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
                         i_rsp_ready = !stall_response || (ticks % 11 >= 6);
                         @(posedge clock);
                         if (i_rsp_valid && i_rsp_ready) begin
+                            if (require_full_rate && cycle - accepted_cycle[received] != (FAST_INSTRUCTION_RESPONSE != 0 ? 1 : 2))
+                                $fatal(1, "I hit response latency=%0d expected=%0d", cycle-accepted_cycle[received], FAST_INSTRUCTION_RESPONSE != 0 ? 1 : 2);
                             expected_address = base + 4 * (wrap_words == 0 ? received : received % wrap_words);
                             expected_error = read_fault &&
-                                ((expected_address & ~32'(CACHE_LINE_BYTES-1)) ==
-                                 (read_fault_address & ~32'(CACHE_LINE_BYTES-1)));
+                                ((expected_address & ~32'(ICACHE_LINE_BYTES-1)) ==
+                                 (read_fault_address & ~32'(ICACHE_LINE_BYTES-1)));
                             if (i_rsp_error !== expected_error ||
                                 (!expected_error && i_rsp_data !== memory[expected_address >> 2]))
                                 $fatal(1, "I stream response %0d at %h is wrong or out of order", received, expected_address);
@@ -350,9 +362,11 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
     // evolving oracle at response time; otherwise an ordering bug could hide.
     task automatic d_stream(input [31:0] base, input integer length,
                             input integer wrap_words, input integer mode,
-                            input bit stall_response, input bit require_full_rate);
+                            input bit stall_response, input bit require_full_rate,
+                            input integer stride = 4);
         integer sent, received, previous_accept, previous_response, ticks, byte_lane;
         integer accept_interval, response_interval;
+        integer accepted_cycle [0:127];
         reg [31:0] expected_data [0:127];
         reg expected_error [0:127];
         reg [31:0] current_address, current_data;
@@ -364,7 +378,7 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
                     previous_accept = -1;
                     for (sent = 0; sent < length; sent = sent + 1) begin
                         @(negedge clock);
-                        current_address = base + 4 * (wrap_words == 0 ? sent : sent % wrap_words);
+                        current_address = base + 32'(stride * (wrap_words == 0 ? sent : sent % wrap_words));
                         current_write = mode == 1 || (mode == 2 && sent % 2 == 0);
                         current_data = 32'hd7012345 ^ (32'(sent) * 32'h010a3051);
                         current_mask = 4'b0001 << (sent % 4);
@@ -374,6 +388,7 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
                         d_req_wdata = current_data;
                         d_req_wstrb = current_mask;
                         do @(posedge clock); while (!d_req_ready);
+                        accepted_cycle[sent] = cycle;
                         expected_error[sent] = !current_write && read_fault &&
                             ((current_address & ~32'(CACHE_LINE_BYTES - 1)) ==
                              (read_fault_address & ~32'(CACHE_LINE_BYTES - 1)));
@@ -382,7 +397,7 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
                             for (byte_lane = 0; byte_lane < 4; byte_lane = byte_lane + 1)
                                 if (current_mask[byte_lane])
                                     expected_memory[current_address >> 2][byte_lane*8 +: 8] = current_data[byte_lane*8 +: 8];
-                        accept_interval = mode == 0 ? 1 : (mode == 1 ? 2 : (sent % 2 == 1 ? 2 : 1));
+                        accept_interval = mode == 0 ? 1 : (mode == 1 ? (PIPELINED_STORE_HITS != 0 ? 1 : 2) : (sent % 2 == 1 ? 2 : 1));
                         if (require_full_rate && previous_accept >= 0 && cycle != previous_accept + accept_interval)
                             $fatal(1, "D hit stream mode=%0d accept spacing=%0d expected=%0d", mode, cycle-previous_accept, accept_interval);
                         previous_accept = cycle;
@@ -399,11 +414,13 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
                         d_rsp_ready = !stall_response || ticks % 17 >= 10;
                         @(posedge clock);
                         if (d_rsp_valid && d_rsp_ready) begin
+                            if (require_full_rate && cycle - accepted_cycle[received] != (FAST_HIT_RESPONSE != 0 ? 1 : 2))
+                                $fatal(1, "D hit response latency=%0d expected=%0d mode=%0d", cycle-accepted_cycle[received], FAST_HIT_RESPONSE != 0 ? 1 : 2, mode);
                             if (d_rsp_error !== expected_error[received] ||
                                 (!expected_error[received] && d_rsp_data !== expected_data[received]))
                                 $fatal(1, "D stream response %0d wrong/out of order: data=%h expected=%h error=%b expected=%b",
                                     received, d_rsp_data, expected_data[received], d_rsp_error, expected_error[received]);
-                            response_interval = mode == 0 ? 1 : (mode == 1 ? 2 : (received % 2 == 1 ? 2 : 1));
+                            response_interval = mode == 0 ? 1 : (mode == 1 ? (PIPELINED_STORE_HITS != 0 ? 1 : 2) : (received % 2 == 1 ? 2 : 1));
                             if (require_full_rate && previous_response >= 0 && cycle != previous_response + response_interval)
                                 $fatal(1, "D hit stream mode=%0d response spacing=%0d expected=%0d", mode, cycle-previous_response, response_interval);
                             previous_response = cycle;
@@ -695,11 +712,12 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
             i_read(32'h5004, memory[32'h5004 >> 2], 0, 30);
             d_access(0, 32'h6008, 0, 0, expected_memory[32'h6008 >> 2], 0, 0);
         join
-        if (ar_count != count_before + 2 * LINE_WORDS)
+        if (ar_count != count_before + LINE_WORDS + I_LINE_WORDS)
             $fatal(1, "Concurrent I/D misses lost refill words");
-        for (index = count_before + 1; index < ar_count; index = index + 1)
-            if ((read_trace[index] & ~32'(CACHE_LINE_BYTES - 1)) ==
-                (read_trace[index-1] & ~32'(CACHE_LINE_BYTES - 1)))
+        // Different I/D line sizes legitimately leave one source alone at the
+        // tail. Demand alternation while both sources still have words to issue.
+        for (index = count_before + 1; index < count_before + 2 * CONCURRENT_WORDS; index = index + 1)
+            if (read_trace[index][31:12] == read_trace[index-1][31:12])
                 $fatal(1, "I/D read arbitration was not fair");
         conflicting_store();
         expected_memory[32'h904 >> 2] = 32'hcafefeed;
@@ -712,11 +730,39 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
         d_stream(32'h8000, 64, 8, 0, 1, 0);
         if (max_cpu_d_outstanding != 4) $fatal(1, "D response backpressure failed to exercise all four credits");
         d_stream(32'h8004, 32, 1, 1, 0, 1);
+        d_stream(32'h8000, 64, 8, 1, 0, 1);
+        d_stream(32'h8000, 64, 8, 0, 0, 1);
         d_stream(32'h8004, 64, 1, 2, 0, 1);
         d_stream(32'h8004, 64, 1, 2, 1, 0);
         if (ar_count != count_before || aw_count != writes_before)
             $fatal(1, "Warm D Load/Store stream unexpectedly used AXI");
         d_access(0, 32'h8004, 0, 0, expected_memory[32'h8004 >> 2], 0, 0);
+        // Consecutive tag-only Store lookups must choose the correct way even
+        // while the previous Store updates another way's single-port data SRAM.
+        for (index = 0; index < DCACHE_WAYS; index = index + 1)
+            d_access(0, 32'hc000 + 32'(index * WAY_BYTES), 0, 0,
+                expected_memory[(32'hc000 + 32'(index * WAY_BYTES)) >> 2], 0, 0);
+        count_before = ar_count;
+        writes_before = aw_count;
+        d_stream(32'hc000, 64, DCACHE_WAYS, 1, 0, 1, WAY_BYTES);
+        d_stream(32'hc000, 64, DCACHE_WAYS, 1, 1, 0, WAY_BYTES);
+        d_stream(32'hc000, 64, DCACHE_WAYS, 0, 0, 1, WAY_BYTES);
+        if (ar_count != count_before || aw_count != writes_before)
+            $fatal(1, "Warm multi-way Store stream unexpectedly used AXI");
+        // A tag-only Store miss must not update bytes if the very last refill
+        // response fails; the following Load must re-fetch the original line.
+        read_fault = 1;
+        read_fault_address = 32'hb000 + 32'(CACHE_LINE_BYTES - 4);
+        d_access(1, 32'hb004, 32'hdeadabcd, 4'hf, 0, 1, 7);
+        read_fault = 0;
+        count_before = ar_count;
+        d_access(0, 32'hb004, 0, 0, expected_memory[32'hb004 >> 2], 0, 0);
+        if (ar_count != count_before + LINE_WORDS)
+            $fatal(1, "Faulting tag-only Store miss installed or modified its line");
+        // A Store miss after accepted hit responses must block and later resume
+        // the stream without losing either the older response or its byte writes.
+        d_stream(32'hdff0, 12, 0, 1, 1, 0);
+        d_stream(32'hdff0, 12, 0, 0, 1, 0);
         // Cross-line misses and a faulting line must not lose/reorder already
         // accepted old hits, even while responses repeatedly fill the FIFO.
         d_stream(32'h9000, 32, 0, 0, 1, 0);
@@ -740,11 +786,11 @@ module writeback_memory_tb #(parameter integer CACHE_LINE_BYTES = 16,
         read_fault = 0;
         count_before = ar_count;
         i_read(32'h7804, memory[32'h7804 >> 2], 0, 0);
-        if (ar_count != count_before + LINE_WORDS) $fatal(1, "Erroneous I line was installed");
+        if (ar_count != count_before + I_LINE_WORDS) $fatal(1, "Erroneous I line was installed");
         flush_and_reset();
         d_access(0, 32'h904, 0, 0, expected_memory[32'h904 >> 2], 0, 0);
         if (ar_count != LINE_WORDS) $fatal(1, "Reset did not invalidate SRAM tags");
-        $display("PASS writeback_memory: ways=%0d bytes=%0d line=%0d D Load=1/cycle Store=1/2cycles WB=1word/cycle, ordered four-credit streams, dirty retry/MMIO/SRAM/AXI", DCACHE_WAYS, DCACHE_BYTES, CACHE_LINE_BYTES);
+        $display("PASS writeback_memory: ways=%0d bytes=%0d line=%0d i_line=%0d fast_d=%0d fast_i=%0d pipeline_store=%0d D Load=1/cycle Store=1/%0dcycles WB=1word/cycle, ordered four-credit streams, dirty retry/MMIO/SRAM/AXI", DCACHE_WAYS, DCACHE_BYTES, CACHE_LINE_BYTES, ICACHE_LINE_BYTES, FAST_HIT_RESPONSE, FAST_INSTRUCTION_RESPONSE, PIPELINED_STORE_HITS, PIPELINED_STORE_HITS != 0 ? 1 : 2);
         $finish;
     end
 

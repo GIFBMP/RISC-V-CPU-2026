@@ -2,8 +2,13 @@ module memory_system #(
     parameter integer ICACHE_BYTES = 2048,
     parameter integer DCACHE_BYTES = 4096,
     parameter integer CACHE_LINE_BYTES = 16,
+    parameter integer ICACHE_LINE_BYTES = CACHE_LINE_BYTES,
+    parameter integer DCACHE_LINE_BYTES = CACHE_LINE_BYTES,
     parameter integer ICACHE_WAYS = 1,
     parameter integer DCACHE_WAYS = 4,
+    parameter integer FAST_HIT_RESPONSE = 0,
+    parameter integer PIPELINED_STORE_HITS = 0,
+    parameter integer FAST_INSTRUCTION_RESPONSE = 0,
     parameter integer DCACHE_WRITE_BACK = 1
 ) (
     input  wire        clock,
@@ -59,7 +64,8 @@ module memory_system #(
     wire [31:0] d_wr_addr, d_wr_data;
     wire [3:0] d_wr_strb;
     icache_pipeline #(
-        .CACHE_BYTES(ICACHE_BYTES), .LINE_BYTES(CACHE_LINE_BYTES)
+        .CACHE_BYTES(ICACHE_BYTES), .LINE_BYTES(ICACHE_LINE_BYTES),
+        .FAST_INSTRUCTION_RESPONSE(FAST_INSTRUCTION_RESPONSE)
     ) instruction_cache (
         .clock(clock), .reset(reset),
         .req_valid(i_req_valid), .req_ready(i_req_ready), .req_addr(i_req_addr),
@@ -72,7 +78,8 @@ module memory_system #(
 
     generate if (DCACHE_WRITE_BACK == 1) begin : write_back
     dcache_writeback #(
-        .CACHE_BYTES(DCACHE_BYTES), .LINE_BYTES(CACHE_LINE_BYTES), .WAYS(DCACHE_WAYS)
+        .CACHE_BYTES(DCACHE_BYTES), .LINE_BYTES(DCACHE_LINE_BYTES), .WAYS(DCACHE_WAYS),
+        .FAST_HIT_RESPONSE(FAST_HIT_RESPONSE), .PIPELINED_STORE_HITS(PIPELINED_STORE_HITS)
     ) data_cache (
         .clock(clock), .reset(reset),
         .req_valid(d_req_valid), .req_ready(d_req_ready), .req_write(d_req_write),
@@ -89,7 +96,7 @@ module memory_system #(
     );
     end else begin : write_through
     blocking_cache #(
-        .CACHE_BYTES(DCACHE_BYTES), .LINE_BYTES(CACHE_LINE_BYTES), .READ_ONLY(0)
+        .CACHE_BYTES(DCACHE_BYTES), .LINE_BYTES(DCACHE_LINE_BYTES), .READ_ONLY(0)
     ) data_cache (
         .clock(clock), .reset(reset),
         .req_valid(d_req_valid), .req_ready(d_req_ready), .req_write(d_req_write),

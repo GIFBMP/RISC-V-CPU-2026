@@ -5,6 +5,10 @@ module fetch_frontend_tb #(
     parameter integer QUEUE_DEPTH = 8,
     parameter integer OUTSTANDING = 4,
     parameter integer BTB_SIZE = 64,
+    parameter integer BTB_HASH = 0,
+    parameter integer OVERLAP = 0,
+    parameter integer BYPASS = 0,
+    parameter integer DIRECT_REDIRECT = 0,
     parameter integer PREDICT = 1,
     parameter integer RAS_SIZE = 16
 );
@@ -27,7 +31,10 @@ module fetch_frontend_tb #(
 
     fetch_frontend #(
         .FETCH_QUEUE_DEPTH(QUEUE_DEPTH), .FETCH_OUTSTANDING(OUTSTANDING),
-        .BTB_ENTRIES(BTB_SIZE), .PREDICT_ENABLE(PREDICT), .RAS_DEPTH(RAS_SIZE)
+        .BTB_ENTRIES(BTB_SIZE), .BTB_INDEX_XOR(BTB_HASH),
+        .REDIRECT_OVERLAP(OVERLAP), .RESPONSE_BYPASS(BYPASS),
+        .REDIRECT_REQUEST(DIRECT_REDIRECT),
+        .PREDICT_ENABLE(PREDICT), .RAS_DEPTH(RAS_SIZE)
     ) dut (.*);
 
     localparam integer MODEL_SIZE = 8192;
@@ -52,6 +59,7 @@ module fetch_frontend_tb #(
     integer output_streak = 0, longest_output_streak = 0;
     integer request_streak = 0, longest_request_streak = 0;
     integer same_edge_redirect_response = 0;
+    integer overlap_requests = 0, bypass_outputs = 0, redirect_requests = 0;
     integer back_to_back_training = 0, redirect_capture_training = 0;
     integer redirect_apply_training = 0, canceled_training = 0;
     logic model_training_pending = 0;
@@ -102,6 +110,7 @@ module fetch_frontend_tb #(
     logic [31:0] sampled_output_pc, sampled_output_data, sampled_output_prediction;
     logic sampled_output_error;
     integer index, live_pending;
+    logic direct_output;
     always @(posedge clock) begin
         sampled_reset = reset;
         sampled_update = update_valid;
@@ -136,8 +145,12 @@ module fetch_frontend_tb #(
             if (sampled_redirect && model_training_pending) redirect_apply_training = redirect_apply_training + 1;
             model_training_pending = sampled_update;
             if (sampled_redirect) begin
-                if (sampled_request || sampled_output)
-                    $fatal(1, "redirect accepted a new request or delivered an old instruction");
+                if (sampled_output) $fatal(1, "redirect delivered an old instruction");
+                if (sampled_request) begin
+                    if (DIRECT_REDIRECT == 0 || RAS_SIZE != 0)
+                        $fatal(1, "unexpected request on redirect edge");
+                    redirect_requests = redirect_requests + 1;
+                end
                 expected_head = expected_tail;
                 expected_fetch_pc = sampled_redirect_pc;
                 for (index = pending_head; index < pending_tail; index = index + 1)
@@ -146,9 +159,26 @@ module fetch_frontend_tb #(
                 if (sampled_response) same_edge_redirect_response = same_edge_redirect_response + 1;
             end
 
+            // Add this cycle's response before checking delivery. A response
+            // may pass through an empty FIFO in the very same cycle.
+            direct_output = sampled_output && expected_head == expected_tail;
+            if (sampled_response) begin
+                if (pending_head == pending_tail) $fatal(1, "response consumed without a request");
+                if (pending_killed[pending_head]) dropped = dropped + 1;
+                else begin
+                    expected_pc[expected_tail] = pending_pc[pending_head];
+                    expected_prediction[expected_tail] = pending_prediction[pending_head];
+                    expected_tail = expected_tail + 1;
+                end
+                pending_head = pending_head + 1;
+            end
             if (sampled_output) begin
                 if (expected_head == expected_tail)
                     $fatal(1, "instruction delivered without an earlier cache response");
+                if (direct_output) begin
+                    if (BYPASS == 0 || !sampled_response) $fatal(1, "unexpected response bypass");
+                    bypass_outputs = bypass_outputs + 1;
+                end
                 if (sampled_output_pc !== expected_pc[expected_head]
                     || sampled_output_prediction !== expected_prediction[expected_head]
                     || sampled_output_data !== memory_word(expected_pc[expected_head])
@@ -164,23 +194,17 @@ module fetch_frontend_tb #(
                 if (output_streak > longest_output_streak) longest_output_streak = output_streak;
             end else output_streak = 0;
 
-            if (sampled_response) begin
-                if (pending_head == pending_tail) $fatal(1, "response consumed without a request");
-                if (pending_killed[pending_head]) dropped = dropped + 1;
-                else begin
-                    expected_pc[expected_tail] = pending_pc[pending_head];
-                    expected_prediction[expected_tail] = pending_prediction[pending_head];
-                    expected_tail = expected_tail + 1;
-                end
-                pending_head = pending_head + 1;
-            end
-
             if (sampled_request) begin
                 if (sampled_request_pc !== expected_fetch_pc)
                     $fatal(1, "request address got=%08x expected=%08x cycle=%0d",
                            sampled_request_pc, expected_fetch_pc, cycle);
-                if (pending_head < pending_tail && pending_killed[pending_head])
-                    $fatal(1, "new path request accepted before stale requests drained");
+                if (pending_head < pending_tail && pending_killed[pending_head]) begin
+                    // Direct redirect requests can remain backpressured after
+                    // the redirect pulse, even in legacy full-drain mode.
+                    if (OVERLAP == 0 && !(DIRECT_REDIRECT != 0 && RAS_SIZE == 0))
+                        $fatal(1, "new path request accepted before stale requests drained");
+                    overlap_requests = overlap_requests + 1;
+                end
                 pending_pc[pending_tail] = sampled_request_pc;
                 pending_prediction[pending_tail] = prediction(sampled_request_pc);
                 pending_due[pending_tail] = cycle + response_latency
@@ -497,6 +521,20 @@ module fetch_frontend_tb #(
         redirect_valid = 0;
         pause_and_clear();
 
+        // Explicit free-credit redirect, including a one-slot frontend where
+        // random redirects usually coincide with its sole outstanding request.
+        if (DIRECT_REDIRECT != 0 && RAS_SIZE == 0) begin
+            @(negedge clock);
+            redirect_pc = 32'h3800;
+            redirect_valid = 1;
+            cache_accept = 1;
+            @(negedge clock);
+            redirect_valid = 0;
+            cache_accept = 0;
+            steps(15);
+            pause_and_clear();
+        end
+
         // Multiple redirects while old accepted requests are still pending.
         variable_latency = 0;
         response_latency = 40;
@@ -565,7 +603,8 @@ module fetch_frontend_tb #(
         run_from(32'h100, 50);
 
         // Full PC tags prevent a collision from borrowing another target.
-        alias_pc = 32'h100 + (32'd1 << (BI+2));
+        // Flipping the same bit in both adjacent fields preserves their XOR.
+        alias_pc = 32'h100 ^ (32'd1 << (BI+2)) ^ (BTB_HASH != 0 ? 32'd4 : 32'd0);
         train(alias_pc, alias_pc, 0, 1);
         expected_a_valid = 0;
         expected_b_valid = 1;
@@ -699,8 +738,16 @@ module fetch_frontend_tb #(
         if (back_to_back_training == 0 || redirect_capture_training == 0
             || redirect_apply_training == 0 || canceled_training == 0)
             $fatal(1, "training pipeline edge coverage missing");
-        $display("PASS fetch_frontend Q=%0d OUT=%0d BTB=%0d PRED=%0d RAS=%0d ras_checks=%0d accepted=%0d delivered=%0d dropped=%0d longest_output_streak=%0d",
-                 QUEUE_DEPTH, OUTSTANDING, BTB_SIZE, PREDICT, RAS_SIZE, ras_checks, accepted, delivered, dropped, longest_output_streak);
+        if (OVERLAP != 0 && QUEUE_DEPTH > 1 && OUTSTANDING > 1 && overlap_requests == 0)
+            $fatal(1, "new requests did not overlap killed contexts");
+        if (BYPASS != 0 && bypass_outputs == 0)
+            $fatal(1, "empty FIFO response bypass was not exercised");
+        if (DIRECT_REDIRECT != 0 && RAS_SIZE == 0 && redirect_requests == 0)
+            $fatal(1, "same-edge redirect request was not exercised");
+        $display("PASS fetch_frontend Q=%0d OUT=%0d BTB=%0d PRED=%0d RAS=%0d HASH=%0d OVERLAP=%0d BYPASS=%0d DIRECT=%0d ras_checks=%0d accepted=%0d delivered=%0d dropped=%0d overlap_requests=%0d bypass_outputs=%0d redirect_requests=%0d longest_output_streak=%0d",
+                 QUEUE_DEPTH, OUTSTANDING, BTB_SIZE, PREDICT, RAS_SIZE, BTB_HASH, OVERLAP, BYPASS,
+                 DIRECT_REDIRECT, ras_checks, accepted, delivered, dropped, overlap_requests, bypass_outputs,
+                 redirect_requests, longest_output_streak);
         $finish;
     end
 

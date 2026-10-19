@@ -15,7 +15,7 @@ tools/dev mac perf LATENCY=10
 
 入口自动选择 `config.macos.mk`：禁用 AppImage，使用 `clang++`、`gmake`、6 个构建任务，产物保存在 `build/macos/`，测试周期上限为 100,000,000。后续参数原样传给 Make，命令行赋值优先于配置文件。
 
-正式 CPU 已加入 `verilog/filelist.f`，以上命令现在编译和验证 V4 CPU，实施结果见 [V4 记录](experiments/v4.md)，历史基线见 [V3](experiments/v3.md)、[V2](experiments/v2.md) 与 [V1](experiments/v1.md)。独立环境自检仍保留，用于区分工具安装问题与 CPU 功能问题。原生 Mac 环境不提供课程综合结果，综合使用下述 Linux 路径。
+正式 CPU 已加入 `verilog/filelist.f`，以上命令现在编译和验证 V5 CPU，实施结果见 [V5 记录](experiments/v5.md)，历史基线见 [V4](experiments/v4.md)、[V3](experiments/v3.md)、[V2](experiments/v2.md) 与 [V1](experiments/v1.md)。独立环境自检仍保留，用于区分工具安装问题与 CPU 功能问题。原生 Mac 环境不提供课程综合结果，综合使用下述 Linux 路径。
 
 ## 2. Linux 课程工具链
 

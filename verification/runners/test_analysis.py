@@ -7,6 +7,21 @@ from analyze_trace import analyze
 
 
 class TraceAnalysis(unittest.TestCase):
+    def test_selective_branch_is_classified_after_its_later_commit(self):
+        lines = ["DISPATCH id=1 cycle=0 pc=0 insn=63", "ISSUE id=1 cycle=1 pc=0 insn=63",
+                 "COMPLETE id=1 cycle=1 pc=0 insn=63", "FLUSH id=1 cycle=2 pc=0 target=4 selective=1",
+                 "COMMIT id=1 cycle=3 pc=0 insn=63 store=0", "DISPATCH id=2 cycle=4 pc=4 insn=13",
+                 "ISSUE id=2 cycle=5 pc=4 insn=13", "COMPLETE id=2 cycle=5 pc=4 insn=13",
+                 "COMMIT id=2 cycle=6 pc=4 insn=13 store=0"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "sim.log"
+            path.write_text("".join("CPU_TRACE " + line + "\n" for line in lines)
+                            + "PASS cycles=10 result=0 expected=0\n")
+            report = analyze(path)
+        self.assertEqual(report["counts"]["conditional_flushes"], 1)
+        self.assertEqual(report["counts"].get("jump_flushes", 0), 0)
+        self.assertEqual(report["post_mispredict_branch_retirement_idle"]["sum"], 2)
+
     def test_buffered_store_uses_explicit_request_after_rob_retirement(self):
         lines = ["DISPATCH id=1 cycle=0 pc=0 insn=2023", "ISSUE id=1 cycle=1 pc=0 insn=2023",
                  "STORE_RETIRE id=1 cycle=2 pc=0",  # Textually precedes COMMIT on this edge.

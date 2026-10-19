@@ -43,6 +43,7 @@ def analyze(path: Path) -> dict:
     load_accept_wait, load_response_latency, forwarding_masks = [], [], Counter()
     previous = None
     pending_flush = None
+    flush_records, commit_records = {}, []
     cycles = None
     exit_request_cycle = None
     with path.open() as stream:
@@ -80,12 +81,12 @@ def analyze(path: Path) -> dict:
                 store_records.setdefault(identity, {})["retire"] = event["cycle"]
             elif kind == "FLUSH":
                 counts["flushes"] += 1
-                opcode = committed_controls.get(identity)
-                counts["conditional_flushes" if opcode == 0x63 else "jump_flushes"] += 1
+                flush_records[identity] = event
                 pending_flush = event["cycle"]
             elif kind == "WB_STALL":
                 counts[f"wb_stall_source_{event['source']}"] += 1
             elif kind == "COMMIT":
+                commit_records.append(event)
                 opcode = event["insn"] & 0x7F
                 counts["commits"] += 1
                 if opcode in (0x63, 0x6F, 0x67):
@@ -126,6 +127,14 @@ def analyze(path: Path) -> dict:
                 lifecycle.pop(identity, None)
     if cycles is None:
         raise ValueError(f"{path}: simulator did not report PASS")
+    # V5 can flush before the branch retires, and a still older branch can
+    # later kill that recovering branch. Classify only after all commits exist.
+    for identity in flush_records:
+        opcode = committed_controls.get(identity)
+        counts["conditional_flushes" if opcode == 0x63 else "jump_flushes" if opcode else "uncommitted_control_flushes"] += 1
+    post_branch_idle = [max(0, successor["cycle"] - branch["cycle"] - 1)
+                        for branch, successor in zip(commit_records, commit_records[1:])
+                        if branch["id"] in flush_records]
     store_commit_to_request, store_commit_to_retire, store_issue_to_commit = [], [], []
     for record in store_records.values():
         if "commit" not in record:
@@ -149,7 +158,8 @@ def analyze(path: Path) -> dict:
             "commit_gaps": dict(gaps),
             "post_store_ready_successor_fraction": round(gaps["post_store_ready_successor_idle_lower_bound"] / cycles, 6),
             "post_store_all_gap_fraction": round(gaps["post_store_idle_cycles_upper_bound"] / cycles, 6),
-            "control_mispredict_fraction": round(counts["flushes"] / controls, 6) if controls else 0,
+            "control_mispredict_fraction": round((counts["conditional_flushes"] + counts["jump_flushes"]) / controls, 6) if controls else 0,
+            "post_mispredict_branch_retirement_idle": distribution(post_branch_idle),
             "load_issue_to_complete": distribution(loads),
             "load_dispatch_to_issue": distribution(load_queue),
             "load_queue_to_request": distribution(load_accept_wait),

@@ -1,0 +1,1911 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "version": "V5 single-issue RV32IM OoO, selective recovery and parallel completion",
+  "baseline_commit": "98d4abd908e779112b5b280caef1410eae62d0eb",
+  "framework_commit": "54fc150ffc290f52aa024209ffb9a29d43856f6d",
+  "testcases_commit": "29f980727f7d99a1842a58f34091c7579ba3fe85",
+  "rtl_sha256": {
+    "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+    "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+    "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+    "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+    "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+    "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+    "verilog/memory/icache_pipeline.sv": "f1ab3dd362cf0d2c1034561831f6e4bafd323a7b26d647a162be954c91431d6d",
+    "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+    "verilog/memory/memory_system.sv": "d4f428efbdfcaccdce1278d2c266c711362b055fa9f989c2a45c64be72bc5363",
+    "verilog/frontend/fetch_frontend.sv": "9449d7e0784bef2dfe327d27477de5a465b0b962345923ad5c72f499d28f5f67",
+    "verilog/cpu_core.sv": "0a74f9a4627bd8d3697439fe1bd36e11edeed69e990cdb4f40d981787322ad06",
+    "verilog/student_top.sv": "9c4338fb2d782f9e3b60f233e647117bf54d26a87c70cbef914fd8526c6e94d9",
+    "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+  },
+  "parameters": {
+    "ROB_DEPTH": 16,
+    "PRF_SIZE": 48,
+    "IQ_DEPTH": 8,
+    "LSQ_DEPTH": 8,
+    "MEM_QUEUE_DEPTH": 8,
+    "ICACHE_BYTES": 2048,
+    "DCACHE_BYTES": 16384,
+    "CACHE_LINE_BYTES": 128,
+    "ICACHE_LINE_BYTES": 128,
+    "DCACHE_LINE_BYTES": 256,
+    "ICACHE_WAYS": 1,
+    "DCACHE_WAYS": 4,
+    "DCACHE_WRITE_BACK": 1,
+    "FAST_HIT_RESPONSE": 1,
+    "PIPELINED_STORE_HITS": 1,
+    "FAST_INSTRUCTION_RESPONSE": 1,
+    "ISSUE_WIDTH": 1,
+    "FETCH_QUEUE_DEPTH": 8,
+    "FETCH_OUTSTANDING": 4,
+    "BTB_ENTRIES": 64,
+    "BTB_INDEX_XOR": 1,
+    "LOCAL_HISTORY_BITS": 1,
+    "REDIRECT_OVERLAP": 1,
+    "RESPONSE_BYPASS": 1,
+    "REDIRECT_REQUEST": 1,
+    "RAS_DEPTH": 0,
+    "EARLY_FETCH": 1,
+    "EARLY_RECOVERY": 1,
+    "PARALLEL_COMPLETION": 1,
+    "BRANCH_CHECKPOINTS": 4,
+    "TRAIN_EXECUTE": 0,
+    "LOAD_REQUEST_BYPASS": 1,
+    "PREDICT_ENABLE": 1,
+    "TRACE": 0
+  },
+  "targets": {
+    "geomean_ipc": 0.845,
+    "frequency_above_mhz": 300,
+    "maximum_total_area_um2": 18000,
+    "ipc_met": false,
+    "frequency_met": true,
+    "area_met": true,
+    "correctness_met": true
+  },
+  "official": {
+    "latency": 10,
+    "max_cycles": 100000000,
+    "platforms": [
+      "macOS arm64, Verilator 5.052",
+      "Linux arm64, Verilator 5.020"
+    ],
+    "cycles_identical": true,
+    "correctness": [
+      {
+        "case": "correctness_add_to_100",
+        "cycles": 590,
+        "passed": true
+      },
+      {
+        "case": "correctness_array_test1",
+        "cycles": 683,
+        "passed": true
+      },
+      {
+        "case": "correctness_array_test2",
+        "cycles": 712,
+        "passed": true
+      },
+      {
+        "case": "correctness_basicopt1",
+        "cycles": 742415,
+        "passed": true
+      },
+      {
+        "case": "correctness_bulgarian",
+        "cycles": 289518,
+        "passed": true
+      },
+      {
+        "case": "correctness_expr",
+        "cycles": 741,
+        "passed": true
+      },
+      {
+        "case": "correctness_gcd",
+        "cycles": 668,
+        "passed": true
+      },
+      {
+        "case": "correctness_hanoi",
+        "cycles": 5662,
+        "passed": true
+      },
+      {
+        "case": "correctness_lvalue2",
+        "cycles": 521,
+        "passed": true
+      },
+      {
+        "case": "correctness_magic",
+        "cycles": 506707,
+        "passed": true
+      },
+      {
+        "case": "correctness_manyarguments",
+        "cycles": 548,
+        "passed": true
+      },
+      {
+        "case": "correctness_multiarray",
+        "cycles": 2572,
+        "passed": true
+      },
+      {
+        "case": "correctness_naive",
+        "cycles": 517,
+        "passed": true
+      },
+      {
+        "case": "correctness_pi",
+        "cycles": 39429694,
+        "passed": true
+      },
+      {
+        "case": "correctness_qsort",
+        "cycles": 1262256,
+        "passed": true
+      },
+      {
+        "case": "correctness_queens",
+        "cycles": 322302,
+        "passed": true
+      },
+      {
+        "case": "correctness_statement_test",
+        "cycles": 1867,
+        "passed": true
+      },
+      {
+        "case": "correctness_superloop",
+        "cycles": 435855,
+        "passed": true
+      },
+      {
+        "case": "correctness_tak",
+        "cycles": 1376269,
+        "passed": true
+      }
+    ],
+    "source_manifest": "build/v5/final-r11-root-source-sha256.json",
+    "source_manifest_sha256": "c601f17065a547d8b4bad73d4d28430f622cd7690a51855e7d9f5ab4485df0ed",
+    "all_build_sources_unchanged": true,
+    "performance": [
+      {
+        "case": "perf_median",
+        "instructions": 6961,
+        "cycles": 10549,
+        "ipc": 0.6598729737415869,
+        "passed": true
+      },
+      {
+        "case": "perf_multiply",
+        "instructions": 21722,
+        "cycles": 24643,
+        "ipc": 0.8814673538124417,
+        "passed": true
+      },
+      {
+        "case": "perf_qsort",
+        "instructions": 139900,
+        "cycles": 190224,
+        "ipc": 0.7354487341239802,
+        "passed": true
+      },
+      {
+        "case": "perf_rsort",
+        "instructions": 195719,
+        "cycles": 221759,
+        "ipc": 0.8825752280628971,
+        "passed": true
+      },
+      {
+        "case": "perf_towers",
+        "instructions": 5278,
+        "cycles": 7066,
+        "ipc": 0.7469572601188791,
+        "passed": true
+      },
+      {
+        "case": "perf_vvadd",
+        "instructions": 4524,
+        "cycles": 6630,
+        "ipc": 0.6823529411764706,
+        "passed": true
+      }
+    ],
+    "performance_geomean_ipc": 0.7598232680190469,
+    "baseline_geomean_ipc": 0.6082541422226553,
+    "geomean_improvement_percent": 24.91871658161413,
+    "platform_evidence": {
+      "macos": {
+        "logs": {
+          "build": "build/v5/final-r11-macos-build.log",
+          "test": "build/v5/final-r11-macos-test.log",
+          "perf": "build/v5/final-r11-macos-perf.log"
+        },
+        "simulator": "build/v5/final-r11-macos/sim",
+        "simulator_sha256": "dbcbdb8281d3d32849bfe19691ef6ea0d052fe95c45ef31e22ef22e1acab7d11"
+      },
+      "linux": {
+        "logs": {
+          "build": "build/v5/final-r11-linux-build.log",
+          "test": "build/v5/final-r11-linux-test.log",
+          "perf": "build/v5/final-r11-linux-perf.log"
+        },
+        "simulator": "build/v5/final-r11-linux/sim",
+        "simulator_sha256": "24e5cdfd36a0e8329dab20ea5a883be497d526fc9a0176cbff279deca9d7bacd"
+      }
+    }
+  },
+  "synthesis": {
+    "report": "build/v5/synth-r11/opt/report.json",
+    "report_sha256": "3611843e845f2a08d43607fda0696d440e09ec0c670c4a98bfbaef5e331d1e73",
+    "source_snapshot": "build/v5/synth-r11-snapshot.json",
+    "area": {
+      "logic_area_um2": 10196.231400004024,
+      "sequential_area_um2": 4716.3384,
+      "combinational_area_um2": 5479.8930000040245,
+      "sram_area_um2": 6259.5929099999985,
+      "area_um2": 16455.824310004024
+    },
+    "timing": {
+      "clock_port": "clock",
+      "clock_period_ns": 2.0,
+      "input_delay_ns": 0.2,
+      "output_delay_ns": 0.2,
+      "input_transition_ns": 0.05,
+      "clock_transition_ns": 0.05,
+      "clock_uncertainty_ns": 0.05,
+      "output_load_ff": 5.0,
+      "reset_value": 0,
+      "clock_model": "ideal",
+      "interconnect": "no_parasitics",
+      "frequency_resolution_ns": 0.001,
+      "minimum_period_ns": 3.23046875,
+      "estimated_fmax_mhz": 309.55259975816205,
+      "worst_setup_slack_ns": -1.229766,
+      "timing_analyzed": true
+    },
+    "tools": {
+      "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+      "opensta": "3.1.0"
+    },
+    "libraries": [
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_AO_RVT_TT_nldm_211120.lib",
+        "sha256": "b1ece108c0a2acd8d01c05cee6daee2834425037b1d9aad625d6f1dd640f1940"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_INVBUF_RVT_TT_nldm_220122.lib",
+        "sha256": "a4ceb32e418e1aac8667e28fbd8e9e46baf520180be4db075598a4d7c681a56e"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_OA_RVT_TT_nldm_211120.lib",
+        "sha256": "6529c6c72465cd133dfbfb03952327ab2774bb6aa4be866d78fd7bc6c58c9f6f"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_SEQ_RVT_TT_nldm_220123.lib",
+        "sha256": "57a0b403485b99ebd676942af4673ac086b86c7c75fbdc3e5c0038501dd22ba3"
+      },
+      {
+        "path": "/opt/asap7/lib/asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.lib",
+        "sha256": "fa92e6ab1481810602811b1eea54bc016a341f11fb5188d7512c026599adf038"
+      },
+      {
+        "path": "/work/build/v5/synth-r11/opt/ram/fakeram_asap7_1024x8.lib",
+        "sha256": "54565b04833c6bf334d2d74cdaae3796230822dc853c41f7846235dfb1c66da1"
+      },
+      {
+        "path": "/work/build/v5/synth-r11/opt/ram/fakeram_asap7_16x20.lib",
+        "sha256": "e4125e8344b62b27b23975d925cdd50e01fa21f2f2044e272ff71ea878eafa2d"
+      },
+      {
+        "path": "/work/build/v5/synth-r11/opt/ram/fakeram_asap7_16x21.lib",
+        "sha256": "62e6c63e736ed2bb3790c9d982a74036c580f0756945f75be54b49d62dfdf2aa"
+      },
+      {
+        "path": "/work/build/v5/synth-r11/opt/ram/fakeram_asap7_512x8.lib",
+        "sha256": "76008a32e7c01d04fd0e8c2c1ec8bea9fd8579e47ac559731b2d98fa3b539a07"
+      }
+    ],
+    "sram_model": {
+      "name": "fakeram-asap7-v1",
+      "upstream": "ABKGroup/FakeRAM2.0",
+      "commit": "49dad15badc28a55363813e105c830c7776fc588",
+      "estimated": true,
+      "area_per_bit_um2": 0.0419904,
+      "clock_to_q_formula_ns": "0.071262 + 0.0000167155 * depth + 0.001243254 * width",
+      "setup_ns": 0.05,
+      "hold_ns": 0.05,
+      "min_period_ns": 0.157
+    },
+    "audit": "build/v5/analysis-r11/audit.json",
+    "source_and_framework_audit": {
+      "all_snapshot_inputs_match_report": true,
+      "snapshot_unchanged": true,
+      "current_rtl_matches_snapshot": true,
+      "standard_libraries_match_v4": true,
+      "sram_model_matches_v4": true,
+      "tools_match_v4": true,
+      "constraints_match_v4": true,
+      "abc_target_2000ps": true,
+      "framework_diff_vs_v4_empty": true,
+      "shared_sram_libraries_match_v4": true,
+      "generated_sram_libraries": {
+        "fakeram_asap7_1024x8.lib": "54565b04833c6bf334d2d74cdaae3796230822dc853c41f7846235dfb1c66da1",
+        "fakeram_asap7_16x20.lib": "e4125e8344b62b27b23975d925cdd50e01fa21f2f2044e272ff71ea878eafa2d",
+        "fakeram_asap7_16x21.lib": "62e6c63e736ed2bb3790c9d982a74036c580f0756945f75be54b49d62dfdf2aa",
+        "fakeram_asap7_512x8.lib": "76008a32e7c01d04fd0e8c2c1ec8bea9fd8579e47ac559731b2d98fa3b539a07"
+      },
+      "sram_geometry_changes_vs_v4": {
+        "added": [
+          "fakeram_asap7_16x20.lib"
+        ],
+        "removed": [
+          "fakeram_asap7_32x20.lib"
+        ],
+        "note": "Generated geometries may change with configured cache lines; all use the same official FakeRAM model/formulas."
+      },
+      "input_checks": {
+        "/work/build/v5/analysis-r11/source/verilog/execute/decoder.sv": true,
+        "/work/build/v5/analysis-r11/source/verilog/execute/alu.sv": true,
+        "/work/build/v5/analysis-r11/source/verilog/execute/muldiv_unit.sv": true,
+        "/work/build/v5/analysis-r11/source/verilog/bus/axi_lite_bridge.sv": true,
+        "/work/build/v5/analysis-r11/source/verilog/memory/blocking_cache.sv": true,
+        "/work/build/v5/analysis-r11/source/verilog/memory/icache_pipeline.sv": true,
+        "/work/build/v5/analysis-r11/source/verilog/memory/dcache_writeback.sv": true,
+        "/work/build/v5/analysis-r11/source/verilog/memory/memory_system.sv": true,
+        "/work/build/v5/analysis-r11/source/verilog/frontend/fetch_frontend.sv": true,
+        "/work/build/v5/analysis-r11/source/verilog/cpu_core.sv": true,
+        "/work/build/v5/analysis-r11/source/verilog/student_top.sv": true,
+        "/work/scripts/ram/sram_fakeram.sv": true
+      },
+      "current_source_checks": {
+        "verilog/bus/axi_lite_bridge.sv": true,
+        "verilog/cpu_core.sv": true,
+        "verilog/execute/alu.sv": true,
+        "verilog/execute/decoder.sv": true,
+        "verilog/execute/muldiv_unit.sv": true,
+        "verilog/frontend/fetch_frontend.sv": true,
+        "verilog/memory/blocking_cache.sv": true,
+        "verilog/memory/dcache_writeback.sv": true,
+        "verilog/memory/icache_pipeline.sv": true,
+        "verilog/memory/memory_system.sv": true,
+        "verilog/student_top.sv": true,
+        "verilog/filelist.f": true
+      },
+      "parameters": {
+        "ROB_DEPTH": "16",
+        "PRF_SIZE": "48",
+        "IQ_DEPTH": "8",
+        "LSQ_DEPTH": "8",
+        "MEM_QUEUE_DEPTH": "8",
+        "ICACHE_BYTES": "2048",
+        "DCACHE_BYTES": "16384",
+        "CACHE_LINE_BYTES": "128",
+        "ICACHE_LINE_BYTES": "CACHE_LINE_BYTES",
+        "DCACHE_LINE_BYTES": "256",
+        "ICACHE_WAYS": "1",
+        "DCACHE_WAYS": "4",
+        "DCACHE_WRITE_BACK": "1",
+        "FAST_HIT_RESPONSE": "1",
+        "PIPELINED_STORE_HITS": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "ISSUE_WIDTH": "1",
+        "FETCH_QUEUE_DEPTH": "8",
+        "FETCH_OUTSTANDING": "4",
+        "BTB_ENTRIES": "64",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "RAS_DEPTH": "0",
+        "EARLY_FETCH": "1",
+        "EARLY_RECOVERY": "1",
+        "PARALLEL_COMPLETION": "1",
+        "BRANCH_CHECKPOINTS": "4",
+        "TRAIN_EXECUTE": "0",
+        "LOAD_REQUEST_BYPASS": "1",
+        "PREDICT_ENABLE": "1",
+        "TRACE": "0"
+      },
+      "parameter_overrides": {},
+      "minimum_period_ns": 3.23046875,
+      "estimated_fmax_mhz": 309.55259975816205,
+      "area": {
+        "logic_area_um2": 10196.231400004024,
+        "sequential_area_um2": 4716.3384,
+        "combinational_area_um2": 5479.8930000040245,
+        "sram_area_um2": 6259.5929099999985,
+        "area_um2": 16455.824310004024
+      },
+      "constraints_comparison_note": "Ignore only write_sdc timestamp/comment lines; compare all effective commands.",
+      "direct_300mhz": {
+        "period_ns": 3.333333333333333,
+        "worst_slack_ns": 0.1035676,
+        "setup_met": true,
+        "only_analysis_clock_period_changed": true,
+        "report": "build/v5/analysis-r11/timing-300mhz.rpt"
+      },
+      "critical_path": {
+        "start": "memory.write_back.data_cache.address[8] / request_set[0]",
+        "end": "core.issue_b[30]",
+        "start_pin": "_167197_/QN",
+        "end_pin": "_169427_/D",
+        "chain": "Dcache set selects valid bits -> hit/fast response -> mem_completion_pending -> Load/MDU wb_dst selection -> IQ source match and candidate -> oldest grant[5] -> selected_ex2 / PRF and WB operand mux -> issue_b[30]",
+        "dominant_gates": [
+          {
+            "cell": "_091221_",
+            "signal": "grant[5] inverted",
+            "fanout": 151,
+            "delay_ns": 0.9633
+          },
+          {
+            "cell": "_140670_",
+            "signal": "selected_ex2 inverted",
+            "fanout": 64,
+            "delay_ns": 0.368
+          }
+        ],
+        "next_bottleneck": "Same-cycle Dcache completion-to-IQ wakeup/select-to-EX operand path, especially high-fanout grant and operand selection. Frontend next-PC/request paths are the next independent group. No additional RTL optimization performed after this result.",
+        "evidence": [
+          "build/v5/synth-r11/opt/timing.rpt",
+          "build/v5/analysis-r11/gate-signatures.txt",
+          "build/v5/analysis-r11/registers.json"
+        ],
+        "mapping_note": "Register aliases come from pre/post synthesis netlists. Intermediate aliases use logic signatures plus RTL inspection, not a formal equivalence proof."
+      }
+    },
+    "direct_300mhz": {
+      "period_ns": 3.333333333333333,
+      "worst_slack_ns": 0.1035676,
+      "setup_met": true,
+      "only_analysis_clock_period_changed": true,
+      "report": "build/v5/analysis-r11/timing-300mhz.rpt"
+    },
+    "critical_path": {
+      "start": "memory.write_back.data_cache.address[8] / request_set[0]",
+      "end": "core.issue_b[30]",
+      "start_pin": "_167197_/QN",
+      "end_pin": "_169427_/D",
+      "chain": "Dcache set selects valid bits -> hit/fast response -> mem_completion_pending -> Load/MDU wb_dst selection -> IQ source match and candidate -> oldest grant[5] -> selected_ex2 / PRF and WB operand mux -> issue_b[30]",
+      "dominant_gates": [
+        {
+          "cell": "_091221_",
+          "signal": "grant[5] inverted",
+          "fanout": 151,
+          "delay_ns": 0.9633
+        },
+        {
+          "cell": "_140670_",
+          "signal": "selected_ex2 inverted",
+          "fanout": 64,
+          "delay_ns": 0.368
+        }
+      ],
+      "next_bottleneck": "Same-cycle Dcache completion-to-IQ wakeup/select-to-EX operand path, especially high-fanout grant and operand selection. Frontend next-PC/request paths are the next independent group. No additional RTL optimization performed after this result.",
+      "evidence": [
+        "build/v5/synth-r11/opt/timing.rpt",
+        "build/v5/analysis-r11/gate-signatures.txt",
+        "build/v5/analysis-r11/registers.json"
+      ],
+      "mapping_note": "Register aliases come from pre/post synthesis netlists. Intermediate aliases use logic signatures plus RTL inspection, not a formal equivalence proof."
+    }
+  },
+  "verification": {
+    "evidence_index": "build/verification/v5-final-evidence.json",
+    "evidence_index_sha256": "b186f895b0fa51a5842239378814512f514ecb7d7f4cdef1d5725304fd1fba28",
+    "counts": {
+      "default_strict": {
+        "passed": 150,
+        "total": 150,
+        "commits": 99756
+      },
+      "small_nonpower": {
+        "passed": 100,
+        "total": 100,
+        "commits": 66504
+      },
+      "current_rtl_legacy": {
+        "passed": 100,
+        "total": 100,
+        "commits": 66504
+      },
+      "performance_trace": {
+        "passed": 6,
+        "total": 6,
+        "commits": 374104
+      },
+      "writeback_faults": {
+        "passed": 12,
+        "total": 12,
+        "commits": 792
+      },
+      "faults_native": {
+        "passed": 27,
+        "total": 27,
+        "commits": 0
+      },
+      "faults_linux": {
+        "passed": 27,
+        "total": 27,
+        "commits": 0
+      }
+    },
+    "reports": {
+      "default_strict": "build/verification/v5-final-r11-strict/20261016-004745-775205/summary.json",
+      "small_nonpower": "build/verification/v5-final-r11-small-runs/20261016-004745-773177/summary.json",
+      "current_rtl_legacy": "build/verification/v5-final-r11-legacy-runs/20261016-004745-775775/summary.json",
+      "performance_trace": "build/verification/v5-final-r11-perf/20261016-004745-786918/summary.json",
+      "writeback_faults": "build/verification/v5-final-r11-wb-runs/summary.json",
+      "faults_native": "build/verification/v5-final-r11-faults/summary.json",
+      "faults_linux": "build/v5/final-r11-linux-faults/summary.json"
+    },
+    "builds": {
+      "v5-final-r11": {
+        "manifest": "build/verification/v5-final-r11/build.json",
+        "manifest_sha256": "e0aea6ea754d905d1b686ad9e32acc909be40e5d44cebeb4703fc6a3e0f61bd8",
+        "parameters": {
+          "TRACE": "1"
+        },
+        "simulator_sha256": "e4ae9ac78479158b64524c8e0889dfa7d0d838bf8a833634bea52dbab288a766",
+        "stale_sources": []
+      },
+      "v5-final-r11-legacy": {
+        "manifest": "build/verification/v5-final-r11-legacy/build.json",
+        "manifest_sha256": "10da1e0197b3a5914c7dbef65b4035636d4fc09714f01941e97cf2f666a44b81",
+        "parameters": {
+          "TRACE": "1",
+          "EARLY_RECOVERY": "0",
+          "PARALLEL_COMPLETION": "0"
+        },
+        "simulator_sha256": "fbdb19797942b3dee48ebe56d82b4ceef1236f901a3cea0c25ff343dce714164",
+        "stale_sources": []
+      },
+      "v5-final-r11-small": {
+        "manifest": "build/verification/v5-final-r11-small/build.json",
+        "manifest_sha256": "a83e4c0adb479f70084353cdf1fce8354f75059c5155259a8f028a36ae159ffb",
+        "parameters": {
+          "TRACE": "1",
+          "ROB_DEPTH": "5",
+          "PRF_SIZE": "37",
+          "IQ_DEPTH": "3",
+          "LSQ_DEPTH": "3",
+          "MEM_QUEUE_DEPTH": "3",
+          "BRANCH_CHECKPOINTS": "3",
+          "RAS_DEPTH": "3",
+          "DCACHE_WAYS": "1",
+          "ICACHE_BYTES": "128",
+          "DCACHE_BYTES": "128",
+          "CACHE_LINE_BYTES": "8",
+          "DCACHE_LINE_BYTES": "8",
+          "FETCH_QUEUE_DEPTH": "5",
+          "FETCH_OUTSTANDING": "3",
+          "BTB_ENTRIES": "5"
+        },
+        "simulator_sha256": "f68e1240cc0f0547538de5dc125127d70d1366a135e39c557c50072289f1fc12",
+        "stale_sources": []
+      },
+      "v5-final-r11-wb": {
+        "manifest": "build/verification/v5-final-r11-wb/build.json",
+        "manifest_sha256": "4fd9ca546c0321f1a9cb625283e94018c099041b1e78220b19c88bb2d795fef7",
+        "parameters": {
+          "TRACE": "1"
+        },
+        "simulator_sha256": "632031ee25589a0c3f7969399783ef5c2ed5b61d092a33fc06baeb2302e4ee86",
+        "stale_sources": []
+      }
+    },
+    "source_sha256": {
+      "verification/directed/README.md": "b30c0b8aca115d01941508b9c38a753507f84665fa01d376c55fec89e312acf3",
+      "verification/directed/control_cases.py": "c169bc35659272e072bd34e228d5d4f186bf34130d938772a421bec7deb44710",
+      "verification/directed/generate.py": "2043dfe3ab1d977b029253227e938aa89d5d9db0ab00cb7037cf4d6ed77c1829",
+      "verification/directed/lsu_cases.py": "0981acd3adaff0ee64a7ab7b36be9971e252a6e144729f801bead3af3f800238",
+      "verification/directed/selective_cases.py": "dd3f025555a0618fc26be366b415c01a5d0650ff517b9be283fc63ba94a5811a",
+      "verification/environment/README.md": "92d4716abd16e161ec4d35dcafdd751c88bfa225b7ae4f5b42077d4e3bef5cdf",
+      "verification/environment/student_top.sv": "9456333481279311ffe3bfa8c63083c28d27e819160d53ed9cab35ad7048666e",
+      "verification/runners/analyze_backend.py": "5949b8d9b1770019d1bbf9080795f3eecaf471af2fd57e1aa4cc069c0023bda4",
+      "verification/runners/analyze_dependencies.py": "7f486dea6cc255e4e10818d846c1cff8efb2c0ee82c7f116db2cabe658e734fe",
+      "verification/runners/analyze_trace.py": "67f4affbf4a21f57216afcc87c143ba489b3f13ab72976ec28b9f245f525df29",
+      "verification/runners/audit_cases.py": "f2a16c78200cd653ba08a48dff0b844ea8ea39557c9b92c509b6c8097f8c21e9",
+      "verification/runners/build_trace.py": "b863546b5deb9e346a1f17a1f86c7d08d1d19a36673e5f6bd9efdf406e06bd5c",
+      "verification/runners/compare_recovery.py": "f8172142404f97ef6b34a87294e6fa6617ea52f37d89c3bea8c0ef0a7fca3494",
+      "verification/runners/lsu_checks.py": "9fde24649b2d9f6f0f3cd63af3f79505b995a43dbf8419174e691eaf52ccc8b9",
+      "verification/runners/run_cpu.py": "1cd021ba3efdc0c88bb206fc81788bfe79bb7a418122c432cf53985c43ab65b9",
+      "verification/runners/run_faults.py": "362c53f01cccb857ed750740d6e764aebaf690a13483c1d5b9583235c9124ae5",
+      "verification/runners/run_linux_units.sh": "fe88280885c01782a76037c10963eacda4b4c6a2120082b64e20a42986c41735",
+      "verification/runners/run_writeback_faults.py": "460a852a97f9c7884d79a6d8333437fa2d059b5c49af055880917e7bbdf35184",
+      "verification/runners/rv32_reference.py": "fb8ca2e0d7ffdcf332ca33488ea2fb21aece85ec9bcacd40f2cb23d12e0cd115",
+      "verification/runners/screen_global_predictors.py": "c870d4c91b6b31e30c73f61ca21d4c7319ede234c06316890b458b673c025f9b",
+      "verification/runners/selective_checks.py": "80334aabd6690fc7c45a9e73cf53bb6ac8358e94a1d9b5c1201f1180d799dc7f",
+      "verification/runners/test_analysis.py": "ead3a10556927b9cd79bdb838e4b9454939ce325ff7d5b6ed43641a75b543baa",
+      "verification/runners/test_lsu_checks.py": "4709d6afa89d805b8df28ba83d2cd3a4943189b35f40759403242381b89330fa",
+      "verification/runners/test_reference.py": "d2a62b8993e37eba9aeed5aeb82c805d6e0489da684368fc26a38fd30ce65104",
+      "verification/runners/test_selective_checks.py": "ab5f4e9f1cf896100fe44b950737a17b1ca28d8c96cbaa9d33f85bd63435ecc8",
+      "verification/runners/writeback_fault_sim.cpp": "0195cd68e9bec98de633aa8c6f7dd468558e55c03af97ac87b7340e6b81ea411",
+      "verification/unit/EXECUTE.md": "2fabb762d2aa2da7125a6571db34446fca997695074845a4a7d396ccd56a9d20",
+      "verification/unit/dcache_preread_tb.sv": "851864a90492fba652d81465eed63f45186179e5737adb16c5ab787740a0f716",
+      "verification/unit/execute_decode_alu_tb.sv": "289d0f0a7dd37e093da995109b331ba2db475cd6d5e306c2f06297fe1edb741b",
+      "verification/unit/execute_muldiv_tb.sv": "f8201c2360f0ff7ffc700a23640766d88df5e3a672706ffd52258ec553faa091",
+      "verification/unit/fetch_frontend_tb.sv": "0d35da87dd2d4c38bf9a3824f4991946807343a452ba600a89666f1aecf40458",
+      "verification/unit/fetch_predictor_tb.sv": "f11a1440a0986021d196ae2a87e44802a759d9daab09cf0989608e0ba7232432",
+      "verification/unit/icache_preread_tb.sv": "ce38ce4af6720f815f30930531354e83f2c5f08dd9118769f626e830f331eb92",
+      "verification/unit/memory_system_tb.sv": "277cb34a2959caa9a93f9d6415b935c32d6dd368f4304131eea9a648f93b2b98",
+      "verification/unit/run_dcache_preread.sh": "17c71fdedf4c162a4a48cc525f0176e412e39177edc9f70e4db2d2fa9d24a2dd",
+      "verification/unit/run_execute.sh": "b35aca883cbf776edcf13bd30ab49c1e7827a79e3976a855f8ea03449e306a1d",
+      "verification/unit/run_fetch.sh": "ec495991594b780b6ab8a7c06f3a127adcd67bf096b313259d3bcbf49320d157",
+      "verification/unit/run_icache_preread.sh": "e7ab63539e3c985587769bf98739eb6702d136a50c6ad2a2efd60b77e0ed1f0e",
+      "verification/unit/run_memory_system.sh": "b601ccf11ebaea05ef37bc63803faec1a87ba15420b0afc07d0e557cdacb1b2e",
+      "verification/unit/run_writeback_memory.sh": "3587fa31677981273233737e457a8d97b22595ab55965d9a5adf58092a3eb5b2",
+      "verification/unit/writeback_memory_tb.sv": "9323b304c6be61bdc1efb9eaa91eba7e39c59d97a5636421d4bb6a9c682ff997"
+    },
+    "units": {
+      "frontend_and_execute": {
+        "source_snapshot_matches": {
+          "verilog/frontend/fetch_frontend.sv": true,
+          "verification/unit/fetch_frontend_tb.sv": true,
+          "verification/unit/fetch_predictor_tb.sv": true,
+          "verification/unit/run_fetch.sh": true,
+          "verification/runners/run_linux_units.sh": true,
+          "verilog/execute/decoder.sv": true,
+          "verilog/execute/alu.sv": true,
+          "verilog/execute/muldiv_unit.sv": true,
+          "verification/unit/execute_decode_alu_tb.sv": true,
+          "verification/unit/execute_muldiv_tb.sv": true
+        },
+        "current_unit_sources_match_snapshot": {
+          "verilog/frontend/fetch_frontend.sv": true,
+          "verification/unit/fetch_frontend_tb.sv": true,
+          "verification/unit/fetch_predictor_tb.sv": true,
+          "verification/unit/run_fetch.sh": true,
+          "verification/runners/run_linux_units.sh": true,
+          "verilog/execute/decoder.sv": true,
+          "verilog/execute/alu.sv": true,
+          "verilog/execute/muldiv_unit.sv": true,
+          "verification/unit/execute_decode_alu_tb.sv": true,
+          "verification/unit/execute_muldiv_tb.sv": true
+        },
+        "all_source_hash_checks_pass": true,
+        "linux_pass_banners": 32,
+        "linux_frontend_predictor_configs": 30,
+        "linux_execution_benches": 2,
+        "native_frontend_predictor_configs": 27,
+        "no_error_diagnostics": true,
+        "execution_checks": {
+          "decoder": 4035,
+          "alu": 6628,
+          "muldiv": 2257,
+          "muldiv_flush_scenarios": 9,
+          "muldiv_reset_cancellation": true
+        },
+        "tools": {
+          "native": "Icarus Verilog 13.0",
+          "linux": "Verilator 5.020"
+        },
+        "logs": [
+          "build/v5/unit/linux-r10.log",
+          "build/v5/unit/fetch-r10.log"
+        ],
+        "source_record": "build/v5/unit/r10-source-sha256.json"
+      },
+      "native_execute_log": "build/v5/final-native-execute.log",
+      "memory_summary": "build/v5/dcache-preread/summary.json",
+      "memory_positive_runs": 58,
+      "memory_groups": {
+        "native_writeback": 30,
+        "linux_writeback": 6,
+        "native_write_through": 3,
+        "linux_write_through": 3,
+        "native_icache_idle_noise": 4,
+        "linux_icache_idle_noise": 2,
+        "native_dcache_idle_noise": 8,
+        "linux_dcache_idle_noise": 2
+      },
+      "memory_negative_controls": [
+        {
+          "name": "icache-accept",
+          "returncode": 1,
+          "expected_diagnostic": "Idle I address caused an external read or cache installation",
+          "passed": true,
+          "log": "build/v5/dcache-preread/negative/icache-accept.run.log"
+        },
+        {
+          "name": "dcache-accept",
+          "returncode": 1,
+          "expected_diagnostic": "Idle D payload caused an external request or Store update",
+          "passed": true,
+          "log": "build/v5/dcache-preread/negative/dcache-accept.run.log"
+        },
+        {
+          "name": "dcache-write",
+          "returncode": 1,
+          "expected_diagnostic": "Idle D payload caused an array write or cache installation",
+          "passed": true,
+          "log": "build/v5/dcache-preread/negative/dcache-write.run.log"
+        }
+      ]
+    },
+    "reference_checker_tests": {
+      "passed": 31,
+      "total": 31,
+      "log": "build/verification/v5-final-r11-reference-unittest.log"
+    },
+    "assembler_audit": {
+      "passed": 50,
+      "total": 50,
+      "log": "build/verification/v5-final-r11-cases-audit.log"
+    },
+    "analysis_reports": [
+      "build/verification/v5-final-r11-memory-analysis.json",
+      "build/verification/v5-final-r11-dependency-analysis.json",
+      "build/verification/v5-final-r11-backend-analysis.json"
+    ],
+    "recovery_stage_comparison": {
+      "report": "build/verification/v5-recovery-stage-comparison.json",
+      "report_sha256": "ee1bf27cfff40c4b7775655b70779932236da4b8073d3dae94ac04dfd8aee349",
+      "definition": "For every eventually committed control with EARLY_FETCH and FLUSH, measure DISPATCH of its next architecturally committed instruction minus that control EARLY_FETCH cycle. Same EX-resolution and rename-allocation stages in both versions. Killed controls and unrelated next commits are excluded. Sum is an exposure metric, not additive causal CPI or removable-cycle estimate.",
+      "versions": {
+        "v4": {
+          "count": 11653,
+          "sum": 73489,
+          "all_six_event_weighted_mean": 6.3064446923539
+        },
+        "v5_r11": {
+          "count": 11458,
+          "sum": 23797,
+          "all_six_event_weighted_mean": 2.076889509513004
+        }
+      },
+      "reproduction": "python3 verification/runners/compare_recovery.py --baseline build/verification/v4-perf-r9/20261015-231812-452864 --candidate build/verification/v5-final-r11-perf/20261016-004745-786918 --baseline-name v4 --candidate-name v5_r11 --out build/verification/v5-recovery-stage-comparison.json"
+    },
+    "checks": {
+      "default_strict": "Every architectural commit, global memory identity and selective ROB conservation; all annotated OoO/speculation/predictor/completion/recovery timing witnesses mandatory.",
+      "small_nonpower": "Every architectural commit and global memory/recovery identity; default-window timing witnesses explicitly disabled.",
+      "current_rtl_legacy": "Same current RTL with EARLY_RECOVERY=0 and PARALLEL_COMPLETION=0; every architectural commit and global memory/recovery identity checked; default-mechanism timing witnesses explicitly disabled."
+    },
+    "qualification": [
+      "Small non-power-of-two run skips default-window timing witnesses only; every architectural commit, memory identity, and selective ROB conservation remains checked.",
+      "CPU writeback faults inject second word 0x10004. True final-word R/B errors for 256-byte lines belong to the memory-unit evidence, not these CPU cases.",
+      "V4 legacy evidence uses the frozen V4 simulator, never the current V5 defaults.",
+      "Linux diagnostic-only run uses the root-owned official simulator; source identity is recorded by the parent official build evidence."
+    ]
+  },
+  "performance_experiments": [
+    {
+      "variant": "perf-selective",
+      "geomean": 0.6126165304281947,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 15141,
+          "ipc": 0.4597450630737732
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 27685,
+          "ipc": 0.7846126061043887
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 263566,
+          "ipc": 0.5307968402601246
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 258958,
+          "ipc": 0.7557943759219642
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 8172,
+          "ipc": 0.6458639255996084
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 7999,
+          "ipc": 0.5655706963370422
+        }
+      ],
+      "build_manifest": "build/v5/perf-selective/build.json",
+      "parameters": {
+        "TRACE": "0"
+      }
+    },
+    {
+      "variant": "perf-dual",
+      "geomean": 0.6536372822708226,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 14005,
+          "ipc": 0.497036772581221
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 27318,
+          "ipc": 0.7951533787246504
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 247611,
+          "ipc": 0.5649991317025496
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 233643,
+          "ipc": 0.8376839879645442
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 8134,
+          "ipc": 0.648881239242685
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 7041,
+          "ipc": 0.6425223689816787
+        }
+      ],
+      "build_manifest": "build/v5/perf-dual/build.json",
+      "parameters": {
+        "TRACE": "0"
+      }
+    },
+    {
+      "variant": "perf-lowlat",
+      "geomean": 0.7086779811872468,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 12124,
+          "ipc": 0.5741504453975586
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 26102,
+          "ipc": 0.8321967665313003
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 216247,
+          "ipc": 0.646945391149935
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 224795,
+          "ipc": 0.8706554861095664
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7314,
+          "ipc": 0.7216297511621548
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6936,
+          "ipc": 0.6522491349480969
+        }
+      ],
+      "build_manifest": "build/v5/perf-lowlat/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1"
+      }
+    },
+    {
+      "variant": "perf-allfast",
+      "geomean": 0.7229815937990356,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 11684,
+          "ipc": 0.5957719958918178
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 25442,
+          "ipc": 0.8537850797893247
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 205884,
+          "ipc": 0.6795088496434886
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 224776,
+          "ipc": 0.8707290813965903
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7259,
+          "ipc": 0.7270973963355835
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6932,
+          "ipc": 0.6526255049047894
+        }
+      ],
+      "build_manifest": "build/v5/perf-allfast/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "TRAIN_EXECUTE": "0"
+      }
+    },
+    {
+      "variant": "perf-earlytrain",
+      "geomean": 0.7231514478699363,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 11685,
+          "ipc": 0.5957210098416774
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 25442,
+          "ipc": 0.8537850797893247
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 205581,
+          "ipc": 0.680510358447522
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 224771,
+          "ipc": 0.8707484506453235
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7259,
+          "ipc": 0.7270973963355835
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6932,
+          "ipc": 0.6526255049047894
+        }
+      ],
+      "build_manifest": "build/v5/perf-earlytrain/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "TRAIN_EXECUTE": "1"
+      }
+    },
+    {
+      "variant": "sweep-direct",
+      "geomean": 0.7381118455562731,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 11253,
+          "ipc": 0.6185905980627389
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24750,
+          "ipc": 0.8776565656565657
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 195524,
+          "ipc": 0.7155131850821382
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 224755,
+          "ipc": 0.8708104380325243
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7216,
+          "ipc": 0.731430155210643
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6922,
+          "ipc": 0.653568332851777
+        }
+      ],
+      "build_manifest": "build/v5/sweep-direct/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1"
+      }
+    },
+    {
+      "variant": "sweep-local2",
+      "geomean": 0.7379129243598977,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 11283,
+          "ipc": 0.6169458477355313
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24741,
+          "ipc": 0.8779758295946001
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 195825,
+          "ipc": 0.7144133792927359
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 224755,
+          "ipc": 0.8708104380325243
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7200,
+          "ipc": 0.7330555555555556
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6922,
+          "ipc": 0.653568332851777
+        }
+      ],
+      "build_manifest": "build/v5/sweep-local2/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "2",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1"
+      }
+    },
+    {
+      "variant": "sweep-local3",
+      "geomean": 0.7381988810556659,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 11274,
+          "ipc": 0.6174383537342558
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24699,
+          "ipc": 0.8794688044050366
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 195750,
+          "ipc": 0.7146871008939975
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 224755,
+          "ipc": 0.8708104380325243
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7204,
+          "ipc": 0.7326485285952249
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6922,
+          "ipc": 0.653568332851777
+        }
+      ],
+      "build_manifest": "build/v5/sweep-local3/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "3",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1"
+      }
+    },
+    {
+      "variant": "sweep-btb128",
+      "geomean": 0.7384224854580724,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 11253,
+          "ipc": 0.6185905980627389
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24750,
+          "ipc": 0.8776565656565657
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 195031,
+          "ipc": 0.7173218616527629
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 224755,
+          "ipc": 0.8708104380325243
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7216,
+          "ipc": 0.731430155210643
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6922,
+          "ipc": 0.653568332851777
+        }
+      ],
+      "build_manifest": "build/v5/sweep-btb128/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "BTB_ENTRIES": "128"
+      }
+    },
+    {
+      "variant": "sweep-line64",
+      "geomean": 0.7147664102983137,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 12002,
+          "ipc": 0.5799866688885186
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24956,
+          "ipc": 0.8704119249879788
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 197852,
+          "ipc": 0.707094191617977
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 228569,
+          "ipc": 0.8562797229720566
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7285,
+          "ipc": 0.7245024021962938
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 7513,
+          "ipc": 0.6021562624783708
+        }
+      ],
+      "build_manifest": "build/v5/sweep-line64/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "CACHE_LINE_BYTES": "64"
+      }
+    },
+    {
+      "variant": "sweep-line32",
+      "geomean": 0.6660679050357965,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 13533,
+          "ipc": 0.5143722751791916
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 25429,
+          "ipc": 0.8542215580636281
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 202644,
+          "ipc": 0.6903732654310022
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 241272,
+          "ipc": 0.8111964919261249
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7623,
+          "ipc": 0.6923783287419651
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 8827,
+          "ipc": 0.5125184094256259
+        }
+      ],
+      "build_manifest": "build/v5/sweep-line32/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "CACHE_LINE_BYTES": "32"
+      }
+    },
+    {
+      "variant": "sweep-loadbypass",
+      "geomean": 0.7474070331258524,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 10884,
+          "ipc": 0.6395626607864756
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24746,
+          "ipc": 0.8777984320698294
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 192129,
+          "ipc": 0.728156603115615
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 222566,
+          "ipc": 0.8793751067099198
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7125,
+          "ipc": 0.7407719298245614
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6911,
+          "ipc": 0.6546085949934887
+        }
+      ],
+      "build_manifest": "build/v5/sweep-loadbypass/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "LOAD_REQUEST_BYPASS": "1"
+      }
+    },
+    {
+      "variant": "sweep-line256",
+      "geomean": 0.7459574039968705,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 10950,
+          "ipc": 0.6357077625570776
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24676,
+          "ipc": 0.8802885394715513
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 194377,
+          "ipc": 0.719735359636171
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 223919,
+          "ipc": 0.874061602633095
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7332,
+          "ipc": 0.7198581560283688
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6654,
+          "ipc": 0.6798917944093779
+        }
+      ],
+      "build_manifest": "build/v5/sweep-line256/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "CACHE_LINE_BYTES": "256"
+      }
+    },
+    {
+      "variant": "sweep-line512",
+      "geomean": 0.7428145986814896,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 10990,
+          "ipc": 0.6333939945404914
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24688,
+          "ipc": 0.8798606610499028
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 194211,
+          "ipc": 0.7203505465704826
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 225822,
+          "ipc": 0.8666958932256379
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7378,
+          "ipc": 0.715370018975332
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6703,
+          "ipc": 0.6749216768611069
+        }
+      ],
+      "build_manifest": "build/v5/sweep-line512/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "CACHE_LINE_BYTES": "512"
+      }
+    },
+    {
+      "variant": "sweep-window24fast",
+      "geomean": 0.7396442222061365,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 11253,
+          "ipc": 0.6185905980627389
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24747,
+          "ipc": 0.8777629611670101
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 195522,
+          "ipc": 0.7155205040864967
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 220778,
+          "ipc": 0.8864968429825435
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7254,
+          "ipc": 0.7275985663082437
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6924,
+          "ipc": 0.6533795493934142
+        }
+      ],
+      "build_manifest": "build/v5/sweep-window24fast/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "ROB_DEPTH": "24",
+        "PRF_SIZE": "64",
+        "IQ_DEPTH": "12",
+        "LSQ_DEPTH": "12"
+      }
+    },
+    {
+      "variant": "sweep-d256i128",
+      "geomean": 0.7564003553646954,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 10549,
+          "ipc": 0.6598729737415869
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24643,
+          "ipc": 0.8814673538124417
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 191014,
+          "ipc": 0.7324070486980012
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 221790,
+          "ipc": 0.8824518688849813
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7229,
+          "ipc": 0.7301148153271545
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6630,
+          "ipc": 0.6823529411764706
+        }
+      ],
+      "build_manifest": "build/v5/sweep-d256i128/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "LOAD_REQUEST_BYPASS": "1",
+        "DCACHE_LINE_BYTES": "256"
+      }
+    },
+    {
+      "variant": "sweep-d256i64",
+      "geomean": 0.7561534911376505,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 10560,
+          "ipc": 0.659185606060606
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24661,
+          "ipc": 0.8808239730748956
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 191056,
+          "ipc": 0.7322460430449711
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 221876,
+          "ipc": 0.8821098271106383
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7261,
+          "ipc": 0.7268971216085939
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6598,
+          "ipc": 0.6856623219157321
+        }
+      ],
+      "build_manifest": "build/v5/sweep-d256i64/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "LOAD_REQUEST_BYPASS": "1",
+        "DCACHE_LINE_BYTES": "256",
+        "ICACHE_LINE_BYTES": "64"
+      }
+    },
+    {
+      "variant": "sweep-d256i32",
+      "geomean": 0.7521359369330103,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 10621,
+          "ipc": 0.655399679879484
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24690,
+          "ipc": 0.8797893884163629
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 191120,
+          "ipc": 0.7320008371703641
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 221967,
+          "ipc": 0.881748187793681
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7417,
+          "ipc": 0.7116084670351894
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6618,
+          "ipc": 0.6835902085222122
+        }
+      ],
+      "build_manifest": "build/v5/sweep-d256i32/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "LOAD_REQUEST_BYPASS": "1",
+        "DCACHE_LINE_BYTES": "256",
+        "ICACHE_LINE_BYTES": "32"
+      }
+    },
+    {
+      "variant": "sweep-d128i64",
+      "geomean": 0.7474438913433255,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 10888,
+          "ipc": 0.6393277002204262
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24753,
+          "ipc": 0.8775501959358462
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 192161,
+          "ipc": 0.7280353453614417
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 222634,
+          "ipc": 0.879106515626544
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7148,
+          "ipc": 0.738388360380526
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6879,
+          "ipc": 0.6576537287396423
+        }
+      ],
+      "build_manifest": "build/v5/sweep-d128i64/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "LOAD_REQUEST_BYPASS": "1",
+        "ICACHE_LINE_BYTES": "64"
+      }
+    },
+    {
+      "variant": "sweep-stores-d256i128",
+      "geomean": 0.7598232680190469,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 10549,
+          "ipc": 0.6598729737415869
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24643,
+          "ipc": 0.8814673538124417
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 190224,
+          "ipc": 0.7354487341239802
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 221759,
+          "ipc": 0.8825752280628971
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7066,
+          "ipc": 0.7469572601188791
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6630,
+          "ipc": 0.6823529411764706
+        }
+      ],
+      "build_manifest": "build/v5/sweep-stores-d256i128/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "LOAD_REQUEST_BYPASS": "1",
+        "PIPELINED_STORE_HITS": "1",
+        "DCACHE_LINE_BYTES": "256"
+      }
+    },
+    {
+      "variant": "sweep-stores-line256",
+      "geomean": 0.7587282714378333,
+      "programs": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 10579,
+          "ipc": 0.6580017014840722
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 24675,
+          "ipc": 0.8803242147922999
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 190255,
+          "ipc": 0.7353289006859215
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 221778,
+          "ipc": 0.882499616733851
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 7077,
+          "ipc": 0.7457962413452027
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 6648,
+          "ipc": 0.6805054151624549
+        }
+      ],
+      "build_manifest": "build/v5/sweep-stores-line256/build.json",
+      "parameters": {
+        "TRACE": "0",
+        "FAST_HIT_RESPONSE": "1",
+        "FAST_INSTRUCTION_RESPONSE": "1",
+        "BTB_INDEX_XOR": "1",
+        "LOCAL_HISTORY_BITS": "1",
+        "REDIRECT_OVERLAP": "1",
+        "RESPONSE_BYPASS": "1",
+        "REDIRECT_REQUEST": "1",
+        "LOAD_REQUEST_BYPASS": "1",
+        "PIPELINED_STORE_HITS": "1",
+        "CACHE_LINE_BYTES": "256"
+      }
+    }
+  ],
+  "contracts": {
+    "buffered_store_error": "Fail-stop asynchronous diagnostic with original queued PC/instruction; younger retired instructions are not rolled back.",
+    "killed_load": "Only younger uncommitted Loads are canceled; descriptors retain identity through drain and ROB/PRF reuse.",
+    "mmio": "Wait for preceding descriptor responses and full cache dirty flush; no external exit after failed preceding Store.",
+    "default_cache_misses": "One blocking miss; four ordered D-cache CPU credits.",
+    "timing": "Course ideal-clock, no-parasitics synthesis estimate, not post-layout or silicon frequency."
+  },
+  "framework_modified": false
+}

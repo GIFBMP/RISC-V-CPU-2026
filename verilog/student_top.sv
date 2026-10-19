@@ -1,4 +1,4 @@
-// Course interface. Defaults describe the V4 single-issue CPU.
+// Course interface. Defaults describe the V5 single-issue CPU.
 module student_top #(
     parameter integer ROB_DEPTH = 16,
     parameter integer PRF_SIZE = 48,
@@ -8,15 +8,30 @@ module student_top #(
     parameter integer ICACHE_BYTES = 2048,
     parameter integer DCACHE_BYTES = 16384,
     parameter integer CACHE_LINE_BYTES = 128,
+    parameter integer ICACHE_LINE_BYTES = CACHE_LINE_BYTES,
+    parameter integer DCACHE_LINE_BYTES = 256,
     parameter integer ICACHE_WAYS = 1,
     parameter integer DCACHE_WAYS = 4,
     parameter integer DCACHE_WRITE_BACK = 1,
+    parameter integer FAST_HIT_RESPONSE = 1,
+    parameter integer PIPELINED_STORE_HITS = 1,
+    parameter integer FAST_INSTRUCTION_RESPONSE = 1,
     parameter integer ISSUE_WIDTH = 1,
     parameter integer FETCH_QUEUE_DEPTH = 8,
     parameter integer FETCH_OUTSTANDING = 4,
     parameter integer BTB_ENTRIES = 64,
+    parameter integer BTB_INDEX_XOR = 1,
+    parameter integer LOCAL_HISTORY_BITS = 1,
+    parameter integer REDIRECT_OVERLAP = 1,
+    parameter integer RESPONSE_BYPASS = 1,
+    parameter integer REDIRECT_REQUEST = 1,
     parameter integer RAS_DEPTH = 0,
     parameter integer EARLY_FETCH = 1,
+    parameter integer EARLY_RECOVERY = 1,
+    parameter integer PARALLEL_COMPLETION = 1,
+    parameter integer BRANCH_CHECKPOINTS = 4,
+    parameter integer TRAIN_EXECUTE = 0,
+    parameter integer LOAD_REQUEST_BYPASS = 1,
     parameter integer PREDICT_ENABLE = 1,
     parameter integer TRACE = 0
 ) (
@@ -51,7 +66,10 @@ module student_top #(
         .ROB_DEPTH(ROB_DEPTH), .PRF_SIZE(PRF_SIZE), .IQ_DEPTH(IQ_DEPTH),
         .LSQ_DEPTH(LSQ_DEPTH), .MEM_QUEUE_DEPTH(MEM_QUEUE_DEPTH), .ISSUE_WIDTH(ISSUE_WIDTH), .TRACE(TRACE),
         .FETCH_QUEUE_DEPTH(FETCH_QUEUE_DEPTH), .FETCH_OUTSTANDING(FETCH_OUTSTANDING),
-        .BTB_ENTRIES(BTB_ENTRIES), .EARLY_FETCH(EARLY_FETCH), .RAS_DEPTH(RAS_DEPTH), .PREDICT_ENABLE(PREDICT_ENABLE)
+        .BTB_ENTRIES(BTB_ENTRIES), .BTB_INDEX_XOR(BTB_INDEX_XOR), .LOCAL_HISTORY_BITS(LOCAL_HISTORY_BITS),
+        .REDIRECT_OVERLAP(REDIRECT_OVERLAP), .RESPONSE_BYPASS(RESPONSE_BYPASS), .REDIRECT_REQUEST(REDIRECT_REQUEST), .EARLY_RECOVERY(EARLY_RECOVERY),
+        .BRANCH_CHECKPOINTS(BRANCH_CHECKPOINTS), .PARALLEL_COMPLETION(PARALLEL_COMPLETION),
+        .EARLY_FETCH(EARLY_FETCH), .TRAIN_EXECUTE(TRAIN_EXECUTE), .LOAD_REQUEST_BYPASS(LOAD_REQUEST_BYPASS), .RAS_DEPTH(RAS_DEPTH), .PREDICT_ENABLE(PREDICT_ENABLE)
     ) core (
         .clock(clock), .reset(reset),
         .i_req_valid(i_req_valid), .i_req_ready(i_req_ready), .i_req_addr(i_req_addr),
@@ -67,8 +85,10 @@ module student_top #(
     memory_system #(
         .ICACHE_BYTES(ICACHE_BYTES), .DCACHE_BYTES(DCACHE_BYTES),
         .CACHE_LINE_BYTES(CACHE_LINE_BYTES),
+        .ICACHE_LINE_BYTES(ICACHE_LINE_BYTES), .DCACHE_LINE_BYTES(DCACHE_LINE_BYTES),
         .ICACHE_WAYS(ICACHE_WAYS), .DCACHE_WAYS(DCACHE_WAYS),
-        .DCACHE_WRITE_BACK(DCACHE_WRITE_BACK)
+        .DCACHE_WRITE_BACK(DCACHE_WRITE_BACK), .FAST_HIT_RESPONSE(FAST_HIT_RESPONSE), .PIPELINED_STORE_HITS(PIPELINED_STORE_HITS),
+        .FAST_INSTRUCTION_RESPONSE(FAST_INSTRUCTION_RESPONSE)
     ) memory (
         .clock(clock), .reset(reset),
         .i_req_valid(i_req_valid), .i_req_ready(i_req_ready), .i_req_addr(i_req_addr),

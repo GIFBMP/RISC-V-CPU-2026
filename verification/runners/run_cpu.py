@@ -22,9 +22,10 @@ import time
 
 from rv32_reference import Commit, RV32
 from lsu_checks import check_lsu, check_memory_transactions
+from selective_checks import check_selective_invariants, check_selective_probe
 
-TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|FLUSH|DROP_LOAD|WB_STALL|RENAME_BYPASS|MEM_REQUEST|MEM_RESPONSE|STORE_RETIRE|LOAD_QUEUE|EARLY_FETCH|EARLY_BLOCK)\s+(.*)")
-DECIMAL = {"seq", "id", "cycle", "rd", "pdst", "store", "load_pending", "source", "write", "killed", "depth", "prev_id", "head_id", "override", "prepared"}
+TRACE = re.compile(r"CPU_TRACE\s+(COMMIT|ISSUE|COMPLETE|DISPATCH|FLUSH|DROP_LOAD|DROP_MDU|RECOVERY_HOLD|WB_STALL|WB_PAIR|CONFIG|RENAME_BYPASS|MEM_REQUEST|MEM_RESPONSE|STORE_RETIRE|LOAD_QUEUE|EARLY_FETCH|EARLY_BLOCK)\s+(.*)")
+DECIMAL = {"seq", "id", "cycle", "rd", "pdst", "store", "load_pending", "source", "write", "killed", "depth", "prev_id", "head_id", "override", "prepared", "slot", "selective", "kept", "load_id", "ex_id", "memory", "early_recovery", "dual_wb"}
 PASS = re.compile(r"^PASS cycles=(\d+) result=(\d+) expected=(\d+)\s*$")
 
 
@@ -105,20 +106,30 @@ def check_speculation(probe: dict, events: list[tuple[str, dict]]) -> tuple[str 
             if any(kind == "COMPLETE" for kind, _ in associated):
                 return "wrong-path long operation completed; required coverage is cancellation while in flight", evidence
         evidence.update({"wrong_dispatch": allocation, "wrong_issue": issue, "flush": flush})
+        if probe["kind"] == "mdu" and flush.get("selective"):
+            drop = next((fields for kind, fields in associated if kind == "DROP_MDU"
+                         and fields.get("cycle") == flush["cycle"]), None)
+            if drop is None:
+                return "selective recovery did not explicitly cancel the in-flight younger MDU", evidence
+            evidence["drop_mdu"] = drop
         if probe["kind"] in ("load", "bad_load", "writeback_load"):
             drop = next((fields for kind, fields in associated if kind == "DROP_LOAD"
                          and fields.get("cycle", -1) >= flush["cycle"]), None)
             if drop is None or not flush.get("load_pending"):
                 return "killed Load was not observed pending at flush and drained afterward", evidence
-            replacement = next((item for item in matching("DISPATCH", probe["replacement_pc"])
+            replacement_allocations = [item for pc in probe.get("replacement_pcs", [probe["replacement_pc"]])
+                                       for item in matching("DISPATCH", pc)]
+            replacement_commits = [item for pc in probe.get("replacement_pcs", [probe["replacement_pc"]])
+                                   for item in matching("COMMIT", pc)]
+            replacement = next((item for item in replacement_allocations
                                 if flush["cycle"] < item.get("cycle", -1) < drop["cycle"]
                                 and item.get("pdst") == allocation.get("pdst")
                                 and item.get("rd") == allocation.get("rd") == 7
                                 and "pdst" in item
                                 and any(commit.get("id") == item.get("id")
-                                        for commit in matching("COMMIT", probe["replacement_pc"]))), None)
+                                        for commit in replacement_commits)), None)
             evidence["drop"] = drop
-            evidence["replacement_candidates"] = matching("DISPATCH", probe["replacement_pc"])
+            evidence["replacement_candidates"] = replacement_allocations
             if replacement is None and probe.get("require_reuse", False):
                 return "required coverage missing: killed Load's physical destination reused before its stale response drained", evidence
             evidence["replacement"] = replacement
@@ -146,7 +157,8 @@ def check_prediction(probe: dict, events: list[tuple[str, dict]]) -> tuple[str |
 
 def check_pipeline(requirements: dict, events: list[tuple[str, dict]]) -> tuple[str | None, dict]:
     committed = {fields["id"] for kind, fields in events if kind == "COMMIT"}
-    evidence = {"wb_stalls": [], "rename_bypasses": []}
+    config = next((fields for kind, fields in events if kind == "CONFIG"), {})
+    evidence = {"wb_stalls": [], "rename_bypasses": [], "paired_completions": [], "config": config}
 
     def completes_once(identity: int) -> bool:
         return (identity in committed
@@ -154,6 +166,24 @@ def check_pipeline(requirements: dict, events: list[tuple[str, dict]]) -> tuple[
                 and sum(kind == "COMPLETE" and fields.get("id") == identity for kind, fields in events) == 1)
 
     for source in requirements.get("wb_stall_sources", []):
+        if config.get("dual_wb"):
+            pair = next((fields for kind, fields in events if kind == "WB_PAIR"
+                         and bool(fields.get("memory")) == (source == 1)
+                         and fields.get("load_id") != fields.get("ex_id")
+                         and all(completes_once(fields.get(key)) for key in ("load_id", "ex_id"))
+                         and all(any(event == "COMPLETE" and item.get("id") == fields[key]
+                                     and item.get("cycle") == fields["cycle"] for event, item in events)
+                                 for key in ("load_id", "ex_id"))
+                         and (any(event == "MEM_RESPONSE" and not item.get("write") and not item.get("killed")
+                                  and item.get("id") == fields["load_id"] and item.get("cycle") == fields["cycle"]
+                                  for event, item in events) if source == 1 else
+                              any(event == "COMPLETE" and item.get("id") == fields["load_id"]
+                                  and item.get("cycle") == fields["cycle"] and item.get("insn", 0) & 127 == 0x33
+                                  and item.get("insn", 0) >> 25 == 1 for event, item in events))), None)
+            if pair is None:
+                return f"dual WB lacks surviving source {source} and ordinary EX completing together exactly once", evidence
+            evidence["paired_completions"].append(pair)
+            continue
         stall = next((fields for kind, fields in events if kind == "WB_STALL"
                       and fields.get("source") == source and completes_once(fields.get("id"))
                       and any(event == "ISSUE" and item.get("id") == fields.get("id")
@@ -172,6 +202,8 @@ def check_pipeline(requirements: dict, events: list[tuple[str, dict]]) -> tuple[
 
 
 def check_recovery(probe: dict, events: list[tuple[str, dict]]) -> tuple[str | None, dict]:
+    if probe["kind"].startswith("selective_"):
+        return check_selective_probe(probe, events)
     def matching(kind, pc):
         return [fields for event, fields in events if event == kind and fields.get("pc") == pc]
     committed = {fields["id"]: fields for event, fields in events if event == "COMMIT"}
@@ -179,6 +211,28 @@ def check_recovery(probe: dict, events: list[tuple[str, dict]]) -> tuple[str | N
         if flush.get("target") != probe["target_pc"] or flush["id"] not in committed:
             continue
         older = next((item for item in matching("EARLY_FETCH", probe["older_pc"]) if item["id"] == flush["id"]), None)
+        if flush.get("selective"):
+            if not older or flush["cycle"] >= committed[flush["id"]]["cycle"]:
+                continue
+            if probe["kind"] == "older_override":
+                young = next((item for item in matching("FLUSH", probe["younger_pc"])
+                              if item.get("selective") and item["id"] > flush["id"]
+                              and item["cycle"] < older["cycle"] and item["id"] not in committed), None)
+                if young:
+                    return None, {"younger_selective_flush": young, "older_selective_flush": flush,
+                                  "older_commit": committed[flush["id"]]}
+            elif probe["kind"] == "commit_collision":
+                # V5 moves this priority boundary from older COMMIT to EX:
+                # the ready younger branch is already in IQ, but detecting
+                # older recovery must suppress its next-cycle EX selection.
+                young = next((item for item in matching("DISPATCH", probe["younger_pc"])
+                              if item["id"] > flush["id"] and item["cycle"] + 1 == older["cycle"]
+                              and item["id"] not in committed), None)
+                if young and not any(item["id"] == young["id"] for kind in ("ISSUE", "EARLY_FETCH", "FLUSH")
+                                     for item in matching(kind, probe["younger_pc"])):
+                    return None, {"ready_younger_canceled_before_selection": young,
+                                  "older_detect": older, "older_selective_flush": flush}
+            continue
         if probe["kind"] == "older_override" and older and older.get("override"):
             young = next((item for item in matching("EARLY_FETCH", probe["younger_pc"])
                           if item["id"] == older.get("prev_id") and item["cycle"] < older["cycle"]
@@ -238,8 +292,9 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
             if not parsed:
                 continue
             kind, fields = parsed
-            if pipeline or lsu or recovery or fields.get("pc") in probe_pcs:
-                observed.append((kind, fields))
+            # Recovery conservation requires all allocations, retirement and
+            # killed identities, including otherwise unannotated instructions.
+            observed.append((kind, fields))
             if kind != "COMMIT":
                 continue
             commits += 1
@@ -294,7 +349,12 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
     lsu_proof = []
     recovery_proof = []
     transaction_proof = {}
-    if not result_only and lsu and not errors:
+    selective_proof = {}
+    if not result_only and not errors:
+        error, selective_proof = check_selective_invariants(observed)
+        if error:
+            errors.append(error)
+    if not result_only and not errors:
         error, transaction_proof = check_memory_transactions(observed)
         if error:
             errors.append(error)
@@ -317,6 +377,7 @@ def run_case(case: Path, simulator: Path, out: Path, latency: int, max_cycles: i
               "prediction_evidence": prediction_proof, "pipeline_evidence": pipeline_proof,
               "lsu_evidence": lsu_proof, "memory_transaction_evidence": transaction_proof,
               "recovery_evidence": recovery_proof,
+              "selective_invariants": selective_proof,
               "checks": {"commits": not result_only, "ooo": not result_only and require_ooo,
                          "speculation": not result_only and require_speculation},
               "image_sha256": hashlib.sha256((case / "program.data").read_bytes()).hexdigest()}

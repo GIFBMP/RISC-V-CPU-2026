@@ -29,8 +29,8 @@ python3 verification/runners/audit_cases.py \
 | `random_*` | 固定种子的整数/M/访存/分支混合，默认 8 个种子，每个 250 个随机操作 |
 | `prediction_loop_exit` | taken 循环训练后的正确预测，以及最后一次 not-taken 恢复 |
 | `prediction_jalr_switch` | 同一 JALR 的目标 A→B 变化、目标恢复、每次调用的 link |
-| `prediction_btb_alias` | 相差 256 B 的两个控制流地址冲突于默认 64 项 BTB，禁止借用另一条指令的目标 |
-| `pipeline_completion` | V2 寄存 EX 被 Load/MDU 完成抢占写回端口后保持且仅执行一次；IQ 插入与源写回同拍 |
+| `prediction_btb_alias` | PC 0x100/0x4100 同时冲突于 64 项低位索引和 XOR 折叠索引，强制替换后恢复；legacy 模式保留原 256 B 间隔 |
+| `pipeline_completion` | 单写回模式强制 Load/MDU 抢占后 EX 保持；双完成模式分别强制 Load+EX、MDU+EX 同拍完成，均仅执行/提交一次；IQ 插入与源写回同拍 |
 | `memory_order_wrap` | 97 轮 Store/Load/部分字节更新，验证 ROB 槽位反复复用后的 older-store 位清理 |
 | `cache_conflict_dirty` | 7 个相差 4 KiB 的同组地址、5 轮脏行替换、部分写与全字重读 |
 | `cache_partial_allocate` | 冷 SB/SH 写分配，保留未写字节；冲突替换后逐字节核对 |
@@ -46,6 +46,11 @@ python3 verification/runners/audit_cases.py \
 | `lsu_committed_store_flush` | 已退休、尚未响应的缓冲 Store 跨 redirect 仍存活；错路 Store 不得改写其值 |
 | `early_older_override` | 年轻分支先请求提前取指，延迟执行的老分支随后以精确动态身份覆盖它 |
 | `early_commit_collision` | 老分支重定向提交与年轻分支解析同拍，必须阻止年轻提前取指覆盖老分支目标 |
+| `selective_keep_mdu` / `selective_keep_load` | 选择恢复时老长操作确实在途，保留原身份且仅完成/提交一次；恢复目标的独立指令先于老结果执行 |
+| `selective_keep_store` / `selective_keep_jalr` | 老 Store 尚在 IQ 等数据时跨恢复保留；JALR rd=rs1 的 checkpoint 保留自身 link，错误路径 WAW 不得遮蔽老映射 |
+| `selective_wrap_mdu` | 默认 ROB 的 15→0 环绕窗口按年龄保留老 MDU，禁止用槽位数值比较年龄 |
+| `selective_response_collision` | 有限间隔扫描，必须实际观察老 Load 与 MDU 响应恰在恢复拍被保持，后来唯一完成且无取消 |
+| `selective_checkpoint_full` | 老 DIV 未完成时 4 个已执行分支占满 checkpoint，第 5 个分支等待首次提交释放后才重命名 |
 
 ## 对接仿真器
 
@@ -87,6 +92,11 @@ CPU_TRACE MEM_RESPONSE id=44 cycle=220 pc=00000048 write=0 killed=0
 CPU_TRACE STORE_RETIRE id=45 cycle=221 pc=0000004c
 CPU_TRACE EARLY_FETCH id=46 cycle=222 pc=00000050 target=00000060 prev_id=47 override=1
 CPU_TRACE EARLY_BLOCK id=47 cycle=223 pc=00000054 head_id=46
+CPU_TRACE CONFIG id=0 cycle=0 pc=00000000 early_recovery=1 dual_wb=1
+CPU_TRACE FLUSH id=22 cycle=692 pc=00000054 target=00000060 load_pending=1 prepared=0 selective=1 head_id=20 kept=3 killed=4
+CPU_TRACE DROP_MDU id=23 cycle=692 pc=00000058
+CPU_TRACE RECOVERY_HOLD id=20 cycle=692 pc=0000004c source=2
+CPU_TRACE WB_PAIR id=42 cycle=200 pc=00000040 load_id=40 ex_id=42 memory=1
 ```
 
 - `seq` 是从 0 连续递增的架构退休序号；`id` 是分配时的唯一动态指令编号，冲刷后允许留空号。
@@ -101,9 +111,21 @@ CPU_TRACE EARLY_BLOCK id=47 cycle=223 pc=00000054 head_id=46
 - V2 预测测试要求指定控制流次数发生对应目标的 FLUSH，同时要求训练后的部分控制流无需 FLUSH。`pipeline_completion` 要求 Load（`source=1`）和 MDU（`source=2`）都实际阻塞过普通 EX 指令，且这些指令随后只 ISSUE/COMPLETE 一次并最终提交；RENAME_BYPASS 的 `source` 分别表示 rs1、rs2、两者同拍命中写回。
 - V4 LSU 探针区分 LOAD_QUEUE 与真正接受的 MEM_REQUEST；`depth` 是十进制，`mask` 是十六进制。逐事务检查接受/响应身份、FIFO 顺序、取消后禁止 COMPLETE/COMMIT，以及退出时不能遗留更老事务。转发探针还要求对应旧 Store 在 Load 进入队列时均已完成地址/数据计算但仍未 COMMIT。多取消探针按动态分支 `id` 排除预热时同 PC 的已提交 Load，并要求原上下文 DROP_LOAD。
 - 提前取指检查要求具体 EARLY_FETCH 覆盖事件的 `prev_id`，以及正确的老分支目标和 `FLUSH prepared=1`。同拍竞争检查要求 EARLY_BLOCK 的 `head_id` 精确对应该拍提交的老分支，且年轻分支该拍没有 EARLY_FETCH、以后没有 COMMIT。仅通过最终结果不能满足这些要求。
+- V5 选择恢复按全部 DISPATCH/COMMIT/STORE_RETIRE 重建 ROB 活跃身份，在每次 FLUSH 检查 head、保留数、取消数和年龄边界；任何被杀动态 id 后续 ISSUE/COMPLETE/COMMIT 均失败。uncached Store 的早期架构 COMMIT 不等于 ROB 退队，直到 STORE_RETIRE 才从活跃集合移除。该守恒检查在小参数回归中也不跳过。
+- V5 的 `early_older_override` 要求年轻分支先真实选择恢复，随后更老分支再次恢复并取消年轻分支；`early_commit_collision` 的边界提前到 EX，要求年轻就绪分支已分配、在老分支检测恢复时不能被选入 EX，之后从未 ISSUE/COMMIT。按 FLUSH 的 `selective` 字段选择对应机制，不根据测试是否失败猜测模式。
+- V5 双完成检查由 CONFIG 的 `dual_wb` 显式选择。两个不同动态 id 必须各有同拍 COMPLETE，两个最终都提交且只有一次 ISSUE/COMPLETE；Load 对应真实未取消 MEM_RESPONSE，MDU 对应 M 指令完成。旧单写回配置仍要求两种真实 WB_STALL。`slot/selective/kept/killed/load_id/ex_id` 均按十进制解析。
 - `--no-ooo` 和 `--no-speculation-coverage` 供小队列参数的纯功能回归或定位问题使用，只跳过对应计时覆盖，始终保留逐条提交对比。后者也跳过依赖默认 BTB 布局和默认流水窗口的 V2 预测/写回争用覆盖；报告记录实际启用的检查。`--result-only` 同时跳过全部轨迹检查，不能用于完整 CPU 验收。
 
-默认生成 **43 组**（35 组定向、8 个随机种子；V3 冻结版本为 31 组）。完整运行示例：
+默认生成 V5 的 **50 组**（42 组定向、8 个随机种子）。`--recovery-mode legacy` 保留 V4 原始 **43 组**时序刺激；V3 冻结版本为 31 组。早恢复会在原错误路径操作发射前清空窗口，因此 V5 刺激让分支等待真实 producer，再证明同样严格的在途取消、排空和复用。两种模式都逐提交核对，不能以覆盖豁免代替各自默认严格验收。当前快速响应配置用已预热的 Store 命中队列制造真实端口背压，确保至少两笔 Load 已接受且在恢复时仍在途；恢复边界测试还分别证明旧 Load 与 MDU 结果恰在恢复拍被保留，并唯一完成和退休。V5 完整运行示例：
+
+```sh
+python3 verification/directed/generate.py --out build/verification/v5-cases
+python3 verification/runners/build_trace.py --out build/verification/v5-trace
+python3 verification/runners/run_cpu.py --sim build/verification/v5-trace/sim \
+  --cases build/verification/v5-cases --latencies 1,10,31
+```
+
+复现 V4 必须先在独立 checkout 中切到冻结提交 `98d4abd`，再执行该版本自己的生成器与构建脚本。当前默认硬件是 V5，`--recovery-mode legacy` 仅保留 V4 刺激，不能把当前默认构建当成 V4 硬件。以下命令在 `98d4abd` 的 checkout 中执行：
 
 ```sh
 python3 verification/directed/generate.py --out build/verification/v4-cases
@@ -114,21 +136,31 @@ python3 verification/runners/run_faults.py --sim build/verification/v4-trace/sim
   --out build/verification/v4-faults --latencies 1,10,31
 ```
 
-非 2 的幂小参数配置的纯功能回归示例：
+当前 V5 非 2 的幂小参数配置的纯功能回归示例（先生成上面的 V5 cases；D 行宽必须独立覆盖为 8 B）：
 
 ```sh
-python3 verification/runners/build_trace.py --out build/verification/v4-trace-small \
+python3 verification/runners/build_trace.py --out build/verification/v5-trace-small \
   --param ROB_DEPTH=5 --param PRF_SIZE=37 --param IQ_DEPTH=3 --param LSQ_DEPTH=3 \
-  --param MEM_QUEUE_DEPTH=3 --param RAS_DEPTH=3 --param DCACHE_WAYS=1 \
+  --param MEM_QUEUE_DEPTH=3 --param BRANCH_CHECKPOINTS=3 --param RAS_DEPTH=3 --param DCACHE_WAYS=1 \
   --param ICACHE_BYTES=128 --param DCACHE_BYTES=128 --param CACHE_LINE_BYTES=8 \
+  --param DCACHE_LINE_BYTES=8 \
   --param FETCH_QUEUE_DEPTH=5 --param FETCH_OUTSTANDING=3 --param BTB_ENTRIES=5
-python3 verification/runners/run_cpu.py --sim build/verification/v4-trace-small/sim \
-  --cases build/verification/v4-cases --latencies 1,10 --no-ooo --no-speculation-coverage
+python3 verification/runners/run_cpu.py --sim build/verification/v5-trace-small/sim \
+  --cases build/verification/v5-cases --latencies 1,10 --no-ooo --no-speculation-coverage
+```
+
+当前 RTL 的旧恢复/单完成参数分支也单独做功能回归，不能用冻结 V4 二进制代替这个检查。以下运行保留逐提交、全部访存身份与恢复后取消身份守恒；只跳过依赖默认机制与窗口的计时证据：
+
+```sh
+python3 verification/runners/build_trace.py --out build/verification/v5-trace-legacy \
+  --param EARLY_RECOVERY=0 --param PARALLEL_COMPLETION=0
+python3 verification/runners/run_cpu.py --sim build/verification/v5-trace-legacy/sim \
+  --cases build/verification/v5-cases --latencies 1,31 --no-ooo --no-speculation-coverage
 ```
 
 参考模型只覆盖本课要求的用户态 RV32IM，自然对齐访问；不模拟特权、异常处理、CSR、FENCE、ECALL/EBREAK 或周期性能。它不会把架构路径上非法指令、越界访问静默跳过。随机总线背压需要总线单元测试环境支持；官方仿真器延迟扫描只能覆盖不同响应延迟和其固定的从机行为，不能声称等价于任意独立通道背压测试。
 
-课程 Linux 容器包含 Verilator，未安装 Icarus。可在容器 `/work` 内运行 `verification/runners/run_linux_units.sh`，用 `--timing --assert` 编译相同的 decoder/ALU、MDU 与前端测试台；前端包含 5 个队列/预测配置和 RAS 深度 0、1、3，共 10 个单元配置。`CPU2026_LINUX_UNIT_BUILD` 控制独立输出目录，`CPU2026_UNIT_JOBS` 控制构建并行数，逐配置保存编译与执行日志。
+课程 Linux 容器包含 Verilator，未安装 Icarus。可在容器 `/work` 内运行 `verification/runners/run_linux_units.sh`，用 `--timing --assert` 编译相同的 decoder/ALU、MDU 与前端测试台；前端组合和执行单元配置以该脚本当前列表为准；脚本遇到断言错误必须返回失败。`CPU2026_LINUX_UNIT_BUILD` 控制独立输出目录，`CPU2026_UNIT_JOBS` 控制构建并行数，逐配置保存编译与执行日志。
 
 ## 从逐提交轨迹测量瓶颈
 
@@ -143,11 +175,18 @@ python3 verification/runners/analyze_trace.py \
 python3 verification/runners/analyze_dependencies.py \
   --runs build/verification/perf-trace/TIMESTAMP \
   --out build/verification/dependency-analysis.json
+python3 verification/runners/analyze_backend.py \
+  --runs build/verification/perf-trace/TIMESTAMP \
+  --out build/verification/backend-analysis.json
 ```
 
 分析器统计已提交 Load 的 ISSUE→COMPLETE 延迟分布、分配到发射等待、Store 发射到请求等待、控制流恢复比例、FLUSH 到下一次提交的间隔及写回冲突事件。Store 的 COMMIT 早于真实 ROB 退队，因此 V2 轨迹不能直接给出精确 B 等待或 Store 占据 ROB 头的周期数。分析器报告全部 Store 后的提交空档，以及其中后继指令早已完成的保守下界；两者之间还可能包含后继自身的等待。V3 新增 MEM_RESPONSE/STORE_RETIRE 后，还可准确统计请求握手→CPU 接收响应、请求握手→ROB 退队的间隔；这仍不包含请求前已在 ROB 头的等待，最终退出 Store 也可能因官方框架立即停机而没有这两个事件。Load 延迟、恢复间隔和提交空档会重叠，不能相加当成 CPI 分解。预测率仅统计已提交控制流，Load 延迟仅统计最终提交的动态指令身份。
 
 V4 优先使用显式 MEM_REQUEST 作为服务起点，另列 Store COMMIT→REQUEST、COMMIT→ROB 退队和 Load 入队→请求、请求→响应；已经先退休的 Store 不计入 REQUEST→RETIRE 分布，避免用负值误称等待时间。Store 后提交空档只是程序退休间隔，不能归因于 Store 头阻塞。依赖分析器通过已提交动态身份重建最近源寄存器生产者，统计生产者 COMPLETE→消费者 ISSUE、分支 ISSUE→FLUSH，并按下一条指令的状态分配提交空档；同样不是互斥的微架构停顿归因。方向预测回放采用已提交结果即时训练，只有理想化算法比较意义，不能作为预测 IPC。
+
+V5 的 FLUSH 可早于自身分支提交，而且年轻恢复分支可能随后被更老分支取消；统计控制流类别必须在收齐提交后匹配动态身份，未提交恢复单列。`flush_to_next_commit` 仍只是字面的下一次提交（可能是保留的老指令），`post_mispredict_branch_retirement_idle` 才表示该误预测分支退休后到架构后继的空拍。后端分析器另按指令编码统计 MUL/DIV 各操作数量、真实服务时长和处于下一退休位置的 MDU 等待区间；不能根据性能程序的名字推断用了乘除单元。
+
+`compare_recovery.py --baseline BASELINE_RUN --candidate CANDIDATE_RUN --out recovery.json` 比较相同流水级：仅对最终退休、且有 EARLY_FETCH/FLUSH 的控制指令，测量 EX 检出误预测到其下一条架构指令 DISPATCH 的间隔，并核对后继 PC 等于实际恢复目标。报告按事件加权平均及每程序分布，排除后来被取消的控制指令；这个区间同样不能直接折算可节省的 CPI。
 
 ## CPU 级写回错误注入
 

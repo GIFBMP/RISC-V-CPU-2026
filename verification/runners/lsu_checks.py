@@ -129,8 +129,14 @@ def check_lsu(probe, events):
                 response = indexed["MEM_RESPONSE"].get(identity)
                 request = indexed["MEM_REQUEST"].get(identity)
                 drop = indexed["DROP_LOAD"].get(identity)
-                if identity in commits or identity in indexed["COMPLETE"]:
-                    return "a tested wrong-path Load completed or committed", evidence
+                if identity in commits:
+                    return "a tested wrong-path Load committed", evidence
+                if identity in indexed["COMPLETE"]:
+                    # Already-completed speculation is legal. It cannot count
+                    # toward the required canceled in-flight contexts; every
+                    # selected context still needs killed response + DROP and
+                    # no completion (also enforced by transaction invariants).
+                    continue
                 if response and request and drop and response["killed"] and response["cycle"] >= flush["cycle"]:
                     killed.append({"queue": queue, "request": request, "response": response, "drop": drop})
             accepted = [item for item in killed if item["request"]["cycle"] <= flush["cycle"]]
