@@ -1,0 +1,2955 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-19",
+  "kind": "V7 architecture design and feasibility prototype; not a released V7",
+  "base_commit": "a66193614d8ac59b606eb41d0ed973a0cbc3c7e2",
+  "upstream_commit": "302f0cf3cccdaa5de084a2120e0d950c663e4cf5",
+  "testcases_commit": "29f980727f7d99a1842a58f34091c7579ba3fe85",
+  "targets": {
+    "ipc_geomean_strictly_above": 1.0985,
+    "estimated_fmax_mhz_strictly_above": 300,
+    "total_area_um2_at_most": 36000
+  },
+  "baseline": {
+    "ipc_geomean": 0.8676481522414352,
+    "area_um2": 17776.466132010435,
+    "estimated_fmax_mhz": 608.4373143196673,
+    "path": "docs/experiments/v6-abc-config-results.json",
+    "sha256": "7f80e5a4fa409550c07f34e8e9ae8ce1b6c1116b76a1221bc5d53db3e0a8f466"
+  },
+  "production_rtl_and_framework_unchanged": true,
+  "configuration_unchanged": true,
+  "configuration_sha256": {
+    "config.synth.mk": "eb8bb297631af3dc7b2eb20466b01e49a48803021ee088bc0636c8c6ee157c5e",
+    "config.mk": "d0ec1bae1fe3405ded900e758e5afa47af55775b8934a330e14701fcbdab3d98",
+    "config.macos.mk": "96f69a661dbcde6b96c6d846b1f049b2e097a56f6882673f8349716666641afe",
+    "config.linux.mk": "b2775e2560d91a25c38cfa36364b0f74e7b5c27a18ad284778e3ff7294ca725a"
+  },
+  "prototype": {
+    "snapshot": "build/v7-design/candidate-r4/verilog",
+    "patch": {
+      "path": "docs/experiments/v7-prototype.patch",
+      "sha256": "6d6dd6915a76aa2469e7464e315a16d470cb001a21dfca079536a45c23e76289"
+    },
+    "top_default_parameters": {
+      "ROB_DEPTH": 32,
+      "PRF_SIZE": 64,
+      "IQ_DEPTH": 12,
+      "LSQ_DEPTH": 16,
+      "MEM_QUEUE_DEPTH": 16,
+      "ICACHE_BYTES": 2048,
+      "DCACHE_BYTES": 32768,
+      "CACHE_LINE_BYTES": 128,
+      "ICACHE_LINE_BYTES": 128,
+      "DCACHE_LINE_BYTES": 256,
+      "ICACHE_WAYS": 1,
+      "DCACHE_WAYS": 4,
+      "DCACHE_WRITE_BACK": 1,
+      "FAST_HIT_RESPONSE": 1,
+      "PIPELINED_STORE_HITS": 1,
+      "FAST_INSTRUCTION_RESPONSE": 1,
+      "FETCH_WIDTH": 2,
+      "ISSUE_WIDTH": 2,
+      "RENAME_WIDTH": 2,
+      "COMMIT_WIDTH": 2,
+      "FETCH_QUEUE_DEPTH": 16,
+      "FETCH_OUTSTANDING": 4,
+      "BTB_ENTRIES": 64,
+      "BTB_INDEX_XOR": 1,
+      "LOCAL_HISTORY_BITS": 1,
+      "REDIRECT_OVERLAP": 1,
+      "RESPONSE_BYPASS": 1,
+      "REDIRECT_REQUEST": 1,
+      "RAS_DEPTH": 0,
+      "SELECT_LOAD": 1,
+      "EXECUTE_REDIRECT": 1,
+      "EARLY_FETCH": 1,
+      "EARLY_RECOVERY": 1,
+      "PARALLEL_COMPLETION": 1,
+      "BRANCH_CHECKPOINTS": 8,
+      "TRAIN_EXECUTE": 0,
+      "LOAD_REQUEST_BYPASS": 1,
+      "PARALLEL_STORE_ENQUEUE": 1,
+      "PREDICT_ENABLE": 1,
+      "TRACE": 0
+    },
+    "trace_override": {
+      "TRACE": 1
+    },
+    "build_manifest": {
+      "path": "build/v7-design/candidate-r4/build.json",
+      "sha256": "dd013e464a946709a619cd974b0e27c714d2449970c8caba24f5314e6d9417c6"
+    },
+    "source_sha256": {
+      "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+      "build/v7-design/candidate-r4/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+      "build/v7-design/candidate-r4/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+      "build/v7-design/candidate-r4/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+      "build/v7-design/candidate-r4/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+      "build/v7-design/candidate-r4/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+      "build/v7-design/candidate-r4/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+      "build/v7-design/candidate-r4/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+      "build/v7-design/candidate-r4/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+      "build/v7-design/candidate-r4/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+      "build/v7-design/candidate-r4/verilog/cpu_core.sv": "37a707532254f211bb631dea7bab12bbe00c49f8c129991f60127956fa6d4453",
+      "build/v7-design/candidate-r4/verilog/student_top.sv": "7ec276019ce496a86b8012fee4aea9943dc9627c717bb2048297f6298d34e8db",
+      "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+    },
+    "simulator_sha256": "0bad8ff910aa837ee9b11dd5428b1dcf4cf47ad5a3a7eabd590cba0930478d3f",
+    "performance": {
+      "latency": 10,
+      "passed": 6,
+      "total": 6,
+      "commits_compared": 374104,
+      "ipc_geomean": 1.100201368597644,
+      "ipc_margin": 0.0017013685976439152,
+      "ipc_margin_percent": 0.15488107397760853,
+      "summary": {
+        "path": "build/v7-design/candidate-r4/perf/20261019-192224-623146/summary.json",
+        "sha256": "be97899f03013308f9321727f6752b587e7b0192efdc36f70f3163a7b7b2fc14"
+      },
+      "results": [
+        {
+          "case": "perf_median",
+          "dynamic_instructions": 6961,
+          "cycles": 8624,
+          "ipc": 0.8071660482374768
+        },
+        {
+          "case": "perf_multiply",
+          "dynamic_instructions": 21722,
+          "cycles": 16694,
+          "ipc": 1.3011860548700132
+        },
+        {
+          "case": "perf_qsort",
+          "dynamic_instructions": 139900,
+          "cycles": 132395,
+          "ipc": 1.0566864307564485
+        },
+        {
+          "case": "perf_rsort",
+          "dynamic_instructions": 195719,
+          "cycles": 121282,
+          "ipc": 1.613751422305041
+        },
+        {
+          "case": "perf_towers",
+          "dynamic_instructions": 5278,
+          "cycles": 5317,
+          "ipc": 0.9926650366748166
+        },
+        {
+          "case": "perf_vvadd",
+          "dynamic_instructions": 4524,
+          "cycles": 4535,
+          "ipc": 0.997574421168688
+        }
+      ]
+    },
+    "synthesis": {
+      "report": {
+        "path": "build/v7-design/candidate-r4/synth/opt/report.json",
+        "sha256": "b27f0ed4cea4290905d00cb50d050a3e6f9af14f60b5b921d83135b39fe0b31e"
+      },
+      "abc_constraints": {
+        "driving_cell": "BUFx2_ASAP7_75t_R",
+        "output_load_ff": 1.0
+      },
+      "area": {
+        "area_um2": 30717.500924009517,
+        "logic_area_um2": 18905.769360009523,
+        "sequential_area_um2": 6966.6156,
+        "combinational_area_um2": 11939.153760009522,
+        "sram_area_um2": 11811.731563999994
+      },
+      "timing": {
+        "clock_port": "clock",
+        "clock_period_ns": 2.0,
+        "input_delay_ns": 0.2,
+        "output_delay_ns": 0.2,
+        "input_transition_ns": 0.05,
+        "clock_transition_ns": 0.05,
+        "clock_uncertainty_ns": 0.05,
+        "output_load_ff": 5.0,
+        "reset_value": 0,
+        "clock_model": "ideal",
+        "interconnect": "no_parasitics",
+        "frequency_resolution_ns": 0.001,
+        "minimum_period_ns": 3.1767578125,
+        "estimated_fmax_mhz": 314.78635106055947,
+        "worst_setup_slack_ns": -1.176495,
+        "timing_analyzed": true
+      },
+      "tools": {
+        "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+        "opensta": "3.1.0"
+      }
+    },
+    "acceptance": {
+      "ipc": true,
+      "frequency": true,
+      "area": true
+    },
+    "validation": {
+      "R2_full_architectural_correctness": {
+        "passed": 19,
+        "total": 19,
+        "commits_compared": 6929385,
+        "summary": {
+          "path": "build/v7-design/candidate-r2/correctness/20261019-191053-058551/summary.json",
+          "sha256": "bf397468bed22ff912674522364dcf0193096fb63df51a0e4826f679c17778da"
+        },
+        "results": [
+          {
+            "case": "correctness_add_to_100",
+            "cycles": 398,
+            "commits": 421,
+            "passed": true
+          },
+          {
+            "case": "correctness_array_test1",
+            "cycles": 631,
+            "commits": 131,
+            "passed": true
+          },
+          {
+            "case": "correctness_array_test2",
+            "cycles": 650,
+            "commits": 149,
+            "passed": true
+          },
+          {
+            "case": "correctness_basicopt1",
+            "cycles": 697499,
+            "commits": 142059,
+            "passed": true
+          },
+          {
+            "case": "correctness_bulgarian",
+            "cycles": 178731,
+            "commits": 265654,
+            "passed": true
+          },
+          {
+            "case": "correctness_expr",
+            "cycles": 663,
+            "commits": 291,
+            "passed": true
+          },
+          {
+            "case": "correctness_gcd",
+            "cycles": 677,
+            "commits": 82,
+            "passed": true
+          },
+          {
+            "case": "correctness_hanoi",
+            "cycles": 4101,
+            "commits": 3674,
+            "passed": true
+          },
+          {
+            "case": "correctness_lvalue2",
+            "cycles": 550,
+            "commits": 53,
+            "passed": true
+          },
+          {
+            "case": "correctness_magic",
+            "cycles": 314174,
+            "commits": 441938,
+            "passed": true
+          },
+          {
+            "case": "correctness_manyarguments",
+            "cycles": 556,
+            "commits": 37,
+            "passed": true
+          },
+          {
+            "case": "correctness_multiarray",
+            "cycles": 1698,
+            "commits": 1543,
+            "passed": true
+          },
+          {
+            "case": "correctness_naive",
+            "cycles": 545,
+            "commits": 37,
+            "passed": true
+          },
+          {
+            "case": "correctness_pi",
+            "cycles": 39421922,
+            "commits": 3117658,
+            "passed": true
+          },
+          {
+            "case": "correctness_qsort",
+            "cycles": 753283,
+            "commits": 1097111,
+            "passed": true
+          },
+          {
+            "case": "correctness_queens",
+            "cycles": 219890,
+            "commits": 265167,
+            "passed": true
+          },
+          {
+            "case": "correctness_statement_test",
+            "cycles": 1596,
+            "commits": 546,
+            "passed": true
+          },
+          {
+            "case": "correctness_superloop",
+            "cycles": 398764,
+            "commits": 371607,
+            "passed": true
+          },
+          {
+            "case": "correctness_tak",
+            "cycles": 847097,
+            "commits": 1221227,
+            "passed": true
+          }
+        ]
+      },
+      "R3_official_no_trace_correctness": {
+        "passed": 19,
+        "total": 19,
+        "cycles_match_R2": true,
+        "log": {
+          "path": "build/v7-design/candidate-r3/official-correctness.log",
+          "sha256": "bd9e3ad70b9232b868148154df8140bdebf8a57b7710fe371023eb9bee1860d8"
+        }
+      },
+      "R4_official_no_trace_correctness": {
+        "passed": 19,
+        "total": 19,
+        "cycles_match_R2_R3": true,
+        "log": {
+          "path": "build/v7-design/candidate-r4/official-correctness.log",
+          "sha256": "2d8bea56c999c305fda9c08debca81ad85e3248edb79b7959be6e3a2e21ee4c5"
+        },
+        "cycles": {
+          "correctness_add_to_100": 398,
+          "correctness_array_test1": 631,
+          "correctness_array_test2": 650,
+          "correctness_basicopt1": 697499,
+          "correctness_bulgarian": 178731,
+          "correctness_expr": 663,
+          "correctness_gcd": 677,
+          "correctness_hanoi": 4101,
+          "correctness_lvalue2": 550,
+          "correctness_magic": 314174,
+          "correctness_manyarguments": 556,
+          "correctness_multiarray": 1698,
+          "correctness_naive": 545,
+          "correctness_pi": 39421922,
+          "correctness_qsort": 753283,
+          "correctness_queens": 219890,
+          "correctness_statement_test": 1596,
+          "correctness_superloop": 398764,
+          "correctness_tak": 847097
+        },
+        "build_manifest": {
+          "path": "build/v7-design/candidate-r4/official/build.json",
+          "sha256": "d8ac68294528e73e82e0080f548d57bf9e6b22aac430ac85c495890101ca1e99"
+        },
+        "simulator_sha256": "bb797cb9dc285dce671ccefc6d35592496d972ded6110972809f017e3cd24154"
+      },
+      "R4_official_no_trace_performance": {
+        "passed": 6,
+        "total": 6,
+        "cycles_match_trace": true,
+        "log": {
+          "path": "build/v7-design/candidate-r4/official-perf.log",
+          "sha256": "98f775013811b60a362df77d8d775b6c50872e45a41029b2f2322c7f293c379d"
+        }
+      },
+      "R4_performance_cycles_match_R2_R3": true,
+      "R4_faults": {
+        "passed": 27,
+        "total": 27,
+        "latencies": [
+          1,
+          10,
+          31
+        ],
+        "summary": {
+          "path": "build/v7-design/candidate-r4/faults/summary.json",
+          "sha256": "803d5e0258f2c3bed35b40f3e48a005e74cbfddc0b738450dac509b403af25f2"
+        },
+        "results": [
+          {
+            "case": "illegal_instruction",
+            "latency": 1,
+            "expected_fault": 2,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "illegal_instruction",
+            "latency": 10,
+            "expected_fault": 2,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "illegal_instruction",
+            "latency": 31,
+            "expected_fault": 2,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "load_outside_ram",
+            "latency": 1,
+            "expected_fault": 4,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "load_outside_ram",
+            "latency": 10,
+            "expected_fault": 4,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "load_outside_ram",
+            "latency": 31,
+            "expected_fault": 4,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "store_outside_ram",
+            "latency": 1,
+            "expected_fault": 5,
+            "expected_pc": "00000008",
+            "passed": true
+          },
+          {
+            "case": "store_outside_ram",
+            "latency": 10,
+            "expected_fault": 5,
+            "expected_pc": "00000008",
+            "passed": true
+          },
+          {
+            "case": "store_outside_ram",
+            "latency": 31,
+            "expected_fault": 5,
+            "expected_pc": "00000008",
+            "passed": true
+          },
+          {
+            "case": "read_exit_mmio_x0",
+            "latency": 1,
+            "expected_fault": 4,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "read_exit_mmio_x0",
+            "latency": 10,
+            "expected_fault": 4,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "read_exit_mmio_x0",
+            "latency": 31,
+            "expected_fault": 4,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_lw",
+            "latency": 1,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_lw",
+            "latency": 10,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_lw",
+            "latency": 31,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_sh",
+            "latency": 1,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_sh",
+            "latency": 10,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_sh",
+            "latency": 31,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_jal",
+            "latency": 1,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_jal",
+            "latency": 10,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_jal",
+            "latency": 31,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_jalr",
+            "latency": 1,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_jalr",
+            "latency": 10,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "misaligned_jalr",
+            "latency": 31,
+            "expected_fault": 3,
+            "expected_pc": "00000004",
+            "passed": true
+          },
+          {
+            "case": "fetch_outside_ram",
+            "latency": 1,
+            "expected_fault": 1,
+            "expected_pc": "10000000",
+            "passed": true
+          },
+          {
+            "case": "fetch_outside_ram",
+            "latency": 10,
+            "expected_fault": 1,
+            "expected_pc": "10000000",
+            "passed": true
+          },
+          {
+            "case": "fetch_outside_ram",
+            "latency": 31,
+            "expected_fault": 1,
+            "expected_pc": "10000000",
+            "passed": true
+          }
+        ]
+      },
+      "R4_store_data_forward_progress": {
+        "passed": 18,
+        "total": 18,
+        "latencies": [
+          1,
+          10,
+          31
+        ],
+        "commits_compared": 486,
+        "generator": {
+          "path": "verification/directed/v7_design_probes.py",
+          "sha256": "cbb700dfb66f1be32d097bd6957b38f7c337d98110af6143ac2a13addd1075f4"
+        },
+        "summary": {
+          "path": "build/v7-design/candidate-r4/probes/20261019-192422-638028/summary.json",
+          "sha256": "6dd912266bc690d0fbce580be57c45af9f83695c2e0f26d78824cf0f1bb1b47d"
+        },
+        "results": [
+          {
+            "case": "late_store_alias",
+            "latency": 1,
+            "cycles": 303,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_alias",
+            "latency": 10,
+            "cycles": 336,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_alias",
+            "latency": 31,
+            "cycles": 553,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_byte_alias",
+            "latency": 1,
+            "cycles": 303,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_byte_alias",
+            "latency": 10,
+            "cycles": 336,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_byte_alias",
+            "latency": 31,
+            "cycles": 553,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_byte_nonalias",
+            "latency": 1,
+            "cycles": 265,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_byte_nonalias",
+            "latency": 10,
+            "cycles": 301,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_byte_nonalias",
+            "latency": 31,
+            "cycles": 547,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_half_alias",
+            "latency": 1,
+            "cycles": 303,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_half_alias",
+            "latency": 10,
+            "cycles": 336,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_half_alias",
+            "latency": 31,
+            "cycles": 553,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_half_nonalias",
+            "latency": 1,
+            "cycles": 265,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_half_nonalias",
+            "latency": 10,
+            "cycles": 301,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_half_nonalias",
+            "latency": 31,
+            "cycles": 547,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_nonalias",
+            "latency": 1,
+            "cycles": 265,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_nonalias",
+            "latency": 10,
+            "cycles": 301,
+            "commits": 27,
+            "passed": true
+          },
+          {
+            "case": "late_store_nonalias",
+            "latency": 31,
+            "cycles": 547,
+            "commits": 27,
+            "passed": true
+          }
+        ]
+      },
+      "R4_address_addition_equivalence": {
+        "result": "SAT-proved for all two 32-bit inputs",
+        "source": {
+          "path": "verification/formal/v7_address_equivalence.sv",
+          "sha256": "c0b294026619e1560e131a1f62a45213a44458a5b5003f3fc5135a6c3f905e66"
+        },
+        "original_proof_input": {
+          "path": "build/v7-design/candidate-r4/address_equivalence.sv",
+          "sha256": "c0b294026619e1560e131a1f62a45213a44458a5b5003f3fc5135a6c3f905e66"
+        },
+        "log": {
+          "path": "build/v7-design/candidate-r4/address-equivalence.log",
+          "sha256": "3a4bb8e08bf2420f3f91f105efeeab4eeb206664b67e2b5da0c836f56fce917f"
+        }
+      },
+      "patch_reproduction": "Applied to an independent V6 source copy; every resulting source file matches the R4 snapshot byte-for-byte"
+    },
+    "validation_scope": "R2 has full commit-by-commit correctness. R3 only separates prospective Load payload control and passes official 19-case cycle comparison. R4 only replaces address addition with a formally equivalent carry-select adder. The final R4 passes official 19-case correctness, performance with and without trace, faults and 18 forward-progress probes; complete V7 timing-coverage, small/scalar configurations, writeback-fault and Linux simulator release regressions remain."
+  },
+  "baseline_instruction_mix": {
+    "perf_median-latency10": {
+      "instructions": 6961,
+      "cycles": 10316,
+      "instruction_mix": {
+        "integer": 2022,
+        "branch": 2275,
+        "jump": 265,
+        "store": 403,
+        "load": 1996
+      },
+      "useful_width_histograms": {
+        "DISPATCH": {
+          "1": 4899,
+          "2": 1031
+        },
+        "ISSUE": {
+          "1": 4865,
+          "2": 1048
+        },
+        "COMMIT": {
+          "1": 4905,
+          "2": 1028
+        }
+      },
+      "v6_issue_class_lower_bound_cycles": 4939,
+      "two_integer_one_complex_lower_bound_cycles": 4939,
+      "committed_flushes": 482,
+      "conditional_flushes": 476,
+      "jump_flushes": 6,
+      "control_count": 2540,
+      "empty_commit_cycles": 4383,
+      "load_request_to_response": {
+        "count": 1996,
+        "sum": 3049,
+        "mean": 1.528,
+        "minimum": 1,
+        "median": 1.0,
+        "p90": 1,
+        "p99": 1,
+        "maximum": 82,
+        "histogram": {
+          "1": 1983,
+          "82": 13
+        }
+      },
+      "exit_request_to_sim_end": 604,
+      "commit_gap_next_instruction_state": {
+        "not_dispatched": 71,
+        "dispatched_waiting_issue": 623,
+        "issued_waiting_complete": 1667,
+        "complete_waiting_commit": 1368
+      }
+    },
+    "perf_multiply-latency10": {
+      "instructions": 21722,
+      "cycles": 18405,
+      "instruction_mix": {
+        "integer": 14304,
+        "branch": 6701,
+        "jump": 202,
+        "store": 108,
+        "load": 407
+      },
+      "useful_width_histograms": {
+        "DISPATCH": {
+          "1": 7398,
+          "2": 7162
+        },
+        "ISSUE": {
+          "1": 7924,
+          "2": 6899
+        },
+        "COMMIT": {
+          "1": 8656,
+          "2": 6533
+        }
+      },
+      "v6_issue_class_lower_bound_cycles": 14304,
+      "two_integer_one_complex_lower_bound_cycles": 10861,
+      "committed_flushes": 686,
+      "conditional_flushes": 682,
+      "jump_flushes": 4,
+      "control_count": 6903,
+      "empty_commit_cycles": 3216,
+      "load_request_to_response": {
+        "count": 407,
+        "sum": 841,
+        "mean": 2.066,
+        "minimum": 1,
+        "median": 1,
+        "p90": 1,
+        "p99": 1,
+        "maximum": 111,
+        "histogram": {
+          "1": 402,
+          "82": 4,
+          "111": 1
+        }
+      },
+      "exit_request_to_sim_end": 194,
+      "commit_gap_next_instruction_state": {
+        "not_dispatched": 73,
+        "dispatched_waiting_issue": 685,
+        "issued_waiting_complete": 746,
+        "complete_waiting_commit": 1468
+      }
+    },
+    "perf_qsort-latency10": {
+      "instructions": 139900,
+      "cycles": 176407,
+      "instruction_mix": {
+        "integer": 52125,
+        "branch": 37664,
+        "jump": 5327,
+        "store": 13751,
+        "load": 31033
+      },
+      "useful_width_histograms": {
+        "DISPATCH": {
+          "1": 80548,
+          "2": 29676
+        },
+        "ISSUE": {
+          "1": 77456,
+          "2": 31222
+        },
+        "COMMIT": {
+          "1": 78718,
+          "2": 30591
+        }
+      },
+      "v6_issue_class_lower_bound_cycles": 87775,
+      "two_integer_one_complex_lower_bound_cycles": 87775,
+      "committed_flushes": 10200,
+      "conditional_flushes": 10192,
+      "jump_flushes": 8,
+      "control_count": 42991,
+      "empty_commit_cycles": 67098,
+      "load_request_to_response": {
+        "count": 31033,
+        "sum": 36845,
+        "mean": 1.187,
+        "minimum": 1,
+        "median": 1,
+        "p90": 1,
+        "p99": 1,
+        "maximum": 162,
+        "histogram": {
+          "1": 30901,
+          "2": 65,
+          "82": 63,
+          "162": 4
+        }
+      },
+      "exit_request_to_sim_end": 2525,
+      "commit_gap_next_instruction_state": {
+        "not_dispatched": 204,
+        "dispatched_waiting_issue": 13457,
+        "issued_waiting_complete": 20736,
+        "complete_waiting_commit": 30126
+      }
+    },
+    "perf_rsort-latency10": {
+      "instructions": 195719,
+      "cycles": 175109,
+      "instruction_mix": {
+        "integer": 115285,
+        "branch": 11794,
+        "store": 28683,
+        "jump": 2055,
+        "load": 37902
+      },
+      "useful_width_histograms": {
+        "DISPATCH": {
+          "1": 95425,
+          "2": 50147
+        },
+        "ISSUE": {
+          "1": 95641,
+          "2": 50039
+        },
+        "COMMIT": {
+          "1": 56407,
+          "2": 69656
+        }
+      },
+      "v6_issue_class_lower_bound_cycles": 115285,
+      "two_integer_one_complex_lower_bound_cycles": 97860,
+      "committed_flushes": 37,
+      "conditional_flushes": 30,
+      "jump_flushes": 7,
+      "control_count": 13849,
+      "empty_commit_cycles": 49046,
+      "load_request_to_response": {
+        "count": 37902,
+        "sum": 51370,
+        "mean": 1.355,
+        "minimum": 1,
+        "median": 1.0,
+        "p90": 1,
+        "p99": 1,
+        "maximum": 162,
+        "histogram": {
+          "1": 37794,
+          "2": 5,
+          "82": 39,
+          "162": 64
+        }
+      },
+      "exit_request_to_sim_end": 2019,
+      "commit_gap_next_instruction_state": {
+        "not_dispatched": 351,
+        "dispatched_waiting_issue": 44,
+        "issued_waiting_complete": 27259,
+        "complete_waiting_commit": 19323
+      }
+    },
+    "perf_towers-latency10": {
+      "instructions": 5278,
+      "cycles": 6465,
+      "instruction_mix": {
+        "integer": 1727,
+        "branch": 195,
+        "store": 1621,
+        "jump": 188,
+        "load": 1547
+      },
+      "useful_width_histograms": {
+        "DISPATCH": {
+          "1": 3318,
+          "2": 980
+        },
+        "ISSUE": {
+          "1": 3360,
+          "2": 959
+        },
+        "COMMIT": {
+          "1": 3352,
+          "2": 963
+        }
+      },
+      "v6_issue_class_lower_bound_cycles": 3551,
+      "two_integer_one_complex_lower_bound_cycles": 3551,
+      "committed_flushes": 75,
+      "conditional_flushes": 55,
+      "jump_flushes": 20,
+      "control_count": 383,
+      "empty_commit_cycles": 2150,
+      "load_request_to_response": {
+        "count": 1547,
+        "sum": 1548,
+        "mean": 1.001,
+        "minimum": 1,
+        "median": 1,
+        "p90": 1,
+        "p99": 1,
+        "maximum": 2,
+        "histogram": {
+          "1": 1546,
+          "2": 1
+        }
+      },
+      "exit_request_to_sim_end": 283,
+      "commit_gap_next_instruction_state": {
+        "not_dispatched": 379,
+        "dispatched_waiting_issue": 47,
+        "issued_waiting_complete": 523,
+        "complete_waiting_commit": 868
+      }
+    },
+    "perf_vvadd-latency10": {
+      "instructions": 4524,
+      "cycles": 6111,
+      "instruction_mix": {
+        "integer": 2120,
+        "branch": 901,
+        "jump": 2,
+        "load": 1200,
+        "store": 301
+      },
+      "useful_width_histograms": {
+        "DISPATCH": {
+          "1": 3300,
+          "2": 612
+        },
+        "ISSUE": {
+          "1": 3334,
+          "2": 595
+        },
+        "COMMIT": {
+          "1": 1518,
+          "2": 1503
+        }
+      },
+      "v6_issue_class_lower_bound_cycles": 2404,
+      "two_integer_one_complex_lower_bound_cycles": 2404,
+      "committed_flushes": 8,
+      "conditional_flushes": 6,
+      "jump_flushes": 2,
+      "control_count": 903,
+      "empty_commit_cycles": 3090,
+      "load_request_to_response": {
+        "count": 1200,
+        "sum": 2417,
+        "mean": 2.014,
+        "minimum": 1,
+        "median": 1.0,
+        "p90": 1,
+        "p99": 82,
+        "maximum": 82,
+        "histogram": {
+          "1": 1183,
+          "2": 2,
+          "82": 15
+        }
+      },
+      "exit_request_to_sim_end": 440,
+      "commit_gap_next_instruction_state": {
+        "not_dispatched": 86,
+        "dispatched_waiting_issue": 6,
+        "issued_waiting_complete": 2186,
+        "complete_waiting_commit": 322
+      }
+    }
+  },
+  "screening_limitations": "Early structural prototypes were performance screens. Some were later found to need blocked-EX preservation, Load retry or latch-free selection; none is a release candidate. Do not add marginal gains or treat retirement-gap counts as additive CPI components.",
+  "screening_runs": [
+    {
+      "name": "candidate-r2",
+      "parameters": {},
+      "ipc_geomean": 1.100201368597644,
+      "summary": "build/v7-design/candidate-r2/perf/20261019-190953-221587/summary.json",
+      "cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/candidate-r2/build.json",
+      "build_manifest_sha256": "a928f6e24f11464ef7c689f11eb0690a819174fde97b95abcc861080bb0eee87",
+      "summary_sha256": "c56603da5187b51cfe45732931c6bb30c478f35a356594dba467134059cc0fcc",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/candidate-r2/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/candidate-r2/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/candidate-r2/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/candidate-r2/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/candidate-r2/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/candidate-r2/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/candidate-r2/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/candidate-r2/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/candidate-r2/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/candidate-r2/verilog/cpu_core.sv": "6073d698fdfa1e12893d03725f67e82f222c3ba466b770a2b320c86f44b22fdf",
+        "build/v7-design/candidate-r2/verilog/student_top.sv": "7ec276019ce496a86b8012fee4aea9943dc9627c717bb2048297f6298d34e8db",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "candidate-r3",
+      "parameters": {},
+      "ipc_geomean": 1.100201368597644,
+      "summary": "build/v7-design/candidate-r3/perf/20261019-191510-888150/summary.json",
+      "cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132395,
+        "perf_rsort": 121282,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/candidate-r3/build.json",
+      "build_manifest_sha256": "4df6f4499067850bb59dc8ca8c0da2643b3e052622593009139bfbba1ad72bc4",
+      "summary_sha256": "8abfa3ddc4989ca11fa44a4ac409f06ca55f0215dea6276d313c3647c8ceaba0",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/candidate-r3/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/candidate-r3/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/candidate-r3/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/candidate-r3/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/candidate-r3/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/candidate-r3/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/candidate-r3/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/candidate-r3/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/candidate-r3/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/candidate-r3/verilog/cpu_core.sv": "fc7c58935fe425ea2ee7898fbca4e9d67439fdf774eba2083e15976a0b531f39",
+        "build/v7-design/candidate-r3/verilog/student_top.sv": "7ec276019ce496a86b8012fee4aea9943dc9627c717bb2048297f6298d34e8db",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "combined",
+      "parameters": {},
+      "ipc_geomean": 0.9029221706024481,
+      "summary": "build/v7-design/combined/perf/20261019-184138-152796/summary.json",
+      "cycles": {
+        "perf_median": 9891,
+        "perf_multiply": 18029,
+        "perf_qsort": 168201,
+        "perf_rsort": 167406,
+        "perf_towers": 6231,
+        "perf_vvadd": 5831
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/combined/build.json",
+      "build_manifest_sha256": "46a5c8df532b422b0c6cb5c58b24eb6ed2e5955c5071daf7ccf7158b7038200a",
+      "summary_sha256": "ee9d1582e8ae32e07bfd23b87cae9aeaaa705fa071ef56cc4f5327b35526df88",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/combined/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/combined/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/combined/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/combined/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/combined/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/combined/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/combined/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/combined/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/combined/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/combined/verilog/cpu_core.sv": "80117723e50f5c7f2b7cdb743037b8d9672e94e30f2544269f14ac7a324d3c9e",
+        "build/v7-design/combined/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "combined-window",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 0.9322158746464556,
+      "summary": "build/v7-design/combined-window/perf/20261019-184139-455633/summary.json",
+      "cycles": {
+        "perf_median": 9364,
+        "perf_multiply": 17331,
+        "perf_qsort": 157543,
+        "perf_rsort": 168362,
+        "perf_towers": 6049,
+        "perf_vvadd": 5785
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/combined-window/build.json",
+      "build_manifest_sha256": "7bc37a0c5276756ff04ea6ca4ae7f3249a19690fe7e6e42d69806f6179a3b058",
+      "summary_sha256": "cd0b05ed8b5f089425105fd98fb71b08f0248427a1cebb8c14ab48a23eb35e2e",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/combined/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/combined/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/combined/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/combined/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/combined/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/combined/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/combined/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/combined/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/combined/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/combined/verilog/cpu_core.sv": "80117723e50f5c7f2b7cdb743037b8d9672e94e30f2544269f14ac7a324d3c9e",
+        "build/v7-design/combined/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "commit-controls",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768,
+        "TRAIN_EXECUTE": 1
+      },
+      "ipc_geomean": 1.0830543532204997,
+      "summary": "build/v7-design/commit-controls/perf/20261019-185958-025350/summary.json",
+      "cycles": {
+        "perf_median": 8805,
+        "perf_multiply": 16639,
+        "perf_qsort": 139228,
+        "perf_rsort": 123288,
+        "perf_towers": 5353,
+        "perf_vvadd": 4550
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/commit-controls/build.json",
+      "build_manifest_sha256": "600b87b772b404530535c378a8426be2beba96fb5ecbdb383467d22bb42c6dbf",
+      "summary_sha256": "f8162570563f5e3d53a05f8ba28734fcb51e68a1c85e516d4784c2ff5440b814",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/commit-controls/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/commit-controls/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/commit-controls/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/commit-controls/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/commit-controls/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/commit-controls/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/commit-controls/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/commit-controls/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/commit-controls/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/commit-controls/verilog/cpu_core.sv": "3569c6a1ca515be567787713544bfe3f3ba66a4463255f1d6eee11b6d3a00a9a",
+        "build/v7-design/commit-controls/verilog/student_top.sv": "21d083a8f44ab9a92d3229a7d83d47dbbab1d9c02af3ede83f771e72de254e1d",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "control-width",
+      "parameters": {},
+      "ipc_geomean": 0.9098925798627997,
+      "summary": "build/v7-design/control-width/perf/20261019-184349-009899/summary.json",
+      "cycles": {
+        "perf_median": 9690,
+        "perf_multiply": 18031,
+        "perf_qsort": 166087,
+        "perf_rsort": 165455,
+        "perf_towers": 6229,
+        "perf_vvadd": 5825
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/control-width/build.json",
+      "build_manifest_sha256": "ca1e6c76e01c2714822a937b4f796c0dfc401d0b0ab47b8aa4f90a2792f1625a",
+      "summary_sha256": "771519155be403d9d4271a04408372be58ead36d2271c18dc06439ce440770ac",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/control-width/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/control-width/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/control-width/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/control-width/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/control-width/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/control-width/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/control-width/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/control-width/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/control-width/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/control-width/verilog/cpu_core.sv": "e3443fbc26e227ea71e5e9f35332f757db22273ce65bc413599d92e6a9f4ad01",
+        "build/v7-design/control-width/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "control-window",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 0.9399979215661817,
+      "summary": "build/v7-design/control-window/perf/20261019-184400-285297/summary.json",
+      "cycles": {
+        "perf_median": 9153,
+        "perf_multiply": 17330,
+        "perf_qsort": 155321,
+        "perf_rsort": 166474,
+        "perf_towers": 6048,
+        "perf_vvadd": 5777
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/control-window/build.json",
+      "build_manifest_sha256": "8e19b7ff70743a620afb8e0b1f32e9e51102cb7660b69a507d5ac8e18e1ed563",
+      "summary_sha256": "a32777967f36740d8208555697a0e6465ad37df248840cdb1ef217a4118388d0",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/control-width/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/control-width/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/control-width/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/control-width/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/control-width/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/control-width/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/control-width/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/control-width/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/control-width/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/control-width/verilog/cpu_core.sv": "e3443fbc26e227ea71e5e9f35332f757db22273ce65bc413599d92e6a9f4ad01",
+        "build/v7-design/control-width/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "d32k",
+      "parameters": {
+        "DCACHE_BYTES": 32768
+      },
+      "ipc_geomean": 0.8748477132160627,
+      "summary": "build/v7-design/d32k/perf/20261019-183906-767190/summary.json",
+      "cycles": {
+        "perf_median": 10324,
+        "perf_multiply": 18413,
+        "perf_qsort": 176268,
+        "perf_rsort": 166145,
+        "perf_towers": 6473,
+        "perf_vvadd": 6119
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/d32k/build.json",
+      "build_manifest_sha256": "4f7eee9fa50019fbe6a8a1b7c8e9deff127f469435748895a6bb7bb0549a1e74",
+      "summary_sha256": "2ef2a7adfaa8a4df25a02d75bb24a61543be6fb1ad186102d31c75b5d255bd7d",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+        "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "dline128",
+      "parameters": {
+        "DCACHE_LINE_BYTES": 128
+      },
+      "ipc_geomean": 0.8532673582868949,
+      "summary": "build/v7-design/dline128/perf/20261019-183842-335410/summary.json",
+      "cycles": {
+        "perf_median": 10673,
+        "perf_multiply": 18550,
+        "perf_qsort": 177701,
+        "perf_rsort": 176694,
+        "perf_towers": 6357,
+        "perf_vvadd": 6482
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/dline128/build.json",
+      "build_manifest_sha256": "9141ccbb80826ed4fd26529bb4fd37292081f823599709604c0ba6e249b3928a",
+      "summary_sha256": "a261bb8fdb7af9f2d4de6cbb1839df9914b15476b84362944c1f515c23944eac",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+        "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "dline64",
+      "parameters": {
+        "DCACHE_LINE_BYTES": 64
+      },
+      "ipc_geomean": 0.8213234821811761,
+      "summary": "build/v7-design/dline64/perf/20261019-183854-829946/summary.json",
+      "cycles": {
+        "perf_median": 11424,
+        "perf_multiply": 18755,
+        "perf_qsort": 180336,
+        "perf_rsort": 181631,
+        "perf_towers": 6371,
+        "perf_vvadd": 7203
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/dline64/build.json",
+      "build_manifest_sha256": "92659539aeb6a60b5317e89c93e4a2a3b52b705897f49e00c6fad8a586be7b7d",
+      "summary_sha256": "5566aa69595248cd4d544f021820fcbed4fa1dd6ce5137ab480e2be0b97f797c",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+        "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "execute-d16",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 1.0681742602079816,
+      "summary": "build/v7-design/execute-d16/perf/20261019-185747-326311/summary.json",
+      "cycles": {
+        "perf_median": 8798,
+        "perf_multiply": 16734,
+        "perf_qsort": 139750,
+        "perf_rsort": 132655,
+        "perf_towers": 5378,
+        "perf_vvadd": 4534
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/execute-d16/build.json",
+      "build_manifest_sha256": "6417d15ed624c0197150e303fb7a669c7ef02f7434d9dcdb1fa6f1637c91d77d",
+      "summary_sha256": "bfc4be9a744e7c465e95b76b87994515a26145f9f30b4bfd6cba68f292f8914b",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/execute-redirect/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/execute-redirect/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/execute-redirect/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/execute-redirect/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/execute-redirect/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/execute-redirect/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/execute-redirect/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/execute-redirect/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/execute-redirect/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/execute-redirect/verilog/cpu_core.sv": "1999f0c4691db2f31da3bf64a89fee734bffd713b88b40fb7e42e3da4b5647ea",
+        "build/v7-design/execute-redirect/verilog/student_top.sv": "21d083a8f44ab9a92d3229a7d83d47dbbab1d9c02af3ede83f771e72de254e1d",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "execute-d32",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768
+      },
+      "ipc_geomean": 1.0806070597774355,
+      "summary": "build/v7-design/execute-d32/perf/20261019-185759-366005/summary.json",
+      "cycles": {
+        "perf_median": 8806,
+        "perf_multiply": 16742,
+        "perf_qsort": 139627,
+        "perf_rsort": 123293,
+        "perf_towers": 5386,
+        "perf_vvadd": 4542
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/execute-d32/build.json",
+      "build_manifest_sha256": "ffcfa8e10dc73b6665be21ef0c367b4f2156da20a8e90bd316b2bcb73c174f26",
+      "summary_sha256": "a31cc88b7f9990c1402c86dd664decc8d5226daf5b498ccb42b5772081502f5d",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/execute-redirect/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/execute-redirect/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/execute-redirect/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/execute-redirect/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/execute-redirect/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/execute-redirect/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/execute-redirect/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/execute-redirect/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/execute-redirect/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/execute-redirect/verilog/cpu_core.sv": "1999f0c4691db2f31da3bf64a89fee734bffd713b88b40fb7e42e3da4b5647ea",
+        "build/v7-design/execute-redirect/verilog/student_top.sv": "21d083a8f44ab9a92d3229a7d83d47dbbab1d9c02af3ede83f771e72de254e1d",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "execute-d32-train",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768,
+        "TRAIN_EXECUTE": 1
+      },
+      "ipc_geomean": 1.0830543532204997,
+      "summary": "build/v7-design/execute-d32-train/perf/20261019-185811-660297/summary.json",
+      "cycles": {
+        "perf_median": 8805,
+        "perf_multiply": 16639,
+        "perf_qsort": 139228,
+        "perf_rsort": 123288,
+        "perf_towers": 5353,
+        "perf_vvadd": 4550
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/execute-d32-train/build.json",
+      "build_manifest_sha256": "96276b495b35a0d887c9dc2709d5c0df303ebddc11b45dd479f5cdb9f02bbab2",
+      "summary_sha256": "e6cf1ea53a1cad6d87dc1921e09a92ac0f332672d01a52e015b32b2970b57625",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/execute-redirect/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/execute-redirect/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/execute-redirect/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/execute-redirect/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/execute-redirect/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/execute-redirect/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/execute-redirect/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/execute-redirect/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/execute-redirect/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/execute-redirect/verilog/cpu_core.sv": "1999f0c4691db2f31da3bf64a89fee734bffd713b88b40fb7e42e3da4b5647ea",
+        "build/v7-design/execute-redirect/verilog/student_top.sv": "21d083a8f44ab9a92d3229a7d83d47dbbab1d9c02af3ede83f771e72de254e1d",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "execute-r40",
+      "parameters": {
+        "ROB_DEPTH": 40,
+        "PRF_SIZE": 72,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 20,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 10,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768
+      },
+      "ipc_geomean": 1.0824548862359757,
+      "summary": "build/v7-design/execute-r40/perf/20261019-185957-018350/summary.json",
+      "cycles": {
+        "perf_median": 8780,
+        "perf_multiply": 16738,
+        "perf_qsort": 139472,
+        "perf_rsort": 123063,
+        "perf_towers": 5389,
+        "perf_vvadd": 4521
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/execute-r40/build.json",
+      "build_manifest_sha256": "06893fff0504a7de4386a5c612a0d7d9e47f39bce898f31b2e985b90985a21cf",
+      "summary_sha256": "0aefee810362ac6e5a67921228e1f124d3a6a046d8dfdb6152f8e9eed2c09c34",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/execute-redirect/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/execute-redirect/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/execute-redirect/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/execute-redirect/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/execute-redirect/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/execute-redirect/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/execute-redirect/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/execute-redirect/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/execute-redirect/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/execute-redirect/verilog/cpu_core.sv": "1999f0c4691db2f31da3bf64a89fee734bffd713b88b40fb7e42e3da4b5647ea",
+        "build/v7-design/execute-redirect/verilog/student_top.sv": "21d083a8f44ab9a92d3229a7d83d47dbbab1d9c02af3ede83f771e72de254e1d",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "execute-r48",
+      "parameters": {
+        "ROB_DEPTH": 48,
+        "PRF_SIZE": 80,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 24,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 12,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768
+      },
+      "ipc_geomean": 1.0853746677839295,
+      "summary": "build/v7-design/execute-r48/perf/20261019-190010-938373/summary.json",
+      "cycles": {
+        "perf_median": 8757,
+        "perf_multiply": 16734,
+        "perf_qsort": 139298,
+        "perf_rsort": 122862,
+        "perf_towers": 5364,
+        "perf_vvadd": 4495
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/execute-r48/build.json",
+      "build_manifest_sha256": "b0153b04fad9db6dacb2c63e946ac23b409183a002ee315887caac1e04541e9c",
+      "summary_sha256": "8cac86aafb15262413faa424b7a0feabecdf9aae9d13ff820a08176f4b681e67",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/execute-redirect/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/execute-redirect/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/execute-redirect/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/execute-redirect/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/execute-redirect/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/execute-redirect/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/execute-redirect/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/execute-redirect/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/execute-redirect/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/execute-redirect/verilog/cpu_core.sv": "1999f0c4691db2f31da3bf64a89fee734bffd713b88b40fb7e42e3da4b5647ea",
+        "build/v7-design/execute-redirect/verilog/student_top.sv": "21d083a8f44ab9a92d3229a7d83d47dbbab1d9c02af3ede83f771e72de254e1d",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "fast-d16",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 1.0650918343471811,
+      "summary": "build/v7-design/fast-d16/perf/20261019-190229-832822/summary.json",
+      "cycles": {
+        "perf_median": 8798,
+        "perf_multiply": 16737,
+        "perf_qsort": 139766,
+        "perf_rsort": 135050,
+        "perf_towers": 5377,
+        "perf_vvadd": 4531
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/fast-d16/build.json",
+      "build_manifest_sha256": "1f5f34a8bac11e6b0d9b181f22c990ed85c27c323318495c099db8daaf6d7fcf",
+      "summary_sha256": "6ec82fc22871c0e7283912e0ec0b2d9e26af5e7f05a4081fec1d7347a4019319",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/fast-commit/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/fast-commit/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/fast-commit/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/fast-commit/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/fast-commit/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/fast-commit/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/fast-commit/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/fast-commit/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/fast-commit/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/fast-commit/verilog/cpu_core.sv": "1d224864616a9b3c0c0ff877b4cdca95c00d0100401daa9324a50177085c2cbe",
+        "build/v7-design/fast-commit/verilog/student_top.sv": "651ef8678313ba2bb14d9d446fbbaba1c6786b166738e3873c23d32826303e5b",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "fast-d32",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768
+      },
+      "ipc_geomean": 1.0777548018576353,
+      "summary": "build/v7-design/fast-d32/perf/20261019-190241-651610/summary.json",
+      "cycles": {
+        "perf_median": 8806,
+        "perf_multiply": 16745,
+        "perf_qsort": 139643,
+        "perf_rsort": 125333,
+        "perf_towers": 5385,
+        "perf_vvadd": 4539
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/fast-d32/build.json",
+      "build_manifest_sha256": "b9458f8a5fc7d5a94e23f707045716df65b147a752a1c18a81e582da544520fd",
+      "summary_sha256": "940bcdbb45a20d9b647a21cf15c45944e5c4eb18464f9d0b0a8f30b34255fed2",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/fast-commit/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/fast-commit/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/fast-commit/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/fast-commit/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/fast-commit/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/fast-commit/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/fast-commit/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/fast-commit/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/fast-commit/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/fast-commit/verilog/cpu_core.sv": "1d224864616a9b3c0c0ff877b4cdca95c00d0100401daa9324a50177085c2cbe",
+        "build/v7-design/fast-commit/verilog/student_top.sv": "651ef8678313ba2bb14d9d446fbbaba1c6786b166738e3873c23d32826303e5b",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "front",
+      "parameters": {
+        "FETCH_QUEUE_DEPTH": 16,
+        "FETCH_OUTSTANDING": 8,
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 0.8885989218330675,
+      "summary": "build/v7-design/front/perf/20261019-183905-911218/summary.json",
+      "cycles": {
+        "perf_median": 9841,
+        "perf_multiply": 17872,
+        "perf_qsort": 166481,
+        "perf_rsort": 175072,
+        "perf_towers": 6426,
+        "perf_vvadd": 6096
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/front/build.json",
+      "build_manifest_sha256": "f69b14498581da8dd0e47771b0ab5cc732ea8b8e049120a6650cb789a94142c0",
+      "summary_sha256": "b7892146682794c6784223d744df551b2c5cd01099b13939c036d7f475895cb0",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+        "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "i4k",
+      "parameters": {
+        "ICACHE_BYTES": 4096
+      },
+      "ipc_geomean": 0.8676481522414352,
+      "summary": "build/v7-design/i4k/perf/20261019-183918-050158/summary.json",
+      "cycles": {
+        "perf_median": 10316,
+        "perf_multiply": 18405,
+        "perf_qsort": 176407,
+        "perf_rsort": 175109,
+        "perf_towers": 6465,
+        "perf_vvadd": 6111
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/i4k/build.json",
+      "build_manifest_sha256": "bc289863bd05c8d24efbdef8b70307134c214768eb7b34fda69750cf749225f0",
+      "summary_sha256": "72710b6ebee54c62cb41e431d83a6f2a871db577e781b0187bf02bd3641a373d",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+        "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "load-d16",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 1.0873478928790092,
+      "summary": "build/v7-design/load-d16/perf/20261019-190539-690988/summary.json",
+      "cycles": {
+        "perf_median": 8616,
+        "perf_multiply": 16686,
+        "perf_qsort": 132502,
+        "perf_rsort": 130647,
+        "perf_towers": 5309,
+        "perf_vvadd": 4527
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/load-d16/build.json",
+      "build_manifest_sha256": "6dfd944ed9db050859f31d41e600b9841b1ccc7f0150822e588e80173a42eac5",
+      "summary_sha256": "dbcb1c44434e26583e6cce3baae24d558d760c767362ec080dad47b50f27ae96",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/early-load/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/early-load/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/early-load/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/early-load/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/early-load/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/early-load/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/early-load/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/early-load/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/early-load/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/early-load/verilog/cpu_core.sv": "d4beed4862bc2deab80e3c2018ea507c340de0a72bcdb0f74041d6644e43f692",
+        "build/v7-design/early-load/verilog/student_top.sv": "076725a8378b8f7f807ab7409e9f0cd2d830f76ddcf0a301aba44606fe072a27",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "load-d32",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768
+      },
+      "ipc_geomean": 1.1002147121634154,
+      "summary": "build/v7-design/load-d32/perf/20261019-190551-321824/summary.json",
+      "cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132381,
+        "perf_rsort": 121286,
+        "perf_towers": 5317,
+        "perf_vvadd": 4535
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/load-d32/build.json",
+      "build_manifest_sha256": "03a36a361edc4ff9e35948884ba6a10c1fbb6e22d3cef1a86c297f715ed6c6a1",
+      "summary_sha256": "7e80508c24b471a0089e8a059576b98febf16dfdf323a465db93f6dc34440a06",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/early-load/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/early-load/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/early-load/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/early-load/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/early-load/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/early-load/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/early-load/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/early-load/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/early-load/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/early-load/verilog/cpu_core.sv": "d4beed4862bc2deab80e3c2018ea507c340de0a72bcdb0f74041d6644e43f692",
+        "build/v7-design/early-load/verilog/student_top.sv": "076725a8378b8f7f807ab7409e9f0cd2d830f76ddcf0a301aba44606fe072a27",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "load-d32-train",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768,
+        "TRAIN_EXECUTE": 1
+      },
+      "ipc_geomean": 1.1028685024594547,
+      "summary": "build/v7-design/load-d32-train/perf/20261019-190742-247743/summary.json",
+      "cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16590,
+        "perf_qsort": 132138,
+        "perf_rsort": 121281,
+        "perf_towers": 5273,
+        "perf_vvadd": 4544
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/load-d32-train/build.json",
+      "build_manifest_sha256": "03a6b7f9369f390834de371953ffb8ca7d3093a6236834b60d658cb8992baa05",
+      "summary_sha256": "9c69434ccc13ea390ec4895d8484454cbe486cf4da565ad262bf36f292dfad24",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/early-load/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/early-load/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/early-load/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/early-load/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/early-load/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/early-load/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/early-load/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/early-load/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/early-load/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/early-load/verilog/cpu_core.sv": "d4beed4862bc2deab80e3c2018ea507c340de0a72bcdb0f74041d6644e43f692",
+        "build/v7-design/early-load/verilog/student_top.sv": "076725a8378b8f7f807ab7409e9f0cd2d830f76ddcf0a301aba44606fe072a27",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "load-r40",
+      "parameters": {
+        "ROB_DEPTH": 40,
+        "PRF_SIZE": 72,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 20,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 10,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768
+      },
+      "ipc_geomean": 1.100905973523591,
+      "summary": "build/v7-design/load-r40/perf/20261019-190754-958667/summary.json",
+      "cycles": {
+        "perf_median": 8598,
+        "perf_multiply": 16690,
+        "perf_qsort": 132218,
+        "perf_rsort": 120946,
+        "perf_towers": 5363,
+        "perf_vvadd": 4512
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/load-r40/build.json",
+      "build_manifest_sha256": "1ee174e1d49d6f9678977f37f1fac73fb6af8d19327a4d97ce663a0ada953a7c",
+      "summary_sha256": "25b4921f2766faf7110b1dd6e76efebce36a33743c38dfb0d2302a9168c78b4e",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/early-load/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/early-load/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/early-load/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/early-load/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/early-load/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/early-load/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/early-load/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/early-load/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/early-load/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/early-load/verilog/cpu_core.sv": "d4beed4862bc2deab80e3c2018ea507c340de0a72bcdb0f74041d6644e43f692",
+        "build/v7-design/early-load/verilog/student_top.sv": "076725a8378b8f7f807ab7409e9f0cd2d830f76ddcf0a301aba44606fe072a27",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "memory-width",
+      "parameters": {},
+      "ipc_geomean": 0.8908481192572916,
+      "summary": "build/v7-design/memory-width/perf/20261019-184126-133062/summary.json",
+      "cycles": {
+        "perf_median": 9893,
+        "perf_multiply": 18310,
+        "perf_qsort": 168928,
+        "perf_rsort": 173440,
+        "perf_towers": 6389,
+        "perf_vvadd": 5833
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/memory-width/build.json",
+      "build_manifest_sha256": "ed1131879a42e1f0908eca1197d79f31422f035075c08ebf37a1058c63ca12f3",
+      "summary_sha256": "c252e814d2a2093b6e8c54ad020b77e4f335d28e3b9bce805fe694e58caae723",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/memory-width/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/memory-width/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/memory-width/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/memory-width/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/memory-width/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/memory-width/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/memory-width/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/memory-width/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/memory-width/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/memory-width/verilog/cpu_core.sv": "aaa3c6cca56c085adb8b31085206d8e1fbbe753d42641db986e34e0170457303",
+        "build/v7-design/memory-width/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "predictor",
+      "parameters": {
+        "BTB_ENTRIES": 128,
+        "LOCAL_HISTORY_BITS": 2
+      },
+      "ipc_geomean": 0.8683768068438,
+      "summary": "build/v7-design/predictor/perf/20261019-183928-907594/summary.json",
+      "cycles": {
+        "perf_median": 10357,
+        "perf_multiply": 18366,
+        "perf_qsort": 176096,
+        "perf_rsort": 175109,
+        "perf_towers": 6432,
+        "perf_vvadd": 6111
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/predictor/build.json",
+      "build_manifest_sha256": "68565b03b0e972a9fc478caa260eb5acc1a988922f4d854527fc28b341d76957",
+      "summary_sha256": "509c6875c342383a43ef3f365ed0d8981f65f9b01afb703f29ae047ca0d6ea6a",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+        "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "redirect",
+      "parameters": {
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 0.888072722745355,
+      "summary": "build/v7-design/redirect/perf/20261019-183841-055881/summary.json",
+      "cycles": {
+        "perf_median": 9844,
+        "perf_multiply": 17894,
+        "perf_qsort": 166530,
+        "perf_rsort": 175087,
+        "perf_towers": 6426,
+        "perf_vvadd": 6106
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/redirect/build.json",
+      "build_manifest_sha256": "adeed41c39265729fdb0ace00b0ac796a08ed22c49c38906324d77e86457577b",
+      "summary_sha256": "4d3e562dd6c7404cb86e2362a978d03ac55b1718c53c4070a0c9836547fe957c",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+        "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "replay-iq16",
+      "parameters": {
+        "IQ_DEPTH": 16
+      },
+      "ipc_geomean": 1.1001915089853833,
+      "summary": "build/v7-design/replay-iq16/perf/20261019-191006-880817/summary.json",
+      "cycles": {
+        "perf_median": 8624,
+        "perf_multiply": 16694,
+        "perf_qsort": 132396,
+        "perf_rsort": 121242,
+        "perf_towers": 5319,
+        "perf_vvadd": 4535
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/replay-iq16/build.json",
+      "build_manifest_sha256": "ac1033c132fbd93143dcb3fb95d63daf7bc8d5b686f1580d262210947984e29b",
+      "summary_sha256": "7145ee25cfa4fd9d0f98dcbd4563b8d1bb594bbfdad888efc61cf3b50077016b",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/candidate-r2/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/candidate-r2/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/candidate-r2/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/candidate-r2/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/candidate-r2/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/candidate-r2/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/candidate-r2/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/candidate-r2/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/candidate-r2/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/candidate-r2/verilog/cpu_core.sv": "6073d698fdfa1e12893d03725f67e82f222c3ba466b770a2b320c86f44b22fdf",
+        "build/v7-design/candidate-r2/verilog/student_top.sv": "7ec276019ce496a86b8012fee4aea9943dc9627c717bb2048297f6298d34e8db",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "retire-d32",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768
+      },
+      "ipc_geomean": 1.0698457617984267,
+      "summary": "build/v7-design/retire-d32/perf/20261019-185620-429013/summary.json",
+      "cycles": {
+        "perf_median": 8875,
+        "perf_multiply": 17330,
+        "perf_qsort": 141235,
+        "perf_rsort": 123305,
+        "perf_towers": 5417,
+        "perf_vvadd": 4544
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/retire-d32/build.json",
+      "build_manifest_sha256": "cf695b67f941a0ff7ba598197cc65725e7dff8d5aee8363b39b5aa4241fbc29b",
+      "summary_sha256": "09cf88b946e955c23b1322d1a488439a7400b501b1ced774c181913528c926c0",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/retire-store/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/retire-store/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/retire-store/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/retire-store/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/retire-store/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/retire-store/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/retire-store/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/retire-store/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/retire-store/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/retire-store/verilog/cpu_core.sv": "12d04c4c11a05992a4239a0b15d2f27df36e13b4f5f75a88de6e5f9a82ea955d",
+        "build/v7-design/retire-store/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "retire-window",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 1.0575340095801613,
+      "summary": "build/v7-design/retire-window/perf/20261019-185607-163907/summary.json",
+      "cycles": {
+        "perf_median": 8867,
+        "perf_multiply": 17322,
+        "perf_qsort": 141358,
+        "perf_rsort": 132667,
+        "perf_towers": 5409,
+        "perf_vvadd": 4536
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/retire-window/build.json",
+      "build_manifest_sha256": "4596f719ab41a45d614f7238773013cc978f94113e2a731c1043fe4714df4f01",
+      "summary_sha256": "677bb493fd046ab069f9370ffdb2c25bc008cb91cb42f60637b355b346c075ba",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/retire-store/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/retire-store/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/retire-store/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/retire-store/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/retire-store/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/retire-store/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/retire-store/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/retire-store/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/retire-store/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/retire-store/verilog/cpu_core.sv": "12d04c4c11a05992a4239a0b15d2f27df36e13b4f5f75a88de6e5f9a82ea955d",
+        "build/v7-design/retire-store/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "split-ports",
+      "parameters": {},
+      "ipc_geomean": 0.9216547525906925,
+      "summary": "build/v7-design/split-ports/perf/20261019-184902-933116/summary.json",
+      "cycles": {
+        "perf_median": 9521,
+        "perf_multiply": 18006,
+        "perf_qsort": 153803,
+        "perf_rsort": 165421,
+        "perf_towers": 6291,
+        "perf_vvadd": 5878
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/split-ports/build.json",
+      "build_manifest_sha256": "26f743d4c8547e28db9af5750873e21d1e3a98e7d75d888bc6fa099b99075536",
+      "summary_sha256": "98b3ff2465ace307f3e3d61016fd69515858cec9f6b88d717ae15a4fc9a5a8e0",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/split-ports/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/split-ports/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/split-ports/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/split-ports/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/split-ports/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/split-ports/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/split-ports/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/split-ports/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/split-ports/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/split-ports/verilog/cpu_core.sv": "f5fdee977b204a1cda9c98ec36aa239cc752f6af7201fb403fa518564c411c93",
+        "build/v7-design/split-ports/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "split-window",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 0.9613999139367154,
+      "summary": "build/v7-design/split-window/perf/20261019-184914-159032/summary.json",
+      "cycles": {
+        "perf_median": 8903,
+        "perf_multiply": 17322,
+        "perf_qsort": 143470,
+        "perf_rsort": 166409,
+        "perf_towers": 5928,
+        "perf_vvadd": 5736
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/split-window/build.json",
+      "build_manifest_sha256": "f90efe21fe92f239841800d7c320eb474c432b1b1298a3a9e1d6db2fa3583e17",
+      "summary_sha256": "654b487e8c34def49c42294139b70491c76e0e89b5b0ee970bbba360a827a50d",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/split-ports/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/split-ports/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/split-ports/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/split-ports/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/split-ports/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/split-ports/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/split-ports/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/split-ports/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/split-ports/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/split-ports/verilog/cpu_core.sv": "f5fdee977b204a1cda9c98ec36aa239cc752f6af7201fb403fa518564c411c93",
+        "build/v7-design/split-ports/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "store-split",
+      "parameters": {},
+      "ipc_geomean": 0.9939248376273747,
+      "summary": "build/v7-design/store-split/perf/20261019-185131-836279/summary.json",
+      "cycles": {
+        "perf_median": 9520,
+        "perf_multiply": 18006,
+        "perf_qsort": 152063,
+        "perf_rsort": 140489,
+        "perf_towers": 5978,
+        "perf_vvadd": 4684
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/store-split/build.json",
+      "build_manifest_sha256": "758799fdf6df4b71ca856648b3dff6f029737c82f71dc0411e8a8857680debbf",
+      "summary_sha256": "7f521f4300c31c61ad1cf2f1ef52c826d0f51b3519e2de5e8b3c409271ebd225",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/store-split/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/store-split/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/store-split/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/store-split/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/store-split/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/store-split/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/store-split/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/store-split/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/store-split/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/store-split/verilog/cpu_core.sv": "67162b14a54cbbf345bcad0891f9f6a48eac113f2ff8a0d03b814523a0e46f11",
+        "build/v7-design/store-split/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "store-window",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 1.0550045738102258,
+      "summary": "build/v7-design/store-window/perf/20261019-185143-331218/summary.json",
+      "cycles": {
+        "perf_median": 8884,
+        "perf_multiply": 17322,
+        "perf_qsort": 141271,
+        "perf_rsort": 133843,
+        "perf_towers": 5432,
+        "perf_vvadd": 4536
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/store-window/build.json",
+      "build_manifest_sha256": "52d806fae886750db8d9c5d6ec74084a19e272b42af25b9a286b595b0e2acb30",
+      "summary_sha256": "d65a3906a84e1ace53ce99e0da6946fd8541ae2a6aad23790646c98d26717c27",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/store-split/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/store-split/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/store-split/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/store-split/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/store-split/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/store-split/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/store-split/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/store-split/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/store-split/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/store-split/verilog/cpu_core.sv": "67162b14a54cbbf345bcad0891f9f6a48eac113f2ff8a0d03b814523a0e46f11",
+        "build/v7-design/store-split/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "store-window-d32",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768
+      },
+      "ipc_geomean": 1.0669555988308266,
+      "summary": "build/v7-design/store-window-d32/perf/20261019-185337-672830/summary.json",
+      "cycles": {
+        "perf_median": 8892,
+        "perf_multiply": 17330,
+        "perf_qsort": 141148,
+        "perf_rsort": 124631,
+        "perf_towers": 5440,
+        "perf_vvadd": 4544
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/store-window-d32/build.json",
+      "build_manifest_sha256": "089390d46e64ed2853e1bf1dab0b46ba2e492017688257ff0770b9bedd26d3dd",
+      "summary_sha256": "d53f8191d31678d95bd802ae9fba36d00bd57bbf0e89a7a063f8f0a0a066cdfa",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/store-split/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/store-split/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/store-split/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/store-split/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/store-split/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/store-split/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/store-split/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/store-split/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/store-split/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/store-split/verilog/cpu_core.sv": "67162b14a54cbbf345bcad0891f9f6a48eac113f2ff8a0d03b814523a0e46f11",
+        "build/v7-design/store-split/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "store-window-d32-line512",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "DCACHE_BYTES": 32768,
+        "DCACHE_LINE_BYTES": 512
+      },
+      "ipc_geomean": 1.0552179592449458,
+      "summary": "build/v7-design/store-window-d32-line512/perf/20261019-185353-198535/summary.json",
+      "cycles": {
+        "perf_median": 8971,
+        "perf_multiply": 17364,
+        "perf_qsort": 140991,
+        "perf_rsort": 124376,
+        "perf_towers": 5561,
+        "perf_vvadd": 4714
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/store-window-d32-line512/build.json",
+      "build_manifest_sha256": "6d27db9c52d0cb1178aff657b14ce61d10f4a201ab3a7edb351cae9f23dbafef",
+      "summary_sha256": "4ee64d798e01b2b94da7fd0e18220d9989d41c07f854276d52c893362d11a281",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/store-split/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/store-split/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/store-split/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/store-split/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/store-split/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/store-split/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/store-split/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/store-split/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/store-split/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/store-split/verilog/cpu_core.sv": "67162b14a54cbbf345bcad0891f9f6a48eac113f2ff8a0d03b814523a0e46f11",
+        "build/v7-design/store-split/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "store-window-iq16",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 16,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1
+      },
+      "ipc_geomean": 1.0554869652493446,
+      "summary": "build/v7-design/store-window-iq16/perf/20261019-185337-843912/summary.json",
+      "cycles": {
+        "perf_median": 8884,
+        "perf_multiply": 17322,
+        "perf_qsort": 141271,
+        "perf_rsort": 133846,
+        "perf_towers": 5417,
+        "perf_vvadd": 4536
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/store-window-iq16/build.json",
+      "build_manifest_sha256": "a3b95ddc6a75b4449d36a627e82f7711ebbdd485354adcd5888e6bf5c5527192",
+      "summary_sha256": "b59c9721a90e3eed44ce9d378794680ce232b265904ab925a1e59d8197bd0259",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/store-split/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/store-split/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/store-split/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/store-split/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/store-split/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/store-split/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/store-split/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/store-split/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/store-split/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/store-split/verilog/cpu_core.sv": "67162b14a54cbbf345bcad0891f9f6a48eac113f2ff8a0d03b814523a0e46f11",
+        "build/v7-design/store-split/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "store-window-train",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16,
+        "REDIRECT_REQUEST": 1,
+        "TRAIN_EXECUTE": 1
+      },
+      "ipc_geomean": 1.057503168782383,
+      "summary": "build/v7-design/store-window-train/perf/20261019-185353-174117/summary.json",
+      "cycles": {
+        "perf_median": 8848,
+        "perf_multiply": 17308,
+        "perf_qsort": 140935,
+        "perf_rsort": 133841,
+        "perf_towers": 5385,
+        "perf_vvadd": 4544
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/store-window-train/build.json",
+      "build_manifest_sha256": "30c98e4a3b8666b3b4313e5fd04e59873188e9c7bdf5a172eb909c9ab456dc42",
+      "summary_sha256": "db6ab2c0ef390f7335e07db6868c10f32eeb6b174db586e2c1e313d97dfc105b",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/store-split/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/store-split/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/store-split/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/store-split/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/store-split/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/store-split/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/store-split/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/store-split/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/store-split/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/store-split/verilog/cpu_core.sv": "67162b14a54cbbf345bcad0891f9f6a48eac113f2ff8a0d03b814523a0e46f11",
+        "build/v7-design/store-split/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "symmetric",
+      "parameters": {},
+      "ipc_geomean": 0.8778979197253526,
+      "summary": "build/v7-design/symmetric/perf/20261019-184126-180436/summary.json",
+      "cycles": {
+        "perf_median": 10314,
+        "perf_multiply": 18124,
+        "perf_qsort": 175832,
+        "perf_rsort": 169393,
+        "perf_towers": 6349,
+        "perf_vvadd": 6109
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/symmetric/build.json",
+      "build_manifest_sha256": "b640beb77da2f8a2e267ef2bd36ed968e369af31e6883dd6d176aba3e07a87a1",
+      "summary_sha256": "d6303fdfaec4d231cd52dfe96522a4576fb4698275e955db81754a5c0a2ef060",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "build/v7-design/symmetric/verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "build/v7-design/symmetric/verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "build/v7-design/symmetric/verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "build/v7-design/symmetric/verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "build/v7-design/symmetric/verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "build/v7-design/symmetric/verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "build/v7-design/symmetric/verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "build/v7-design/symmetric/verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "build/v7-design/symmetric/verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "build/v7-design/symmetric/verilog/cpu_core.sv": "9942e799823a80d2c3358433ca8225d3aeb9447ed490951d3a3bb59b166f0755",
+        "build/v7-design/symmetric/verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    },
+    {
+      "name": "window",
+      "parameters": {
+        "ROB_DEPTH": 32,
+        "PRF_SIZE": 64,
+        "IQ_DEPTH": 12,
+        "LSQ_DEPTH": 16,
+        "MEM_QUEUE_DEPTH": 16,
+        "BRANCH_CHECKPOINTS": 8,
+        "FETCH_QUEUE_DEPTH": 16
+      },
+      "ipc_geomean": 0.8794853213051339,
+      "summary": "build/v7-design/window/perf/20261019-183854-079233/summary.json",
+      "cycles": {
+        "perf_median": 10256,
+        "perf_multiply": 18382,
+        "perf_qsort": 175671,
+        "perf_rsort": 172789,
+        "perf_towers": 6158,
+        "perf_vvadd": 6062
+      },
+      "commits": {
+        "perf_median": 6961,
+        "perf_multiply": 21722,
+        "perf_qsort": 139900,
+        "perf_rsort": 195719,
+        "perf_towers": 5278,
+        "perf_vvadd": 4524
+      },
+      "source_build": "build/v7-design/window/build.json",
+      "build_manifest_sha256": "870ac1429f9848e2a9b9dd609e2b961a7f766daa84d7a395286b1f0d2350d1c4",
+      "summary_sha256": "24755dab326b51d2838a95b06d5bcf59a2a3dda29ab95df429c036fa2fd1f6db",
+      "source_sha256": {
+        "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+        "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+        "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+        "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+        "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+        "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+        "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+        "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+        "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+        "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+        "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+        "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+        "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+      },
+      "status": "performance_screen_only_not_release_validation"
+    }
+  ],
+  "synthesis_iterations": [
+    {
+      "name": "store-window",
+      "area_um2": 24400.174712012333,
+      "estimated_fmax_mhz": 485.3080568720379,
+      "minimum_period_ns": 2.060546875,
+      "path": "build/v7-design/store-window/synth/opt/report.json",
+      "sha256": "f4a1626342ba191373f67b5e6b79a04eeb91f0cd62a1f68056bf1b83eb61b971"
+    },
+    {
+      "name": "candidate",
+      "area_um2": 30741.893264008482,
+      "estimated_fmax_mhz": 288.69467155342545,
+      "minimum_period_ns": 3.4638671875,
+      "path": "build/v7-design/candidate/synth/opt/report.json",
+      "sha256": "94f3a85e4128a47bdf656e78adf21a1ac274211ef5409e632084084c607e12bd"
+    },
+    {
+      "name": "candidate-r2",
+      "area_um2": 30725.432444010497,
+      "estimated_fmax_mhz": 292.32086782757636,
+      "minimum_period_ns": 3.4208984375,
+      "path": "build/v7-design/candidate-r2/synth/opt/report.json",
+      "sha256": "a1961ae96bed2ff456a1c8a7c236e088c6626b66d4f9a6b1958c15eb02412262"
+    },
+    {
+      "name": "candidate-r3",
+      "area_um2": 30744.31354401024,
+      "estimated_fmax_mhz": 299.24021040327295,
+      "minimum_period_ns": 3.341796875,
+      "path": "build/v7-design/candidate-r3/synth/opt/report.json",
+      "sha256": "55c8f38c416bbe9a226fe828c3293935f4d7bb1fc4c4699079c1a64193eed1f7"
+    },
+    {
+      "name": "candidate-r4",
+      "area_um2": 30717.500924009517,
+      "estimated_fmax_mhz": 314.78635106055947,
+      "minimum_period_ns": 3.1767578125,
+      "path": "build/v7-design/candidate-r4/synth/opt/report.json",
+      "sha256": "b27f0ed4cea4290905d00cb50d050a3e6f9af14f60b5b921d83135b39fe0b31e"
+    }
+  ]
+}
