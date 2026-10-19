@@ -28,11 +28,13 @@ Examples:
   tools/dev start
   tools/dev build-image
   tools/dev linux synth MODE=opt
+  tools/dev linux synth ABC_DRIVING_CELL=INVx1_ASAP7_75t_R ABC_LOAD_FF=5.0
   tools/dev smoke mac
   tools/dev smoke linux
 
 Linux commands require an already running cpu2026 profile; they never start it
 automatically. CPU RTL and smoke-check outputs use separate build directories.
+All Make profiles share config.synth.mk; command-line ABC settings override it.
 EOF
 }
 

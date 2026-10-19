@@ -40,3 +40,15 @@ make synth APPIMAGE= FILELIST=verification/environment/filelist.f \
 ```
 
 若使用 AppImage，按环境配置设置 `APPIMAGE`，不要传空值。综合报告应包含 SRAM 实例和非零 SRAM 面积。此样例的面积与频率只能用于检查工具链，不代表未来 CPU 的结果。
+
+## ABC 参数与报告核对
+
+项目的三个 Make 配置入口都包含 [config.synth.mk](../../config.synth.mk)，默认使用上游示例的 `BUFx2_ASAP7_75t_R / 1 fF` 映射参数。`tools/dev smoke linux` 自动沿用该配置。需要官方默认对照时，覆盖参数并使用独立输出目录：
+
+```sh
+tools/dev linux synth FILELIST=verification/environment/filelist.f \
+  SYNTH_OUT=build/environment-linux/synth-upstream MODE=opt \
+  ABC_DRIVING_CELL=INVx1_ASAP7_75t_R ABC_LOAD_FF=5.0
+```
+
+核对 `abc.constr` 与 `report.json` 的 `abc_constraints`，以及实际综合命令包含 `-constr`。两种映射配置的 `timing.output_load_ff` 都应为 5.0，时钟与 I/O 验收约束保持一致。默认值和命令行覆盖已在三个 Make 配置入口验证，项目配置和官方默认对照均已通过独立样例综合；Mac/Linux 的两个输入样例均为 29 周期。

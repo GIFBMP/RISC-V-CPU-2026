@@ -5,3 +5,5 @@ BUILD_MAKE = gmake
 BUILD = build/macos
 JOBS = 6
 MAX_CYCLES = 100000000
+
+include $(FRAMEWORK_DIR)/config.synth.mk

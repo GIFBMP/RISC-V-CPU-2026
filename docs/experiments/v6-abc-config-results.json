@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-19",
+  "description": "V6 synthesis/test configuration following upstream configurable ABC example",
+  "upstream_commit": "302f0cf3cccdaa5de084a2120e0d950c663e4cf5",
+  "base_commit": "c651020a6c163cad7618c5e539968c5d818ce5a7",
+  "shared_configuration": "config.synth.mk",
+  "configuration_sha256": {
+    "config.synth.mk": "eb8bb297631af3dc7b2eb20466b01e49a48803021ee088bc0636c8c6ee157c5e",
+    "config.mk": "d0ec1bae1fe3405ded900e758e5afa47af55775b8934a330e14701fcbdab3d98",
+    "config.macos.mk": "96f69a661dbcde6b96c6d846b1f049b2e097a56f6882673f8349716666641afe",
+    "config.linux.mk": "b2775e2560d91a25c38cfa36364b0f74e7b5c27a18ad284778e3ff7294ca725a"
+  },
+  "abc_constraints": {
+    "driving_cell": "BUFx2_ASAP7_75t_R",
+    "output_load_ff": 1.0
+  },
+  "rtl_sha256": {
+    "scripts/ram/sram_fakeram.sv": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc",
+    "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+    "verilog/execute/alu.sv": "d72749be61f2cd2029f98ef72bf75717b46744827ec0969e4d70b6b90ae08c76",
+    "verilog/execute/muldiv_unit.sv": "ee628eaebcfcf22ebcf7791bcce48a5246b2c8cfa77615da4543440081950f0b",
+    "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+    "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+    "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+    "verilog/memory/dcache_writeback.sv": "5ecc2b218d179e21cb57939bf03285c868d1b5aabd491b4b871005418c4cebe5",
+    "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+    "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+    "verilog/cpu_core.sv": "c017640677702031bd3b96e108d895339b6901455b139908ce2faa8707fa790f",
+    "verilog/student_top.sv": "31562a6a58fe189dae44f78fa5957352e12abe56d9e2e2e528e5f417b6756de1",
+    "scripts/sim.cpp": "8dc91fce4c30e48b2caa73d62fc2fa89f71b3d938bf53bb622efa5d0572836ec"
+  },
+  "official_performance": {
+    "passed": 6,
+    "total": 6,
+    "latency": 10,
+    "ipc_geomean": 0.8676481522414352,
+    "cycles_unchanged": true,
+    "results": [
+      {
+        "case": "perf_median",
+        "dynamic_instructions": 6961,
+        "cycles": 10316,
+        "ipc": 0.6747770453664211
+      },
+      {
+        "case": "perf_multiply",
+        "dynamic_instructions": 21722,
+        "cycles": 18405,
+        "ipc": 1.180222765552839
+      },
+      {
+        "case": "perf_qsort",
+        "dynamic_instructions": 139900,
+        "cycles": 176407,
+        "ipc": 0.7930524298922378
+      },
+      {
+        "case": "perf_rsort",
+        "dynamic_instructions": 195719,
+        "cycles": 175109,
+        "ipc": 1.117698119457024
+      },
+      {
+        "case": "perf_towers",
+        "dynamic_instructions": 5278,
+        "cycles": 6465,
+        "ipc": 0.8163959783449343
+      },
+      {
+        "case": "perf_vvadd",
+        "dynamic_instructions": 4524,
+        "cycles": 6111,
+        "ipc": 0.7403043691703486
+      }
+    ],
+    "log": "build/abc-config-20261019/perf.log",
+    "simulator": "build/v6/linux/sim",
+    "simulator_sha256": "4cddd78395ad630cb759c1f0e1cd505e141ff09add01f5514bae83556d87c044",
+    "reuse_reason": "RTL, simulator and SRAM source hashes match the already validated official Linux build."
+  },
+  "synthesis": {
+    "report": "build/abc-config-20261019/bufx2-load1/opt/report.json",
+    "report_sha256": "49b42b55bf187965d7cfd227243a70f12ed417e362639fc325eb10a68967b1cc",
+    "command": "make CONFIG=config.linux.mk synth SYNTH_OUT=build/abc-config-20261019/bufx2-load1 MODE=opt ABC_DRIVING_CELL=BUFx2_ASAP7_75t_R ABC_LOAD_FF=1.0",
+    "area": {
+      "logic_area_um2": 11516.873220010437,
+      "sequential_area_um2": 4769.7012,
+      "combinational_area_um2": 6747.172020010436,
+      "sram_area_um2": 6259.592911999999,
+      "area_um2": 17776.466132010435
+    },
+    "timing": {
+      "clock_port": "clock",
+      "clock_period_ns": 2.0,
+      "input_delay_ns": 0.2,
+      "output_delay_ns": 0.2,
+      "input_transition_ns": 0.05,
+      "clock_transition_ns": 0.05,
+      "clock_uncertainty_ns": 0.05,
+      "output_load_ff": 5.0,
+      "reset_value": 0,
+      "clock_model": "ideal",
+      "interconnect": "no_parasitics",
+      "frequency_resolution_ns": 0.001,
+      "minimum_period_ns": 1.6435546875,
+      "estimated_fmax_mhz": 608.4373143196673,
+      "worst_setup_slack_ns": 0.35678,
+      "timing_analyzed": true
+    },
+    "tools": {
+      "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+      "opensta": "3.1.0"
+    }
+  },
+  "comparison": {
+    "upstream_defaults_report": "docs/experiments/v6-upstream-302f0cf-results.json",
+    "default_driving_cell": "INVx1_ASAP7_75t_R",
+    "default_load_ff": 5.0,
+    "default_area_um2": 18063.21099201181,
+    "default_fmax_mhz": 601.9988242210464,
+    "area_saved_um2": 286.74486000137404
+  },
+  "targets": {
+    "ipc_geomean_exclusive_min": 0.845,
+    "frequency_mhz_exclusive_min": 300,
+    "total_area_um2_max": 18000,
+    "area_margin_um2": 223.5338679895649,
+    "all_met": true
+  },
+  "verification": {
+    "make_profiles": [
+      {
+        "config": "config.mk",
+        "mode": "project",
+        "driving_cell": "BUFx2_ASAP7_75t_R",
+        "load_ff": 1.0,
+        "passed": true,
+        "log": "build/abc-config-20261019/config.mk.project.dry-run.txt"
+      },
+      {
+        "config": "config.mk",
+        "mode": "upstream",
+        "driving_cell": "INVx1_ASAP7_75t_R",
+        "load_ff": 5.0,
+        "passed": true,
+        "log": "build/abc-config-20261019/config.mk.upstream.dry-run.txt"
+      },
+      {
+        "config": "config.macos.mk",
+        "mode": "project",
+        "driving_cell": "BUFx2_ASAP7_75t_R",
+        "load_ff": 1.0,
+        "passed": true,
+        "log": "build/abc-config-20261019/config.macos.mk.project.dry-run.txt"
+      },
+      {
+        "config": "config.macos.mk",
+        "mode": "upstream",
+        "driving_cell": "INVx1_ASAP7_75t_R",
+        "load_ff": 5.0,
+        "passed": true,
+        "log": "build/abc-config-20261019/config.macos.mk.upstream.dry-run.txt"
+      },
+      {
+        "config": "config.linux.mk",
+        "mode": "project",
+        "driving_cell": "BUFx2_ASAP7_75t_R",
+        "load_ff": 1.0,
+        "passed": true,
+        "log": "build/abc-config-20261019/config.linux.mk.project.dry-run.txt"
+      },
+      {
+        "config": "config.linux.mk",
+        "mode": "upstream",
+        "driving_cell": "INVx1_ASAP7_75t_R",
+        "load_ff": 5.0,
+        "passed": true,
+        "log": "build/abc-config-20261019/config.linux.mk.upstream.dry-run.txt"
+      }
+    ],
+    "environment_smoke": {
+      "macos": {
+        "log": "build/abc-config-20261019/smoke-macos.log",
+        "passed": 2,
+        "total": 2,
+        "cycles": [
+          29,
+          29
+        ]
+      },
+      "linux": {
+        "log": "build/abc-config-20261019/smoke-linux.log",
+        "passed": 2,
+        "total": 2,
+        "cycles": [
+          29,
+          29
+        ]
+      },
+      "synthesis_project": {
+        "report": "build/environment-linux/synth/opt/report.json",
+        "report_sha256": "f2bc265952cd676270a652e03c245dfad7f7e9ed9fad40c2199b5764f0be3110",
+        "abc_constraints": {
+          "driving_cell": "BUFx2_ASAP7_75t_R",
+          "output_load_ff": 1.0
+        },
+        "sta_output_load_ff": 5.0,
+        "passed": true
+      },
+      "synthesis_upstream": {
+        "report": "build/abc-config-20261019/smoke-upstream/opt/report.json",
+        "report_sha256": "bb685a4cff7f02c1a5b4cb1ae33f7647cb97e3366c55b9d28b81a87dd7de461c",
+        "abc_constraints": {
+          "driving_cell": "INVx1_ASAP7_75t_R",
+          "output_load_ff": 5.0
+        },
+        "sta_output_load_ff": 5.0,
+        "passed": true
+      }
+    },
+    "rtl_unchanged": true,
+    "evaluation_scripts_unchanged": true,
+    "opensta_constraints_unchanged": true,
+    "standard_cell_libraries_unchanged": true,
+    "sram_model_unchanged": true
+  },
+  "measurement_scope": "Course ideal-clock, no-parasitics estimate. ABC mapping load is 1 fF; OpenSTA output load remains 5 fF with unchanged I/O delays and clock uncertainty."
+}

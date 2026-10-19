@@ -15,7 +15,7 @@ tools/dev mac perf LATENCY=10
 
 入口自动选择 `config.macos.mk`：禁用 AppImage，使用 `clang++`、`gmake`、6 个构建任务，产物保存在 `build/macos/`，测试周期上限为 100,000,000。后续参数原样传给 Make，命令行赋值优先于配置文件。
 
-正式 CPU 已加入 `verilog/filelist.f`，以上命令现在编译和验证 V5 CPU，实施结果见 [V5 记录](experiments/v5.md)，历史基线见 [V4](experiments/v4.md)、[V3](experiments/v3.md)、[V2](experiments/v2.md) 与 [V1](experiments/v1.md)。独立环境自检仍保留，用于区分工具安装问题与 CPU 功能问题。原生 Mac 环境不提供课程综合结果，综合使用下述 Linux 路径。
+正式 CPU 已加入 `verilog/filelist.f`，以上命令现在编译和验证 V6 CPU，实施结果见 [V6 记录](experiments/v6.md)，历史基线见 [V5](experiments/v5.md)、[V4](experiments/v4.md)、[V3](experiments/v3.md)、[V2](experiments/v2.md) 与 [V1](experiments/v1.md)。独立环境自检仍保留，用于区分工具安装问题与 CPU 功能问题。原生 Mac 环境不提供课程综合结果，综合使用下述 Linux 路径。
 
 ## 2. Linux 课程工具链
 
@@ -45,6 +45,30 @@ Linux 命令显式使用 `colima-cpu2026` context，将本项目挂载到容器 
 官方提交入口有一项例外：不带 Make 目标或显式使用 `code` 时，会更新共享的项目根目录 `code`；任一平台的 `clean` 也会删除它。因此日常优先显式使用 `build/test/perf/synth`。Mac 和本地 ARM64 容器生成的可执行文件不能视为适用于课程 Linux x86-64 评测机的提交产物，最终提交按课程说明在目标环境重新构建。
 
 容器内路径以 `/work` 为项目根。传入 `PROGRAM`、`WAVE`、`LOG` 或 `SIM` 时优先使用项目相对路径，不传 Mac 上项目之外的路径。Mac 和 Linux 的仿真二进制不能交叉使用。ARM64 路径用于本机开发，最终仍应在课程指定评测环境复核。
+
+### ABC 综合测试配置
+
+上游 `302f0cf` 为 ABC 增加驱动单元和负载参数，并默认启用缓冲插入、单元尺寸优化。本项目的 `config.mk`、`config.macos.mk`、`config.linux.mk` 统一包含 [config.synth.mk](../config.synth.mk)，普通 Make、两套本地入口和 Linux 环境自检使用相同参数：
+
+| 参数 | 项目测试配置 | 官方默认对照 |
+| --- | --- | --- |
+| `ABC_DRIVING_CELL` | `BUFx2_ASAP7_75t_R` | `INVx1_ASAP7_75t_R` |
+| `ABC_LOAD_FF` | `1.0` | `5.0` |
+| OpenSTA 输出负载 | 固定 5.0 fF | 固定 5.0 fF |
+| 目标周期 | 2.0 ns | 2.0 ns |
+
+项目配置采用上游 README 给出的示例组合，已对同一 V6 RTL 实测：**608.437314 MHz、17,776.466 μm²**；六项官方 IPC 几何平均保持 **0.867648**。ABC 的 1 fF 是组合逻辑映射的输出边界负载，OpenSTA 仍使用课程固定的 5 fF 输出负载、0.2 ns I/O 延迟和 0.05 ns 时钟不确定性。没有改动 RTL、官方综合脚本或时序约束。
+
+```sh
+# 项目统一配置
+tools/dev linux synth MODE=opt SYNTH_OUT=build/synth-project
+
+# 显式覆盖，复现官方默认配置；独立目录保留对照报告
+tools/dev linux synth MODE=opt SYNTH_OUT=build/synth-upstream \
+  ABC_DRIVING_CELL=INVx1_ASAP7_75t_R ABC_LOAD_FF=5.0
+```
+
+报告中的 `abc_constraints`、产物 `abc.constr` 和实际 ABC 命令应一致，`timing.output_load_ff` 仍为 5.0。直接调用 `scripts/synth.py` 不会读取 Make 配置，应显式传入 `--abc-driving-cell BUFx2_ASAP7_75t_R --abc-load-ff 1.0`；省略时使用上游脚本默认值。完整数据见 [V6 配置复测](experiments/v6-abc-config-results.json)。
 
 ## 3. 独立环境自检
 

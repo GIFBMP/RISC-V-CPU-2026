@@ -7,3 +7,5 @@ BUILD = build/linux
 JOBS = 6
 MAX_CYCLES = 100000000
 ASAP7_LIB = /opt/asap7/lib
+
+include $(FRAMEWORK_DIR)/config.synth.mk

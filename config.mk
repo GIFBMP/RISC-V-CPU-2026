@@ -50,3 +50,5 @@ SIM ?=
 # LATENCY = 10
 # WAVE = trace.vcd
 # LOG = run.log
+
+include $(FRAMEWORK_DIR)/config.synth.mk
