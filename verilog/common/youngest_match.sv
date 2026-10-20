@@ -5,7 +5,8 @@
 module youngest_match #(
     parameter integer WIDTH = 32,
     parameter integer DATA_BITS = 8,
-    parameter integer INDEX_BITS = WIDTH > 1 ? $clog2(WIDTH) : 1
+    parameter integer INDEX_BITS = WIDTH > 1 ? $clog2(WIDTH) : 1,
+    parameter integer ZERO_WHEN_INVALID = 1
 ) (
     input wire [WIDTH-1:0] match_bits,
     input wire [WIDTH*DATA_BITS-1:0] data,
@@ -36,5 +37,8 @@ module youngest_match #(
         end
     endgenerate
     assign valid = present[1];
-    assign result = present[1] ? values[1] : {DATA_BITS{1'b0}};
+    // Consumers that retain valid separately need no late all-match reduction
+    // on the data path. The selected value is unobservable when valid is low.
+    assign result = ZERO_WHEN_INVALID != 0 && !present[1]
+        ? {DATA_BITS{1'b0}} : values[1];
 endmodule

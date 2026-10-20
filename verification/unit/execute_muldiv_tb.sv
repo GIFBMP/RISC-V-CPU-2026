@@ -11,6 +11,8 @@ module execute_muldiv_tb;
     wire [31:0] result;
     integer checks = 0;
     integer cancellations = 0;
+    integer latency_checks = 0;
+    integer last_latency = 0;
     integer seed = 32'h42c0ffee;
     integer unused_random;
     integer index, op_index, ai, bi;
@@ -53,6 +55,22 @@ module execute_muldiv_tb;
         end
     endfunction
 
+    // Independent bit-length reference, including the normalization cycle.
+    function automatic integer divide_latency(input [2:0] operation_code,
+                                               input [31:0] x);
+        logic [31:0] magnitude;
+        integer bits_needed;
+        begin
+            magnitude = !operation_code[0] && x[31] ? -x : x;
+            bits_needed = 0;
+            while (magnitude != 0) begin
+                magnitude = magnitude >> 1;
+                bits_needed = bits_needed + 1;
+            end
+            divide_latency = 1 + (bits_needed == 0 ? 1 : bits_needed);
+        end
+    endfunction
+
     task automatic launch(input [2:0] operation_code, input [31:0] x, input [31:0] y);
         begin
             if (req_ready !== 1 || result_valid !== 0)
@@ -71,10 +89,23 @@ module execute_muldiv_tb;
             while (result_valid !== 1) begin
                 if (req_ready !== 0) $fatal(1, "Accepted new request while busy");
                 tick(); elapsed = elapsed + 1;
-                if (elapsed > 32) $fatal(1, "M unit exceeded 32 iterations");
+                if (elapsed > 33) $fatal(1, "M unit exceeded normalization plus 32 trials");
             end
             if (result !== expected)
                 $fatal(1, "M result=%h expected=%h", result, expected);
+            last_latency = elapsed;
+        end
+    endtask
+
+    task automatic check_latency(input [2:0] operation_code,
+                                 input [31:0] x, input [31:0] y,
+                                 input integer expected_latency);
+        begin
+            check_operation(operation_code, x, y);
+            if (last_latency != expected_latency)
+                $fatal(1, "M latency op=%0d a=%h b=%h actual=%0d expected=%0d",
+                       operation_code, x, y, last_latency, expected_latency);
+            latency_checks = latency_checks + 1;
         end
     endtask
 
@@ -154,7 +185,90 @@ module execute_muldiv_tb;
         repeat (7) tick(); reset = 1; tick(); reset = 0; #1;
         if (result_valid !== 0 || req_ready !== 1) $fatal(1, "Reset cancellation");
         check_operation(3'b000, 6, 7);
-        $display("PASS M operations=%0d flush scenarios=%0d plus reset cancellation", checks, cancellations);
+
+        // Latency is checked at the public handshake, with the same operand
+        // mutation and completion backpressure as the arithmetic regressions.
+        check_latency(0, 32'h89abcdef, 0, 2);
+        check_latency(0, 32'h89abcdef, 1, 2);
+        check_latency(0, 32'h89abcdef, 2, 2);
+        check_latency(0, 32'h89abcdef, 10000, 2);
+        check_latency(0, 32'h89abcdef, 32'h80000000, 2);
+        check_latency(1, 32'h80000000, 32'hffffffff, 2);
+        check_latency(1, 32'h80000001, 32'hfffffffe, 2);
+        check_latency(2, 32'h80000000, 32'hffffffff, 2);
+        check_latency(3, 32'hffffffff, 1, 2);
+
+        // Both result orders, signedness and full operand bits matter.
+        check_latency(4, -7, 3, divide_latency(4, -7));
+        check_latency(6, -7, 3, 1);
+        check_latency(0, 6, 7, 2);
+        check_latency(4, -7, 3, 1); // An intervening MUL preserves the division.
+        check_latency(5, -7, 3, divide_latency(5, -7));
+        check_latency(7, -7, 3, 1);
+        check_latency(6, -8, 3, divide_latency(6, -8)); // Different dividend.
+        check_latency(4, -8, 3, 1);
+        check_latency(4, -8, 5, divide_latency(4, -8)); // Different divisor.
+        check_latency(6, -8, 5, 1);
+        check_latency(6, 8, 5, divide_latency(6, 8)); // Same magnitudes are not the same key.
+        check_latency(4, 8, 5, 1);
+        check_latency(6, 8, -5, divide_latency(6, 8));
+        check_latency(4, 8, -5, 1);
+        check_latency(6, 17, 5, divide_latency(6, 17));
+        check_latency(4, 17, 5, 1);
+        check_latency(4, 32'h80000000, 32'hffffffff, divide_latency(4, 32'h80000000));
+        check_latency(6, 32'h80000000, 32'hffffffff, 1);
+        check_latency(5, 32'h80000000, 32'hffffffff, divide_latency(5, 32'h80000000));
+        check_latency(7, 32'h80000000, 32'hffffffff, 1);
+        check_latency(4, 0, 13, divide_latency(4, 0));
+        check_latency(6, 0, 13, 1);
+        check_latency(4, 99, 0, 0);
+        check_latency(6, 99, 0, 0);
+        check_latency(5, 32'hffffffff, 0, 0);
+        check_latency(7, 32'hffffffff, 0, 0);
+        check_latency(4, 0, 13, 1); // Divide-by-zero did not replace the entry.
+        // Unaccepted request inputs may change during IDLE without altering
+        // the last completed division's key or either result.
+        operation = 6; operand_a = 123; operand_b = 17;
+        repeat (3) tick();
+        check_latency(6, 0, 13, 1);
+
+        // Repeated random pairs exercise both signednesses and both directions.
+        for (index = 0; index < 32; index = index + 1) begin
+            a = $urandom; b = $urandom | 32'd1;
+            // Different modes force a miss even if the input pair repeats.
+            check_latency(4, a, b, divide_latency(4, a));
+            check_latency(6, a, b, 1);
+            check_latency(7, a, b, divide_latency(7, a));
+            check_latency(5, a, b, 1);
+        end
+
+        // Flush invalidates a previously completed pair.
+        cancel_and_check();
+        check_latency(4, a, b, divide_latency(4, a));
+        check_latency(6, a, b, 1);
+        // Cancel on the very edge that would install a division result.
+        launch(4, 123456789, 97);
+        repeat (divide_latency(4, 123456789) - 1) tick();
+        cancel_and_check();
+        check_latency(6, 123456789, 97, divide_latency(6, 123456789));
+        check_latency(4, 123456789, 97, 1);
+        // Cancel a cache hit before it can produce a response.
+        launch(6, 123456789, 97);
+        cancel_and_check();
+        check_latency(4, 123456789, 97, divide_latency(4, 123456789));
+        // Cancel a completed but backpressured result and its cached pair.
+        launch(6, 123456789, 97);
+        await_result(reference_result(6, 123456789, 97));
+        cancel_and_check();
+        check_latency(4, 123456789, 97, divide_latency(4, 123456789));
+        // Reset wins on the completion edge just as flush does.
+        launch(4, 987654321, 101);
+        repeat (divide_latency(4, 987654321) - 1) tick(); reset = 1; tick(); reset = 0; #1;
+        if (result_valid !== 0 || req_ready !== 1) $fatal(1, "Reset on completion edge");
+        check_latency(6, 987654321, 101, divide_latency(6, 987654321));
+        check_latency(4, 987654321, 101, 1);
+        $display("PASS M operations=%0d latency checks=%0d flush scenarios=%0d plus reset cancellation",
+                 checks, latency_checks, cancellations);
         $finish;
     end
 endmodule

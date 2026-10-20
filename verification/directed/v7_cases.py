@@ -12,11 +12,14 @@ def build_v7_programs(Program):
             programs.append(p)
 
     p = Program("v7_lane_pairs", "Two memory renames, shared integer lanes and second-position noninteger retirement")
-    p.li(1, 0x71234567)
+    p.li(1, 0xF1234567)
     p.li(2, 3)
     p.li(20, 17)
     p.label("loop")
-    p.r("divu", 9, 1, 2)
+    # A changing divisor avoids result reuse; the full-width multiplier below
+    # avoids early termination. These delays exercise the original lane-pair
+    # scheduling obligations independently of the MDU's arithmetic shortcuts.
+    p.r("divu", 9, 1, 20)
     if p.pc % 8:
         p.i("addi", 0, 0, 0)
     p.store("sw", 1, 31)
@@ -28,7 +31,7 @@ def build_v7_programs(Program):
     p.i("addi", 11, 1, 2)
     p.load("lbu", 12, 31, 1)
     p.i("addi", 13, 1, 3)
-    p.r("mul", 14, 1, 2)
+    p.r("mul", 14, 2, 1)
     for reg in range(15, 19):
         p.i("addi", reg, 1, reg)
     p.store("sw", 18, 31, 4)

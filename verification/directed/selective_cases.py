@@ -74,7 +74,13 @@ def build_selective_programs(Program, wide=False, v7=False):
             prefix = f"source{source}_delay{delay}_fine{fine}"
             p.i("addi", 8, 0, 1)
             p.r("add", 4, 6, 0)
-            p.i("addi", 0, 0, 0)
+            # Each collision sweep needs a real 32-step division. Change the
+            # dividend before the warm-up so the preceding sweep's retained
+            # quotient/remainder cannot turn this delay into a reuse hit.
+            if source == 2:
+                p.i("addi", 1, 1, 1)
+            else:
+                p.i("addi", 0, 0, 0)
             p.jal(0, prefix + "_warm")
             while p.pc % 128:
                 p.i("addi", 0, 0, 0)

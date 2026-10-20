@@ -41,7 +41,9 @@ def main() -> None:
     parser.add_argument("--cxx", default="clang++" if platform.system() == "Darwin" else "g++")
     parser.add_argument("--make", default="gmake" if platform.system() == "Darwin" else "make")
     parser.add_argument("--ar", default="ar")
-    parser.add_argument("--jobs", type=int, default=4)
+    parser.add_argument("--jobs", type=int, default=4, help="parallel C++ compilation jobs")
+    parser.add_argument("--threads", type=int, default=1,
+                        help="Verilator simulation threads (including the main thread); independent of --jobs")
     args = parser.parse_args()
     parameters = {"TRACE": "1"}
     for item in args.param:
@@ -53,6 +55,8 @@ def main() -> None:
         parameters[name] = value
     if args.jobs < 1:
         parser.error("--jobs must be positive")
+    if args.threads < 1:
+        parser.error("--threads must be positive")
     try:
         verilator, compiler, make, ar = map(executable, (args.verilator, args.cxx, args.make, args.ar))
         sources = with_ram_source(read_sources(args.filelist))
@@ -66,6 +70,7 @@ def main() -> None:
     if not simulator_source.is_file():
         parser.error(f"missing simulator source {simulator_source}")
     command = [verilator, "--cc", "--exe", "--build", "--trace", "--assert", "-Wall", "-Wno-fatal",
+               *(["--threads", str(args.threads)] if args.threads != 1 else []),
                "--top-module", "student_top", "--Mdir", str(output / "obj"), "-o", str(output / "sim"),
                "-j", str(args.jobs), "-MAKEFLAGS", flags, "-CFLAGS", "-std=c++17",
                *[f"-G{name}={value}" for name, value in parameters.items()],

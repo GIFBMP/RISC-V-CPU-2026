@@ -210,6 +210,9 @@ module cpu_core #(
     logic [IQ_PAYLOAD_BITS-1:0] iq_payload [0:IQ_DEPTH-1];
     logic [31:0] iq_load_address [0:IQ_DEPTH-1];
     wire [31:0] iq_wakeup_address [0:IQ_DEPTH-1];
+    wire [31:0] iq_effective_address [0:IQ_DEPTH-1];
+    wire [ROB_DEPTH-1:0] iq_store_word_match [0:IQ_DEPTH-1];
+    logic [ROB_DEPTH-1:0] primary_store_word_match, load_store_word_match;
     logic [IQ_PAYLOAD_BITS-1:0] selected_payload;
     logic [PW-1:0] selected_src1, selected_src2;
     logic [IQ_DEPTH-1:0] wb_match1, wb_match2, ex_match1, ex_match2;
@@ -324,6 +327,8 @@ module cpu_core #(
     logic [MW-1:0] mq_store_tail;
     logic [1:0] mem_enqueue_count;
     logic [MCW-1:0] mq_count, mq_unsent;
+    wire [MCW-1:0] mq_unsent_inc1, mq_unsent_inc2, mq_unsent_dec1;
+    logic [MCW-1:0] mq_unsent_next;
     logic [MEM_QUEUE_DEPTH-1:0] mq_valid, mq_killed, mq_write, mq_committed;
     logic [31:0] mq_addr [0:MEM_QUEUE_DEPTH-1], mq_data [0:MEM_QUEUE_DEPTH-1];
     logic [31:0] mq_load_addr [0:MEM_QUEUE_DEPTH-1], mq_store_addr [0:MEM_QUEUE_DEPTH-1];
@@ -603,16 +608,27 @@ module cpu_core #(
                 : second_match1[q] ? second_result : 32'b0;
             address_adder waking_address (.a(waking_base), .b(immediate),
                 .carry_in(1'b0), .sum(iq_wakeup_address[q]));
+            assign iq_effective_address[q] = iq_ready1[q]
+                ? iq_load_address[q] : iq_wakeup_address[q];
+            // Compare stable candidates before the late age grant. Selecting
+            // a match bitmap avoids address selection followed by a high-fanout
+            // broadcast into every Store comparator.
+            for (genvar r = 0; r < ROB_DEPTH; r = r + 1) begin : store_words
+                assign iq_store_word_match[q][r] = iq_stores[q][r]
+                    && rob_addr[r][27:2] == iq_effective_address[q][27:2];
+            end
         end
     endgenerate
     assign selected_misaligned = (primary_funct3[1:0] == 2'b01 && selected_address[0])
         || (primary_funct3[1:0] == 2'b10 && selected_address[1:0] != 0);
     always_comb begin
+        primary_store_word_match = 0;
+        for (integer q = 0; q < IQ_DEPTH; q = q + 1)
+            primary_store_word_match |= iq_store_word_match[q] & {ROB_DEPTH{primary_grant[q]}};
         selected_load_hazard = 0;
         for (integer r = 0; r < ROB_DEPTH; r = r + 1)
-            if (primary_stores[r] && rob_valid[r] && !rob_done[r]
-                && rob_addr[r][31:28] == 0
-                && rob_addr[r][27:2] == selected_address[27:2]) selected_load_hazard = 1;
+            if (primary_store_word_match[r] && rob_valid[r] && !rob_done[r]
+                && rob_addr[r][31:28] == 0) selected_load_hazard = 1;
     end
     assign early_load = SELECT_LOAD != 0 && mem_space && primary_select && primary_op == OP_LOAD
         && primary_fault == FAULT_NONE && !selected_misaligned && selected_address[31:28] == 0
@@ -870,8 +886,7 @@ module cpu_core #(
             // Address arithmetic overlaps wakeup/age selection. A ready
             // source's address is retained; a same-cycle wakeup uses its
             // prepared bypass address without adding a scheduling cycle.
-            selected_address |= (iq_ready1[q] ? iq_load_address[q] : iq_wakeup_address[q])
-                & {32{primary_grant[q]}};
+            selected_address |= iq_effective_address[q] & {32{primary_grant[q]}};
         end
         issue_index = '0;
         for (integer q = 0; q < IQ_DEPTH; q = q + 1)
@@ -1059,22 +1074,36 @@ module cpu_core #(
     end
 
     always_comb begin
+        for (integer r = 0; r < ROB_DEPTH; r = r + 1)
+            load_store_word_match[r] = load_payload_early ? primary_store_word_match[r]
+                : issue_stores[r] && rob_addr[r][27:2] == issue_address[27:2];
         for (integer b = 0; b < 4; b = b + 1) begin
             forward_match[b] = '0;
             for (integer r = 0; r < ROB_DEPTH; r = r + 1)
-                forward_match[b][r] = load_stores[r] && rob_valid[r] && rob_done[r]
+                forward_match[b][r] = load_store_word_match[r] && rob_valid[r] && rob_done[r]
                     && rob_fault[r] == FAULT_NONE && rob_strb[r][b]
-                    && rob_addr[r][31:28] == 0
-                    && rob_addr[r][27:2] == load_address[27:2];
+                    && rob_addr[r][31:28] == 0;
         end
     end
+`ifndef SYNTHESIS
+    always @(posedge clock) if (!reset && load_enqueue) begin
+        for (integer r = 0; r < ROB_DEPTH; r = r + 1) begin
+            assert (primary_store_word_match[r] == (primary_stores[r]
+                && rob_addr[r][27:2] == selected_address[27:2]));
+            assert (load_store_word_match[r] == (load_stores[r]
+                && rob_addr[r][27:2] == load_address[27:2]));
+        end
+    end
+`endif
     generate
         for (genvar b = 0; b < 4; b = b + 1) begin : forwarding_bytes
             wire [ROB_DEPTH*8-1:0] byte_values;
             for (genvar r = 0; r < ROB_DEPTH; r = r + 1) begin : sources
                 assign byte_values[r*8 +: 8] = rob_data[r][b*8 +: 8];
             end
-            youngest_match #(.WIDTH(ROB_DEPTH)) select_byte (
+            // mq_mask owns each byte's validity; load_merged never consumes
+            // an unmatched byte. Avoid duplicating that mask on the late data.
+            youngest_match #(.WIDTH(ROB_DEPTH), .ZERO_WHEN_INVALID(0)) select_byte (
                 .match_bits(forward_match[b]), .data(byte_values), .head(rob_head),
                 .valid(forward_mask[b]), .result(forward_data[b*8 +: 8])
             );
@@ -1454,6 +1483,37 @@ module cpu_core #(
         end
     end
 
+    // The cache handshake may arrive late. Prepare the possible count values
+    // from the registered count, then select the net change. Bit expressions
+    // keep synthesis from sharing these into a late-control arithmetic chain.
+    generate
+        for (genvar k = 0; k < MCW; k = k + 1) begin : unsent_count_values
+            if (k == 0) begin : low_bit
+                assign mq_unsent_inc1[k] = !mq_unsent[k];
+                assign mq_unsent_dec1[k] = !mq_unsent[k];
+                assign mq_unsent_inc2[k] = mq_unsent[k];
+            end else begin : upper_bits
+                assign mq_unsent_inc1[k] = mq_unsent[k] ^ (&mq_unsent[k-1:0]);
+                assign mq_unsent_dec1[k] = mq_unsent[k] ^ (~|mq_unsent[k-1:0]);
+                if (k == 1) assign mq_unsent_inc2[k] = !mq_unsent[k];
+                else assign mq_unsent_inc2[k] = mq_unsent[k] ^ (&mq_unsent[k-1:1]);
+            end
+        end
+    endgenerate
+    always_comb begin
+        case ({load_enqueue, store_start, d_req_valid && d_req_ready})
+            3'b001: mq_unsent_next = mq_unsent_dec1;
+            3'b010, 3'b100, 3'b111: mq_unsent_next = mq_unsent_inc1;
+            3'b110: mq_unsent_next = mq_unsent_inc2;
+            default: mq_unsent_next = mq_unsent;
+        endcase
+    end
+`ifndef SYNTHESIS
+    always @(posedge clock) if (!reset)
+        assert (mq_unsent_next == mq_unsent + MCW'(mem_enqueue_count)
+            - MCW'(d_req_valid && d_req_ready));
+`endif
+
     always_ff @(posedge clock) begin
         if (reset) begin
             mq_head <= 0;
@@ -1470,7 +1530,7 @@ module cpu_core #(
                 mq_head_onehot <= (mq_head_onehot << 1) | (mq_head_onehot >> (MEM_QUEUE_DEPTH-1));
             end
             mq_count <= mq_count + MCW'(mem_enqueue_count) - MCW'(mem_response);
-            mq_unsent <= mq_unsent + MCW'(mem_enqueue_count) - MCW'(d_req_valid && d_req_ready);
+            mq_unsent <= mq_unsent_next;
         end
     end
     generate

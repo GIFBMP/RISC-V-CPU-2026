@@ -9,9 +9,14 @@ module forward_equivalence #(
 );
     wire valid;
     wire [7:0] result;
+    wire unmasked_valid;
+    wire [7:0] unmasked_result;
     reg [7:0] expected;
     reg [WIDTH-1:0] grant;
     youngest_match #(.WIDTH(WIDTH)) dut (.match_bits(match_bits), .data(data), .head(head), .valid(valid), .result(result));
+    youngest_match #(.WIDTH(WIDTH), .ZERO_WHEN_INVALID(0)) unmasked_dut (
+        .match_bits(match_bits), .data(data), .head(head),
+        .valid(unmasked_valid), .result(unmasked_result));
     function automatic older(input [INDEX_BITS-1:0] a,b,h);
         if ((a >= h) != (b >= h)) older = a >= h;
         else older = a < b;
@@ -25,5 +30,6 @@ module forward_equivalence #(
             expected = expected | (data[8*r +: 8] & {8{grant[r]}});
         end
     end
-    assign ok = result == expected && valid == (|match_bits);
+    assign ok = result == expected && valid == (|match_bits)
+        && unmasked_valid == valid && (!valid || unmasked_result == expected);
 endmodule
