@@ -1,0 +1,1100 @@
+{
+  "schema_version": 1,
+  "version": "V10",
+  "date_utc": "2026-10-20T07:42:11.528242+00:00",
+  "decision": "All three candidates rejected; restored the exact accepted baseline RTL",
+  "reference": {
+    "path": "/Users/juju527/course/arch/arch-hw3/adder32/answer.v",
+    "sha256": "522ff6f84d2e289423ea8bb0153af0e204fd74f25a9201fe9e7e45fb83ac2c82",
+    "snapshot": {
+      "path": "build/v7-adder-reference/baseline/answer.v",
+      "sha256": "522ff6f84d2e289423ea8bb0153af0e204fd74f25a9201fe9e7e45fb83ac2c82"
+    },
+    "equivalence_wrapper": {
+      "path": "build/v7-adder-reference/reference_equivalence.sv",
+      "sha256": "4cea1f62f300a8eb9f9e35aa219bb25c21b998ec05c56d1f9a7c6d95845b05b1"
+    }
+  },
+  "baseline": {
+    "report": {
+      "path": "docs/experiments/v10-results.json",
+      "sha256": "33b7b5455562574a048e764cb6ac6c99e01d0d0716aa67816592648f7f7013a6",
+      "original_path": "docs/experiments/v7-mdu-slides-results.json",
+      "original_sha256": "0d8ec0c37f1a61bc3ecfc24a4f1f69c7fe571522fac748591d2f75e33d152e37"
+    },
+    "source_sha256": {
+      "verilog/student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702",
+      "verilog/cpu_core.sv": "17943e939d55618eb67c5b88085c2cb3af136d519bdb3eefbf71ce3d88c36870",
+      "verilog/filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+      "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+      "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+      "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+      "verilog/memory/dcache_writeback.sv": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291",
+      "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+      "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+      "verilog/common/youngest_match.sv": "4e55a6d7823a32f467d0d0184efcce1f8f5d61f39364ffecd58e6b72fdeff7eb",
+      "verilog/common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+      "verilog/common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+      "verilog/common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+      "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+      "verilog/execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+      "verilog/execute/muldiv_unit.sv": "5a53de1f3f5c412be14b0aa1ead263dfbb2657d457cd2f49581f20d0db00ec7c"
+    },
+    "ipc_geomean": 1.100201368597644,
+    "estimated_fmax_mhz": 506.4292779426311,
+    "area_um2": 34170.19072400413,
+    "pi": {
+      "case": "correctness_pi",
+      "cycles": 11839760,
+      "seconds": 302.87702843899024
+    },
+    "scope": "Previously measured qualification, not rerun in this adder experiment"
+  },
+  "restored_source_sha256": {
+    "verilog/student_top.sv": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702",
+    "verilog/cpu_core.sv": "17943e939d55618eb67c5b88085c2cb3af136d519bdb3eefbf71ce3d88c36870",
+    "verilog/filelist.f": "e8ac3063edaa63d0ad56ec08c6ee6c7928649a80ec42e85498876b65e14ac7b6",
+    "verilog/memory/memory_system.sv": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669",
+    "verilog/memory/blocking_cache.sv": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e",
+    "verilog/memory/icache_pipeline.sv": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52",
+    "verilog/memory/dcache_writeback.sv": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291",
+    "verilog/frontend/fetch_frontend.sv": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f",
+    "verilog/bus/axi_lite_bridge.sv": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f",
+    "verilog/common/youngest_match.sv": "4e55a6d7823a32f467d0d0184efcce1f8f5d61f39364ffecd58e6b72fdeff7eb",
+    "verilog/common/zero_one_tree.sv": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65",
+    "verilog/common/store_byte_align.sv": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574",
+    "verilog/common/address_adder.sv": "91ac9935fc5fc28f1116638af409b5413e82052ee5816eac3a23bae2086a2d36",
+    "verilog/execute/decoder.sv": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c",
+    "verilog/execute/alu.sv": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a",
+    "verilog/execute/muldiv_unit.sv": "5a53de1f3f5c412be14b0aa1ead263dfbb2657d457cd2f49581f20d0db00ec7c"
+  },
+  "changed_production_inputs": [],
+  "environment": {
+    "platform": "Linux-6.8.0-117-generic-aarch64-with-glibc2.39",
+    "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+    "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "container_image": "cpu2026:arm64",
+    "image_id": "sha256:e7bbffdf5a82637177aee9368e7b035498be944cc718e2b39af4b4869882e2e6"
+  },
+  "constraints": {
+    "minimum_ipc": 1.0985,
+    "minimum_frequency_mhz": 500,
+    "maximum_area_um2": 36000
+  },
+  "candidates": [
+    {
+      "name": "xor",
+      "description": "Vector XOR propagate and vector sum, adapted from the supplied reference",
+      "decision": "rejected",
+      "reason": "Full-chip STA frequency below 500 MHz",
+      "patch": {
+        "path": "docs/experiments/v10-adder-reference/xor.patch",
+        "sha256": "9aaa09005cca0b8fd720ab0441490baf199bf5ad4572c23c701f377ca6010810",
+        "original_path": "docs/experiments/v7-adder-reference/xor.patch",
+        "original_sha256": "9aaa09005cca0b8fd720ab0441490baf199bf5ad4572c23c701f377ca6010810"
+      },
+      "adder_snapshot": {
+        "path": "build/v7-adder-reference/xor/rtl/common/address_adder.sv",
+        "sha256": "7481d201b76a4bb1b6860fabec6650925fb74d659bc8e84c43814a3beb81356e"
+      },
+      "adder_sha256": "7481d201b76a4bb1b6860fabec6650925fb74d659bc8e84c43814a3beb81356e",
+      "screen_steps": [
+        {
+          "name": "address-formal",
+          "returncode": 0,
+          "seconds": 0.03919575398322195
+        },
+        {
+          "name": "alu-formal",
+          "returncode": 0,
+          "seconds": 0.08064005000051111
+        },
+        {
+          "name": "reference-formal",
+          "returncode": 0,
+          "seconds": 0.03977254297933541
+        },
+        {
+          "name": "generate",
+          "returncode": 0,
+          "seconds": 0.5250554800149985
+        },
+        {
+          "name": "build",
+          "returncode": 0,
+          "seconds": 25.84547168199788
+        },
+        {
+          "name": "directed",
+          "returncode": 0,
+          "seconds": 17.912853628018638
+        },
+        {
+          "name": "perf",
+          "returncode": 0,
+          "seconds": 18.615904124977533
+        }
+      ],
+      "screen_helper": {
+        "path": "build/v7-adder-reference/xor/screen.py",
+        "sha256": "d675c6539c5ffe735a9b114cbecdd966e46353a0e6184738444bc958800acea1"
+      },
+      "validation": {
+        "directed": {
+          "passed": 189,
+          "total": 189,
+          "summary": {
+            "path": "build/v7-adder-reference/xor/screen/directed/20261020-072333-864274/summary.json",
+            "sha256": "d1de5782f2a2916ba8e82daa82fd3116bbcc2a7bc6812fc8dc6b7b593be09fb2"
+          },
+          "commits_compared": 107499
+        },
+        "perf": {
+          "passed": 6,
+          "total": 6,
+          "summary": {
+            "path": "build/v7-adder-reference/xor/screen/perf/20261020-072351-777003/summary.json",
+            "sha256": "692e3241b300d2bc883ac53817254778d1716b90e560ba54b071a375744c1b14"
+          },
+          "commits_compared": 374104
+        },
+        "iverilog_units": {
+          "decoder_checks": 4035,
+          "alu_checks": 6628,
+          "mdu_operations": 2967,
+          "mdu_latency_checks": 710,
+          "mdu_flush_scenarios": 19,
+          "mdu_reset_cancellation": true,
+          "log": {
+            "path": "build/v7-adder-reference/xor/unit/run.log",
+            "sha256": "90968f7aa148674cc2c6c3b756591112e428b838d827bf46fa7c8cb7f8b84300"
+          }
+        }
+      },
+      "arithmetic_proofs": [
+        {
+          "name": "address-formal",
+          "passed": true,
+          "log": {
+            "path": "build/v7-adder-reference/xor/screen/address-formal.log",
+            "sha256": "76d74ab3777eaa6e3d7c8456fb95ee807e731c1e528c961523146cb83d40a12e"
+          }
+        },
+        {
+          "name": "alu-formal",
+          "passed": true,
+          "log": {
+            "path": "build/v7-adder-reference/xor/screen/alu-formal.log",
+            "sha256": "1baf90719fedda40a00c46b439abba942be7dffde392996cd5b2629bbf52da3a"
+          }
+        },
+        {
+          "name": "reference-formal",
+          "passed": true,
+          "log": {
+            "path": "build/v7-adder-reference/xor/screen/reference-formal.log",
+            "sha256": "fdd737a76b9051ea80e9b958268aa00c4409de7bddd03654e575b9078732b07f"
+          }
+        }
+      ],
+      "performance": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 8624
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 16694
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 132395
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 121282
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 5317
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 4535
+        }
+      ],
+      "ipc_geomean": 1.100201368597644,
+      "synthesis": {
+        "report": {
+          "path": "build/v7-adder-reference/xor/synth/opt/report.json",
+          "sha256": "744b0851203bee75d24a15840498f2426d0b6e7621c09999676548db18064b99"
+        },
+        "inputs": [
+          {
+            "path": "/work/verilog/common/zero_one_tree.sv",
+            "sha256": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65"
+          },
+          {
+            "path": "/work/verilog/common/address_adder.sv",
+            "sha256": "7481d201b76a4bb1b6860fabec6650925fb74d659bc8e84c43814a3beb81356e"
+          },
+          {
+            "path": "/work/verilog/common/youngest_match.sv",
+            "sha256": "4e55a6d7823a32f467d0d0184efcce1f8f5d61f39364ffecd58e6b72fdeff7eb"
+          },
+          {
+            "path": "/work/verilog/common/store_byte_align.sv",
+            "sha256": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574"
+          },
+          {
+            "path": "/work/verilog/execute/decoder.sv",
+            "sha256": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c"
+          },
+          {
+            "path": "/work/verilog/execute/alu.sv",
+            "sha256": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a"
+          },
+          {
+            "path": "/work/verilog/execute/muldiv_unit.sv",
+            "sha256": "5a53de1f3f5c412be14b0aa1ead263dfbb2657d457cd2f49581f20d0db00ec7c"
+          },
+          {
+            "path": "/work/verilog/bus/axi_lite_bridge.sv",
+            "sha256": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f"
+          },
+          {
+            "path": "/work/verilog/memory/blocking_cache.sv",
+            "sha256": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e"
+          },
+          {
+            "path": "/work/verilog/memory/icache_pipeline.sv",
+            "sha256": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52"
+          },
+          {
+            "path": "/work/verilog/memory/dcache_writeback.sv",
+            "sha256": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291"
+          },
+          {
+            "path": "/work/verilog/memory/memory_system.sv",
+            "sha256": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669"
+          },
+          {
+            "path": "/work/verilog/frontend/fetch_frontend.sv",
+            "sha256": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f"
+          },
+          {
+            "path": "/work/verilog/cpu_core.sv",
+            "sha256": "17943e939d55618eb67c5b88085c2cb3af136d519bdb3eefbf71ce3d88c36870"
+          },
+          {
+            "path": "/work/verilog/student_top.sv",
+            "sha256": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+          },
+          {
+            "path": "/work/scripts/ram/sram_fakeram.sv",
+            "sha256": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc"
+          }
+        ],
+        "abc_constraints": {
+          "driving_cell": "BUFx2_ASAP7_75t_R",
+          "output_load_ff": 1.0
+        },
+        "area": {
+          "logic_area_um2": 22251.32532000284,
+          "sequential_area_um2": 7318.8684,
+          "combinational_area_um2": 14932.456920002842,
+          "sram_area_um2": 11811.731563999994,
+          "area_um2": 34063.056884002835
+        },
+        "timing": {
+          "clock_port": "clock",
+          "clock_period_ns": 2.0,
+          "input_delay_ns": 0.2,
+          "output_delay_ns": 0.2,
+          "input_transition_ns": 0.05,
+          "clock_transition_ns": 0.05,
+          "clock_uncertainty_ns": 0.05,
+          "output_load_ff": 5.0,
+          "reset_value": 0,
+          "clock_model": "ideal",
+          "interconnect": "no_parasitics",
+          "frequency_resolution_ns": 0.001,
+          "minimum_period_ns": 2.1220703125,
+          "estimated_fmax_mhz": 471.2379199263691,
+          "worst_setup_slack_ns": -0.121634,
+          "timing_analyzed": true
+        },
+        "critical_endpoints": [
+          {
+            "startpoint": "memory.instruction_cache.tag_array.lane_0/rd_out[8]",
+            "endpoint": "_407195_/D",
+            "slack_ns": -0.1216
+          },
+          {
+            "startpoint": "memory.instruction_cache.tag_array.lane_0/rd_out[8]",
+            "endpoint": "_408233_/D",
+            "slack_ns": -0.12
+          },
+          {
+            "startpoint": "memory.instruction_cache.tag_array.lane_0/rd_out[8]",
+            "endpoint": "_407022_/D",
+            "slack_ns": -0.1195
+          },
+          {
+            "startpoint": "memory.instruction_cache.tag_array.lane_0/rd_out[8]",
+            "endpoint": "_407887_/D",
+            "slack_ns": -0.11850000000000001
+          },
+          {
+            "startpoint": "memory.instruction_cache.tag_array.lane_0/rd_out[8]",
+            "endpoint": "_408406_/D",
+            "slack_ns": -0.1123
+          }
+        ],
+        "tools": {
+          "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+          "opensta": "3.1.0"
+        },
+        "libraries": [
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_AO_RVT_TT_nldm_211120.lib",
+            "sha256": "b1ece108c0a2acd8d01c05cee6daee2834425037b1d9aad625d6f1dd640f1940"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_INVBUF_RVT_TT_nldm_220122.lib",
+            "sha256": "a4ceb32e418e1aac8667e28fbd8e9e46baf520180be4db075598a4d7c681a56e"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_OA_RVT_TT_nldm_211120.lib",
+            "sha256": "6529c6c72465cd133dfbfb03952327ab2774bb6aa4be866d78fd7bc6c58c9f6f"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_SEQ_RVT_TT_nldm_220123.lib",
+            "sha256": "57a0b403485b99ebd676942af4673ac086b86c7c75fbdc3e5c0038501dd22ba3"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.lib",
+            "sha256": "fa92e6ab1481810602811b1eea54bc016a341f11fb5188d7512c026599adf038"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/xor/synth/opt/ram/fakeram_asap7_16x21.lib",
+            "sha256": "62e6c63e736ed2bb3790c9d982a74036c580f0756945f75be54b49d62dfdf2aa"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/xor/synth/opt/ram/fakeram_asap7_2048x8.lib",
+            "sha256": "efd4b7c4261aba0349578182239d3df873828190cf78be3e206674e638a0bca6"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/xor/synth/opt/ram/fakeram_asap7_256x32.lib",
+            "sha256": "928a8a6f6e1c31283dc12124ad44d45c91c4e92bb916fd8226d934ef633ac2b9"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/xor/synth/opt/ram/fakeram_asap7_32x19.lib",
+            "sha256": "e92950a55f1b88ad7ddfe563d14df35041b557dd8637508d4a12100992958d62"
+          }
+        ]
+      },
+      "acceptance": {
+        "screen_correctness": true,
+        "ipc": true,
+        "frequency": false,
+        "area": true,
+        "all_met": false
+      },
+      "generated_trace_cpp": {
+        "file_count": 24,
+        "bytes": 15414626,
+        "scope": "Code size diagnostic only; not a runtime measurement"
+      },
+      "official_full_regression_rerun": false,
+      "pi_timed": false
+    },
+    {
+      "name": "or-vector",
+      "description": "Vector OR propagate and vector sum",
+      "decision": "rejected",
+      "reason": "Full-chip STA frequency below 500 MHz",
+      "patch": {
+        "path": "docs/experiments/v10-adder-reference/or-vector.patch",
+        "sha256": "37fdac599fd0501d4e2e7ac6dc2ddd2d1acc184fd410aed66daab3beb6922025",
+        "original_path": "docs/experiments/v7-adder-reference/or-vector.patch",
+        "original_sha256": "37fdac599fd0501d4e2e7ac6dc2ddd2d1acc184fd410aed66daab3beb6922025"
+      },
+      "adder_snapshot": {
+        "path": "build/v7-adder-reference/or-vector/rtl/common/address_adder.sv",
+        "sha256": "acb0d4fc377ed8c15f1ea760f500b8885c43e79bd975775f376039410a128cb7"
+      },
+      "adder_sha256": "acb0d4fc377ed8c15f1ea760f500b8885c43e79bd975775f376039410a128cb7",
+      "screen_steps": [
+        {
+          "name": "address-formal",
+          "returncode": 0,
+          "seconds": 0.04556496301665902
+        },
+        {
+          "name": "alu-formal",
+          "returncode": 0,
+          "seconds": 0.06989508398692124
+        },
+        {
+          "name": "reference-formal",
+          "returncode": 0,
+          "seconds": 0.0971233949821908
+        },
+        {
+          "name": "generate",
+          "returncode": 0,
+          "seconds": 0.38504445701255463
+        },
+        {
+          "name": "build",
+          "returncode": 0,
+          "seconds": 26.413764763012296
+        },
+        {
+          "name": "directed",
+          "returncode": 0,
+          "seconds": 19.72646439500386
+        },
+        {
+          "name": "perf",
+          "returncode": 0,
+          "seconds": 19.000093434995506
+        }
+      ],
+      "screen_helper": {
+        "path": "build/v7-adder-reference/or-vector/screen.py",
+        "sha256": "8e12b2a340c6e98394223b2d2a6937ce050588e2d1d144c23bbe4b63652f8c13"
+      },
+      "validation": {
+        "directed": {
+          "passed": 189,
+          "total": 189,
+          "summary": {
+            "path": "build/v7-adder-reference/or-vector/screen/directed/20261020-073039-693741/summary.json",
+            "sha256": "19fcaec7d5cec6845bd1d020ab7bf3f175b7e5886a1f039afdca8351101b4250"
+          },
+          "commits_compared": 107499
+        },
+        "perf": {
+          "passed": 6,
+          "total": 6,
+          "summary": {
+            "path": "build/v7-adder-reference/or-vector/screen/perf/20261020-073059-151787/summary.json",
+            "sha256": "df6fa33058359bb7df6afbe0b5fcd4833c8bb06cf2bbeb57afe3eda680fc1658"
+          },
+          "commits_compared": 374104
+        },
+        "iverilog_units": {
+          "decoder_checks": 4035,
+          "alu_checks": 6628,
+          "mdu_operations": 2967,
+          "mdu_latency_checks": 710,
+          "mdu_flush_scenarios": 19,
+          "mdu_reset_cancellation": true,
+          "log": {
+            "path": "build/v7-adder-reference/or-vector/unit/run.log",
+            "sha256": "90968f7aa148674cc2c6c3b756591112e428b838d827bf46fa7c8cb7f8b84300"
+          }
+        }
+      },
+      "arithmetic_proofs": [
+        {
+          "name": "address-formal",
+          "passed": true,
+          "log": {
+            "path": "build/v7-adder-reference/or-vector/screen/address-formal.log",
+            "sha256": "582e9a8f25e0d77a557d710be9fbaaddb882c98236d083ae7256e486c482bfba"
+          }
+        },
+        {
+          "name": "alu-formal",
+          "passed": true,
+          "log": {
+            "path": "build/v7-adder-reference/or-vector/screen/alu-formal.log",
+            "sha256": "c280359e5286f7149ad2be9e801b234d828b1827c1fb785bf4a45ae69ee26283"
+          }
+        },
+        {
+          "name": "reference-formal",
+          "passed": true,
+          "log": {
+            "path": "build/v7-adder-reference/or-vector/screen/reference-formal.log",
+            "sha256": "0550681198f9e497662517dcf6b974c64703da91f0798f0d8697d2f8105535bc"
+          }
+        }
+      ],
+      "performance": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 8624
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 16694
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 132395
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 121282
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 5317
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 4535
+        }
+      ],
+      "ipc_geomean": 1.100201368597644,
+      "synthesis": {
+        "report": {
+          "path": "build/v7-adder-reference/or-vector/synth/opt/report.json",
+          "sha256": "0b1d30cc53286e0fd41fb00bcd2a246bcf9a3c5ff106825519c5d2d3f1bef704"
+        },
+        "inputs": [
+          {
+            "path": "/work/verilog/common/zero_one_tree.sv",
+            "sha256": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65"
+          },
+          {
+            "path": "/work/verilog/common/address_adder.sv",
+            "sha256": "acb0d4fc377ed8c15f1ea760f500b8885c43e79bd975775f376039410a128cb7"
+          },
+          {
+            "path": "/work/verilog/common/youngest_match.sv",
+            "sha256": "4e55a6d7823a32f467d0d0184efcce1f8f5d61f39364ffecd58e6b72fdeff7eb"
+          },
+          {
+            "path": "/work/verilog/common/store_byte_align.sv",
+            "sha256": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574"
+          },
+          {
+            "path": "/work/verilog/execute/decoder.sv",
+            "sha256": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c"
+          },
+          {
+            "path": "/work/verilog/execute/alu.sv",
+            "sha256": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a"
+          },
+          {
+            "path": "/work/verilog/execute/muldiv_unit.sv",
+            "sha256": "5a53de1f3f5c412be14b0aa1ead263dfbb2657d457cd2f49581f20d0db00ec7c"
+          },
+          {
+            "path": "/work/verilog/bus/axi_lite_bridge.sv",
+            "sha256": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f"
+          },
+          {
+            "path": "/work/verilog/memory/blocking_cache.sv",
+            "sha256": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e"
+          },
+          {
+            "path": "/work/verilog/memory/icache_pipeline.sv",
+            "sha256": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52"
+          },
+          {
+            "path": "/work/verilog/memory/dcache_writeback.sv",
+            "sha256": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291"
+          },
+          {
+            "path": "/work/verilog/memory/memory_system.sv",
+            "sha256": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669"
+          },
+          {
+            "path": "/work/verilog/frontend/fetch_frontend.sv",
+            "sha256": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f"
+          },
+          {
+            "path": "/work/verilog/cpu_core.sv",
+            "sha256": "17943e939d55618eb67c5b88085c2cb3af136d519bdb3eefbf71ce3d88c36870"
+          },
+          {
+            "path": "/work/verilog/student_top.sv",
+            "sha256": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+          },
+          {
+            "path": "/work/scripts/ram/sram_fakeram.sv",
+            "sha256": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc"
+          }
+        ],
+        "abc_constraints": {
+          "driving_cell": "BUFx2_ASAP7_75t_R",
+          "output_load_ff": 1.0
+        },
+        "area": {
+          "logic_area_um2": 22353.749820002777,
+          "sequential_area_um2": 7318.8684,
+          "combinational_area_um2": 15034.881420002777,
+          "sram_area_um2": 11811.731563999994,
+          "area_um2": 34165.48138400277
+        },
+        "timing": {
+          "clock_port": "clock",
+          "clock_period_ns": 2.0,
+          "input_delay_ns": 0.2,
+          "output_delay_ns": 0.2,
+          "input_transition_ns": 0.05,
+          "clock_transition_ns": 0.05,
+          "clock_uncertainty_ns": 0.05,
+          "output_load_ff": 5.0,
+          "reset_value": 0,
+          "clock_model": "ideal",
+          "interconnect": "no_parasitics",
+          "frequency_resolution_ns": 0.001,
+          "minimum_period_ns": 2.0302734375,
+          "estimated_fmax_mhz": 492.5444925444925,
+          "worst_setup_slack_ns": -0.029963,
+          "timing_analyzed": true
+        },
+        "critical_endpoints": [
+          {
+            "startpoint": "_398458_/QN",
+            "endpoint": "_398670_/D",
+            "slack_ns": -0.02996
+          },
+          {
+            "startpoint": "_398458_/QN",
+            "endpoint": "_420111_/D",
+            "slack_ns": -0.01877
+          },
+          {
+            "startpoint": "_398458_/QN",
+            "endpoint": "_419919_/D",
+            "slack_ns": -0.01876
+          },
+          {
+            "startpoint": "_398458_/QN",
+            "endpoint": "_419909_/D",
+            "slack_ns": -0.01876
+          },
+          {
+            "startpoint": "_398458_/QN",
+            "endpoint": "_420109_/D",
+            "slack_ns": -0.01875
+          }
+        ],
+        "tools": {
+          "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+          "opensta": "3.1.0"
+        },
+        "libraries": [
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_AO_RVT_TT_nldm_211120.lib",
+            "sha256": "b1ece108c0a2acd8d01c05cee6daee2834425037b1d9aad625d6f1dd640f1940"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_INVBUF_RVT_TT_nldm_220122.lib",
+            "sha256": "a4ceb32e418e1aac8667e28fbd8e9e46baf520180be4db075598a4d7c681a56e"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_OA_RVT_TT_nldm_211120.lib",
+            "sha256": "6529c6c72465cd133dfbfb03952327ab2774bb6aa4be866d78fd7bc6c58c9f6f"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_SEQ_RVT_TT_nldm_220123.lib",
+            "sha256": "57a0b403485b99ebd676942af4673ac086b86c7c75fbdc3e5c0038501dd22ba3"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.lib",
+            "sha256": "fa92e6ab1481810602811b1eea54bc016a341f11fb5188d7512c026599adf038"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/or-vector/synth/opt/ram/fakeram_asap7_16x21.lib",
+            "sha256": "62e6c63e736ed2bb3790c9d982a74036c580f0756945f75be54b49d62dfdf2aa"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/or-vector/synth/opt/ram/fakeram_asap7_2048x8.lib",
+            "sha256": "efd4b7c4261aba0349578182239d3df873828190cf78be3e206674e638a0bca6"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/or-vector/synth/opt/ram/fakeram_asap7_256x32.lib",
+            "sha256": "928a8a6f6e1c31283dc12124ad44d45c91c4e92bb916fd8226d934ef633ac2b9"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/or-vector/synth/opt/ram/fakeram_asap7_32x19.lib",
+            "sha256": "e92950a55f1b88ad7ddfe563d14df35041b557dd8637508d4a12100992958d62"
+          }
+        ]
+      },
+      "acceptance": {
+        "screen_correctness": true,
+        "ipc": true,
+        "frequency": false,
+        "area": true,
+        "all_met": false
+      },
+      "generated_trace_cpp": {
+        "file_count": 24,
+        "bytes": 15410644,
+        "scope": "Code size diagnostic only; not a runtime measurement"
+      },
+      "official_full_regression_rerun": false,
+      "pi_timed": false
+    },
+    {
+      "name": "prefix-vector",
+      "description": "Vector OR prefix merges with the original per-bit sum expressions",
+      "decision": "rejected",
+      "reason": "Full-chip STA frequency below 500 MHz",
+      "patch": {
+        "path": "docs/experiments/v10-adder-reference/prefix-vector.patch",
+        "sha256": "3aff7cb55c5ee971a29625aad4a9f702289b6ac037caf77607fcd174b7c46756",
+        "original_path": "docs/experiments/v7-adder-reference/prefix-vector.patch",
+        "original_sha256": "3aff7cb55c5ee971a29625aad4a9f702289b6ac037caf77607fcd174b7c46756"
+      },
+      "adder_snapshot": {
+        "path": "build/v7-adder-reference/prefix-vector/rtl/common/address_adder.sv",
+        "sha256": "e4b0b90362d673c86d871d8dac2b10bef29241f6a75fc824f251be273df1e25e"
+      },
+      "adder_sha256": "e4b0b90362d673c86d871d8dac2b10bef29241f6a75fc824f251be273df1e25e",
+      "screen_steps": [
+        {
+          "name": "address-formal",
+          "returncode": 0,
+          "seconds": 0.04126300601637922
+        },
+        {
+          "name": "alu-formal",
+          "returncode": 0,
+          "seconds": 0.07371192099526525
+        },
+        {
+          "name": "reference-formal",
+          "returncode": 0,
+          "seconds": 0.11415877100080252
+        },
+        {
+          "name": "generate",
+          "returncode": 0,
+          "seconds": 0.3868749729881529
+        },
+        {
+          "name": "build",
+          "returncode": 0,
+          "seconds": 28.04702724699746
+        },
+        {
+          "name": "directed",
+          "returncode": 0,
+          "seconds": 18.545298773009563
+        },
+        {
+          "name": "perf",
+          "returncode": 0,
+          "seconds": 19.54554643499432
+        }
+      ],
+      "screen_helper": {
+        "path": "build/v7-adder-reference/prefix-vector/screen.py",
+        "sha256": "70119d106c7ff7e7fd1e22527db5dc523dda3e712ac25c08a998e491e67187ff"
+      },
+      "validation": {
+        "directed": {
+          "passed": 189,
+          "total": 189,
+          "summary": {
+            "path": "build/v7-adder-reference/prefix-vector/screen/directed/20261020-073618-194011/summary.json",
+            "sha256": "252f5fd08b43eefa10d733cba3e434e0405e47335265b703461ddd9f9736e395"
+          },
+          "commits_compared": 107499
+        },
+        "perf": {
+          "passed": 6,
+          "total": 6,
+          "summary": {
+            "path": "build/v7-adder-reference/prefix-vector/screen/perf/20261020-073636-124636/summary.json",
+            "sha256": "9f3757fcd8db267f9335b08f332a7fb4d6c15232a4395b1ff7c314dd1ad72b1c"
+          },
+          "commits_compared": 374104
+        },
+        "iverilog_units": {
+          "decoder_checks": 4035,
+          "alu_checks": 6628,
+          "mdu_operations": 2967,
+          "mdu_latency_checks": 710,
+          "mdu_flush_scenarios": 19,
+          "mdu_reset_cancellation": true,
+          "log": {
+            "path": "build/v7-adder-reference/prefix-vector/unit/run.log",
+            "sha256": "90968f7aa148674cc2c6c3b756591112e428b838d827bf46fa7c8cb7f8b84300"
+          }
+        }
+      },
+      "arithmetic_proofs": [
+        {
+          "name": "address-formal",
+          "passed": true,
+          "log": {
+            "path": "build/v7-adder-reference/prefix-vector/screen/address-formal.log",
+            "sha256": "b0c48eb7ac70c42d8465be5be8c328af516c500200c85b2aae74bc508d4a7664"
+          }
+        },
+        {
+          "name": "alu-formal",
+          "passed": true,
+          "log": {
+            "path": "build/v7-adder-reference/prefix-vector/screen/alu-formal.log",
+            "sha256": "d7166c9e7a25feb6e24e8eb4f68fd5962ee08cbe46e5aab2cbcb660c10dd884c"
+          }
+        },
+        {
+          "name": "reference-formal",
+          "passed": true,
+          "log": {
+            "path": "build/v7-adder-reference/prefix-vector/screen/reference-formal.log",
+            "sha256": "ca8d1a13bb5874c24ba384f0081a77069d9334d1c13961d1bda63a6e44594af9"
+          }
+        }
+      ],
+      "performance": [
+        {
+          "case": "perf_median",
+          "instructions": 6961,
+          "cycles": 8624
+        },
+        {
+          "case": "perf_multiply",
+          "instructions": 21722,
+          "cycles": 16694
+        },
+        {
+          "case": "perf_qsort",
+          "instructions": 139900,
+          "cycles": 132395
+        },
+        {
+          "case": "perf_rsort",
+          "instructions": 195719,
+          "cycles": 121282
+        },
+        {
+          "case": "perf_towers",
+          "instructions": 5278,
+          "cycles": 5317
+        },
+        {
+          "case": "perf_vvadd",
+          "instructions": 4524,
+          "cycles": 4535
+        }
+      ],
+      "ipc_geomean": 1.100201368597644,
+      "synthesis": {
+        "report": {
+          "path": "build/v7-adder-reference/prefix-vector/synth/opt/report.json",
+          "sha256": "5439f3c57fda5cdabc1419eb5fc6f3408564e97251d420925dab802ddf69d03f"
+        },
+        "inputs": [
+          {
+            "path": "/work/verilog/common/zero_one_tree.sv",
+            "sha256": "641b185f064eb02b87fdc29aa83e553767810bd9dc94320f2af3041d92fb0a65"
+          },
+          {
+            "path": "/work/verilog/common/address_adder.sv",
+            "sha256": "e4b0b90362d673c86d871d8dac2b10bef29241f6a75fc824f251be273df1e25e"
+          },
+          {
+            "path": "/work/verilog/common/youngest_match.sv",
+            "sha256": "4e55a6d7823a32f467d0d0184efcce1f8f5d61f39364ffecd58e6b72fdeff7eb"
+          },
+          {
+            "path": "/work/verilog/common/store_byte_align.sv",
+            "sha256": "e2baa4c9e3f780c1fc26617f2f776625d089d2789c65800371d25a41bd3c8574"
+          },
+          {
+            "path": "/work/verilog/execute/decoder.sv",
+            "sha256": "fe9f8c792edc458fbfaa3b37b5133547ebdc9236ea8a9ebce6ce00f68b7db87c"
+          },
+          {
+            "path": "/work/verilog/execute/alu.sv",
+            "sha256": "3b918b01ed2fbb296235494e99e61a6fefafe657b8401ee4fed702e3bd0cb71a"
+          },
+          {
+            "path": "/work/verilog/execute/muldiv_unit.sv",
+            "sha256": "5a53de1f3f5c412be14b0aa1ead263dfbb2657d457cd2f49581f20d0db00ec7c"
+          },
+          {
+            "path": "/work/verilog/bus/axi_lite_bridge.sv",
+            "sha256": "1cf95a4a5a8836bb8ffcdc5b67e9496fa2b3b8f8c2a566815f73175f8f0f626f"
+          },
+          {
+            "path": "/work/verilog/memory/blocking_cache.sv",
+            "sha256": "05e7c0e5debda1826b552373d0f61fd0dc68715aac2600529178192acdafd64e"
+          },
+          {
+            "path": "/work/verilog/memory/icache_pipeline.sv",
+            "sha256": "ccbccbb8dc34ad9b9799b10142f9bf1c921b5cb85fd8ddce1f2dbaf0d07add52"
+          },
+          {
+            "path": "/work/verilog/memory/dcache_writeback.sv",
+            "sha256": "823e4b5b8abdc3b7d4f5f066dd300e8541813defff137328caf60c68bda0f291"
+          },
+          {
+            "path": "/work/verilog/memory/memory_system.sv",
+            "sha256": "0b5697c2e19325645bc8c2229d375de00eb2d9fc2c9c115b5f32d62980e6f669"
+          },
+          {
+            "path": "/work/verilog/frontend/fetch_frontend.sv",
+            "sha256": "e3c10ba2c8d523a4767cc0aa9120abfe6e9b857bd1af2bde0e147898e00ce35f"
+          },
+          {
+            "path": "/work/verilog/cpu_core.sv",
+            "sha256": "17943e939d55618eb67c5b88085c2cb3af136d519bdb3eefbf71ce3d88c36870"
+          },
+          {
+            "path": "/work/verilog/student_top.sv",
+            "sha256": "c5a325784c4fa7665abc3f14673d084b7b9730cc47e3834561d6e409ee777702"
+          },
+          {
+            "path": "/work/scripts/ram/sram_fakeram.sv",
+            "sha256": "c0a2389d5c3211fbd2fbca22a2e2e86edc38eafa9260407d72a55841274098cc"
+          }
+        ],
+        "abc_constraints": {
+          "driving_cell": "BUFx2_ASAP7_75t_R",
+          "output_load_ff": 1.0
+        },
+        "area": {
+          "logic_area_um2": 22420.905300004513,
+          "sequential_area_um2": 7318.8684,
+          "combinational_area_um2": 15102.036900004514,
+          "sram_area_um2": 11811.731563999994,
+          "area_um2": 34232.63686400451
+        },
+        "timing": {
+          "clock_port": "clock",
+          "clock_period_ns": 2.0,
+          "input_delay_ns": 0.2,
+          "output_delay_ns": 0.2,
+          "input_transition_ns": 0.05,
+          "clock_transition_ns": 0.05,
+          "clock_uncertainty_ns": 0.05,
+          "output_load_ff": 5.0,
+          "reset_value": 0,
+          "clock_model": "ideal",
+          "interconnect": "no_parasitics",
+          "frequency_resolution_ns": 0.001,
+          "minimum_period_ns": 2.06640625,
+          "estimated_fmax_mhz": 483.9319470699433,
+          "worst_setup_slack_ns": -0.065771,
+          "timing_analyzed": true
+        },
+        "critical_endpoints": [
+          {
+            "startpoint": "_402370_/QN",
+            "endpoint": "_419877_/D",
+            "slack_ns": -0.06577
+          },
+          {
+            "startpoint": "_402370_/QN",
+            "endpoint": "_419953_/D",
+            "slack_ns": -0.06577
+          },
+          {
+            "startpoint": "_402370_/QN",
+            "endpoint": "_419876_/D",
+            "slack_ns": -0.06573999999999999
+          },
+          {
+            "startpoint": "_402370_/QN",
+            "endpoint": "_419952_/D",
+            "slack_ns": -0.06573999999999999
+          },
+          {
+            "startpoint": "_402370_/QN",
+            "endpoint": "_416837_/D",
+            "slack_ns": -0.06566
+          }
+        ],
+        "tools": {
+          "yosys": "Yosys 0.63 (git sha1 70a11c6bf, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)",
+          "opensta": "3.1.0"
+        },
+        "libraries": [
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_AO_RVT_TT_nldm_211120.lib",
+            "sha256": "b1ece108c0a2acd8d01c05cee6daee2834425037b1d9aad625d6f1dd640f1940"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_INVBUF_RVT_TT_nldm_220122.lib",
+            "sha256": "a4ceb32e418e1aac8667e28fbd8e9e46baf520180be4db075598a4d7c681a56e"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_OA_RVT_TT_nldm_211120.lib",
+            "sha256": "6529c6c72465cd133dfbfb03952327ab2774bb6aa4be866d78fd7bc6c58c9f6f"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_SEQ_RVT_TT_nldm_220123.lib",
+            "sha256": "57a0b403485b99ebd676942af4673ac086b86c7c75fbdc3e5c0038501dd22ba3"
+          },
+          {
+            "path": "/opt/asap7/lib/asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.lib",
+            "sha256": "fa92e6ab1481810602811b1eea54bc016a341f11fb5188d7512c026599adf038"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/prefix-vector/synth/opt/ram/fakeram_asap7_16x21.lib",
+            "sha256": "62e6c63e736ed2bb3790c9d982a74036c580f0756945f75be54b49d62dfdf2aa"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/prefix-vector/synth/opt/ram/fakeram_asap7_2048x8.lib",
+            "sha256": "efd4b7c4261aba0349578182239d3df873828190cf78be3e206674e638a0bca6"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/prefix-vector/synth/opt/ram/fakeram_asap7_256x32.lib",
+            "sha256": "928a8a6f6e1c31283dc12124ad44d45c91c4e92bb916fd8226d934ef633ac2b9"
+          },
+          {
+            "path": "/work/build/v7-adder-reference/prefix-vector/synth/opt/ram/fakeram_asap7_32x19.lib",
+            "sha256": "e92950a55f1b88ad7ddfe563d14df35041b557dd8637508d4a12100992958d62"
+          }
+        ]
+      },
+      "acceptance": {
+        "screen_correctness": true,
+        "ipc": true,
+        "frequency": false,
+        "area": true,
+        "all_met": false
+      },
+      "generated_trace_cpp": {
+        "file_count": 25,
+        "bytes": 17448401,
+        "scope": "Code size diagnostic only; not a runtime measurement"
+      },
+      "official_full_regression_rerun": false,
+      "pi_timed": false
+    }
+  ],
+  "collector": {
+    "path": "build/v7-adder-reference/collect_rejected.py",
+    "sha256": "9fbc9d6e943746572dd7a83222fc3fb211d4568857996643e9bd97fbd566742e"
+  },
+  "scope": "Each candidate passed three combinational SAT proofs, 189 strict directed/random runs, six performance trace runs and Icarus execute units. All candidates failed the unchanged course full-chip 500 MHz timing gate. No candidate was adopted, and no new full official 19-case run, compatibility matrix or pi wall-time benchmark was performed. The restored production source hashes match the preceding accepted Booth/CSA MDU report exactly. Vector expression syntax alone does not guarantee a better mapped circuit. STA uses ideal clocks without interconnect parasitics.",
+  "documentation_versioning": {
+    "release": "V10",
+    "role": "rejected_experiment",
+    "original_document": {
+      "path": "docs/experiments/v7-adder-reference-results.json",
+      "sha256": "e75a040c9c4342c8de9abe5bee28256c2019cd1bd7974b5a63af1537d56ff016",
+      "version": "V7 adder reference evaluation; baseline retained"
+    },
+    "note": "Release labels and document references were normalized. Measurements, commands, source hashes and original build artifact paths are unchanged."
+  }
+}

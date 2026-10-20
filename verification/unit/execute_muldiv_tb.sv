@@ -15,7 +15,7 @@ module execute_muldiv_tb;
     integer last_latency = 0;
     integer seed = 32'h42c0ffee;
     integer unused_random;
-    integer index, op_index, ai, bi;
+    integer index, op_index, ai, bi, neighbor;
     logic [31:0] edges [0:8];
     logic [31:0] a, b, wanted;
     muldiv_unit dut (.*);
@@ -267,6 +267,45 @@ module execute_muldiv_tb;
         if (result_valid !== 0 || req_ready !== 1) $fatal(1, "Reset on completion edge");
         check_latency(6, 987654321, 101, divide_latency(6, 987654321));
         check_latency(4, 987654321, 101, 1);
+
+        // Every leading-zero boundary, in both modes, including exact powers
+        // of two, their neighbors, zero, and the INT_MIN magnitude.
+        // Alternating modes deliberately forces each first operation to miss.
+        for (index = 0; index < 32; index = index + 1) begin
+            for (neighbor = -1; neighbor <= 1; neighbor = neighbor + 1) begin
+                a = (32'd1 << index) + neighbor;
+                b = 3 + (index % 7);
+                check_latency(4, a, b, divide_latency(4, a));
+                check_latency(6, a, b, 1);
+                check_latency(5, a, b, divide_latency(5, a));
+                check_latency(7, a, b, 1);
+            end
+        end
+        // Booth digit transitions, including negative digits and the extra
+        // unsigned top digit. Mathematical multiplication remains the oracle.
+        for (ai = 0; ai < 9; ai = ai + 1) begin
+            for (op_index = 0; op_index < 4; op_index = op_index + 1) begin
+                check_latency(op_index[2:0], edges[ai], 32'haaaaaaaa, 2);
+                check_latency(op_index[2:0], edges[ai], 32'h55555555, 2);
+                check_latency(op_index[2:0], edges[ai], 32'hcccccccc, 2);
+                check_latency(op_index[2:0], edges[ai], 32'h33333333, 2);
+            end
+        end
+        // Cancel each multiplier stage, including its completion edge.
+        for (index = 0; index < 3; index = index + 1) begin
+            launch(2, 32'h80000001, 32'hffffffff);
+            repeat (index) tick();
+            cancel_and_check();
+            check_latency(2, 32'h80000001, 32'hffffffff, 2);
+        end
+        // Cancel normalization, the first shortened trial, and its completion.
+        for (index = 0; index < 3; index = index + 1) begin
+            check_latency(4, 1, 3, divide_latency(4, 1));
+            launch(5, 1, 3);
+            repeat (index) tick();
+            cancel_and_check();
+            check_latency(5, 1, 3, divide_latency(5, 1));
+        end
         $display("PASS M operations=%0d latency checks=%0d flush scenarios=%0d plus reset cancellation",
                  checks, latency_checks, cancellations);
         $finish;

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "V7",
+  "version": "V8",
   "date_utc": "2026-10-19T16:31:09.661202+00:00",
   "environment": {
     "system": "Linux",
@@ -38802,5 +38802,15 @@
     "random_00000100": "1386e398b2de3a12bd66262d4e8ca0c8e8931468822e8858dabef854f3d3e57a",
     "random_0000ffff": "5039732733540f87f1add81270dd1ffc609ad0259f6ecc5822fbfc3a11fd2223"
   },
-  "scope": "Official 19-case Linux correctness uses the official result protocol. The 6 performance cases and all directed/profile cases compare every commit. Compatibility profiles retain width, forwarding, ownership, retry and recovery invariants while skipping timing obligations specific to the default geometry. STA is ideal-clock/no-parasitics with the original course loads; this is not a routed silicon timing signoff."
+  "scope": "Official 19-case Linux correctness uses the official result protocol. The 6 performance cases and all directed/profile cases compare every commit. Compatibility profiles retain width, forwarding, ownership, retry and recovery invariants while skipping timing obligations specific to the default geometry. STA is ideal-clock/no-parasitics with the original course loads; this is not a routed silicon timing signoff.",
+  "documentation_versioning": {
+    "release": "V8",
+    "role": "qualification",
+    "original_document": {
+      "path": "docs/experiments/v7-500mhz-results.json",
+      "sha256": "73f4b7f43cf168b01f4f71a9dbde4437f0048f6f803ca748eda2f4019ac7e8a3",
+      "version": "V7"
+    },
+    "note": "Release labels and document references were normalized. Measurements, commands, source hashes and original build artifact paths are unchanged."
+  }
 }

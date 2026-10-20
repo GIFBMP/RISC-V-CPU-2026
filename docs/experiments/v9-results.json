@@ -1,11 +1,13 @@
 {
   "schema_version": 1,
-  "version": "V7-500MHz MDU speedup",
+  "version": "V9",
   "date_utc": "2026-10-20T06:43:28.509464+00:00",
   "base_commit": "054579b5833f5ab609466a0a9e6c0e3694528cc0",
   "baseline_report": {
-    "path": "docs/experiments/v7-500mhz-results.json",
-    "sha256": "73f4b7f43cf168b01f4f71a9dbde4437f0048f6f803ca748eda2f4019ac7e8a3"
+    "path": "docs/experiments/v8-results.json",
+    "sha256": "1e651742747b4ba7a0c1a3c5183282558daf18d3c13d945b3654cb868f0dde25",
+    "original_path": "docs/experiments/v7-500mhz-results.json",
+    "original_sha256": "73f4b7f43cf168b01f4f71a9dbde4437f0048f6f803ca748eda2f4019ac7e8a3"
   },
   "changed_production_inputs": [
     "verilog/cpu_core.sv",
@@ -1081,5 +1083,15 @@
     "minimum_ipc": 1.0985,
     "maximum_area_um2": 36000
   },
-  "scope": "Qualification for the changed MDU, preselected Store word-match bitmap, validity-masked forwarding data and precomputed memory-queue send count. Full official 19-case correctness, 6-case performance, 189 strict default directed/random runs, 6 per-commit performance runs, 945 compatibility runs, 27 fault runs, 12 writeback-fault runs, 2 combinational-loop checks, MDU arithmetic/latency/cancellation tests in Icarus and Verilator, 7 forwarding equivalence proofs, 5 modular counter equivalence proofs on the verbatim production fragment, and full-chip synthesis/STA passed. Unchanged MDU-only tests and same-source screening results are reused with source checks; all other final tests use the frozen current source. Baseline memory-unit, other execution/frontend units and unrelated formal checks were not rerun. Speed is measured in the local course Linux ARM64 container, not on the OJ host. Timing is the unchanged ideal-clock/no-parasitics course estimate."
+  "scope": "Qualification for the changed MDU, preselected Store word-match bitmap, validity-masked forwarding data and precomputed memory-queue send count. Full official 19-case correctness, 6-case performance, 189 strict default directed/random runs, 6 per-commit performance runs, 945 compatibility runs, 27 fault runs, 12 writeback-fault runs, 2 combinational-loop checks, MDU arithmetic/latency/cancellation tests in Icarus and Verilator, 7 forwarding equivalence proofs, 5 modular counter equivalence proofs on the verbatim production fragment, and full-chip synthesis/STA passed. Unchanged MDU-only tests and same-source screening results are reused with source checks; all other final tests use the frozen current source. Baseline memory-unit, other execution/frontend units and unrelated formal checks were not rerun. Speed is measured in the local course Linux ARM64 container, not on the OJ host. Timing is the unchanged ideal-clock/no-parasitics course estimate.",
+  "documentation_versioning": {
+    "release": "V9",
+    "role": "qualification",
+    "original_document": {
+      "path": "docs/experiments/v7-mdu-speed-results.json",
+      "sha256": "b03e40de5478826be3aefed78c1f41753240629d1001e1b76556c3becdedf0b4",
+      "version": "V7-500MHz MDU speedup"
+    },
+    "note": "Release labels and document references were normalized. Measurements, commands, source hashes and original build artifact paths are unchanged."
+  }
 }

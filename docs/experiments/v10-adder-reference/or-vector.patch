@@ -1,0 +1,39 @@
+--- a/verilog/common/address_adder.sv
++++ b/verilog/common/address_adder.sv
+@@ -1,5 +1,5 @@
+-// Parallel prefix addition expressed as bit logic, so word-level resource
+-// sharing cannot insert late execution/admission muxes into this datapath.
++// Five-level parallel prefix addition expressed as whole-vector bit logic.
++// OR propagate preserves the fast carry network without word-level adders.
+ module address_adder (
+     input wire [31:0] a, b,
+     input wire carry_in,
+@@ -11,19 +11,15 @@
+     assign p[0] = a | b;
+     generate
+         for (genvar level = 0; level < 5; level = level + 1) begin : prefix
+-            for (genvar k = 0; k < 32; k = k + 1) begin : bits
+-                if (k >= (1 << level)) begin : merge
+-                    assign g[level+1][k] = g[level][k] | (p[level][k] & g[level][k-(1 << level)]);
+-                    assign p[level+1][k] = p[level][k] & p[level][k-(1 << level)];
+-                end else begin : pass
+-                    assign g[level+1][k] = g[level][k];
+-                    assign p[level+1][k] = p[level][k];
+-                end
+-            end
+-        end
+-        for (genvar k = 0; k < 32; k = k + 1) begin : result_bits
+-            if (k == 0) assign sum[k] = a[k] ^ b[k] ^ carry_in;
+-            else assign sum[k] = a[k] ^ b[k] ^ (g[5][k-1] | (p[5][k-1] & carry_in));
++            localparam integer DISTANCE = 1 << level;
++            // One is the identity for propagate, zero for generate. Padding
++            // preserves the low bits that have no predecessor at this level.
++            assign p[level+1] = p[level] &
++                {p[level][31-DISTANCE:0], {DISTANCE{1'b1}}};
++            assign g[level+1] = g[level] | (p[level] &
++                {g[level][31-DISTANCE:0], {DISTANCE{1'b0}}});
+         end
+     endgenerate
++    wire [31:0] carry = {g[5][30:0] | (p[5][30:0] & {31{carry_in}}), carry_in};
++    assign sum = a ^ b ^ carry;
+ endmodule

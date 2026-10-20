@@ -17,11 +17,13 @@ tools/dev mac perf SIM=build/macos/sim LATENCY=10
 
 `SIM` 用于复用已经构建的仿真器。不指定它时，官方 Makefile 的 `test`、`perf` 和 `run` 都会先执行 `build`，构建脚本会删除旧的生成目录并重新编译。修改 RTL、源文件清单或仿真参数后，应先重新构建，再复用新产物；`SIM` 本身不会检查源文件是否变化。
 
-正式 CPU 已加入 `verilog/filelist.f`，当前版本为 **V7-500MHz**，结构见 [架构文档](arch.md)，验收数据见 [V7-500MHz 结果](experiments/v7-500mhz-results.json)。历史基线见 [V7](experiments/v7.md)、[V6](experiments/v6.md)、[V5](experiments/v5.md)、[V4](experiments/v4.md)、[V3](experiments/v3.md)、[V2](experiments/v2.md) 与 [V1](experiments/v1.md)。独立环境自检仍保留，用于区分工具安装问题与 CPU 功能问题。原生 Mac 环境不提供课程综合结果，综合使用下述 Linux 路径。
+正式 CPU 已加入 `verilog/filelist.f`，当前版本为 **V10**，结构见 [架构文档](arch.md)，验收数据见 [V10 结果](experiments/v10-results.json)。V7 双通路、V8 时序优化、V9 乘除提前结束与复用、V10 Booth/前导零优化的演进，以及 V1～V6 的历史记录，统一见 [文档索引](README.md)。独立环境自检仍保留，用于区分工具安装问题与 CPU 功能问题。原生 Mac 环境不提供课程综合结果，综合使用下述 Linux 路径。
 
-### 1.1 加快完整正确性回归
+### 1.1 加快本地正确性回归（V8 历史测量）
 
-V7-500MHz 的 19 项正确性测试共运行 42,843,425 个周期，其中 `correctness_pi` 为 39,421,922 个周期，占约 92%。因此，应优先加快单个仿真进程；将测试用例分给多个进程，对这个最长用例没有帮助。
+以下线程数对照使用历史 **V8（原称 V7-500MHz）**。V8 的 19 项正确性测试共运行 42,843,425 个周期，其中 `correctness_pi` 为 39,421,922 个周期，占约 92%。因此，应优先加快单个仿真进程；将测试用例分给多个进程，对这个最长用例没有帮助。
+
+当前 V10 的 pi 已降至 **11,839,760 周期**，课程 Linux 官方单线程实测为 **302.8770 秒**，详见 [V10 验收](experiments/v10.md)。下文的 Mac 多线程数字保留为 V8 历史对照，不能当作 V10 的实测值，也不能直接与 Linux 单线程耗时比较。
 
 项目验证构建脚本支持 `--threads`，用于生成多线程 Verilator 仿真器。Mac 上可使用：
 
@@ -39,7 +41,7 @@ tools/dev mac test SIM=build/macos-fast/sim Case=correctness_tak
 
 `--threads 4` 表示单个仿真模型使用 4 个线程，包含主线程；`--jobs 6` 只控制 C++ 编译并行度。验证构建脚本的 `--threads` 默认仍为 1，其他既有调用方式保持不变。该脚本默认开启 RTL 跟踪，因此普通正确性测试要显式传入 `--param TRACE=0`，避免逐事件日志拖慢长程序。上述配置保留 `--assert`、原始官方 C++ harness 和波形支持；普通 `test` 调用不写 VCD。构建命令、参数和源文件 SHA256 保存在输出目录的 `build.json` 中。
 
-2026-10-20 在本机 Verilator 5.052 上，以相同 V7-500MHz RTL、`LATENCY=10`、关闭 RTL 跟踪的 `correctness_tak` 做对照，得到以下墙钟时间；每次输出都通过官方答案比较，周期数均为 **847,097**：
+2026-10-20 在本机 Verilator 5.052 上，以相同 V8 RTL、`LATENCY=10`、关闭 RTL 跟踪的 `correctness_tak` 做对照，得到以下墙钟时间；每次输出都通过官方答案比较，周期数均为 **847,097**：
 
 | 配置 | `tak` 实测耗时 | 说明 |
 | --- | ---: | --- |
@@ -48,7 +50,7 @@ tools/dev mac test SIM=build/macos-fast/sim Case=correctness_tak
 | 默认 `-Os`，2 个仿真线程 | 约 5.30 秒 | 单次测量 |
 | 默认 `-Os`，4 个仿真线程 | 约 4.98–5.76 秒 | 分别为单独测量与完整回归末尾的测量，约为单线程速度的 1.44–1.66 倍 |
 
-使用上述四线程命令重新构建后，完整 **19 项全部通过**，墙钟耗时 **239.85 秒**，不含约 6.47 秒的构建时间。其中 `pi` 为 217.35 秒，全部 19 项的周期数均与 V7-500MHz 验收记录一致。该次运行保留了所有断言、官方输入输出比较和 `LATENCY=10`；本地日志及逐项计时保存在 `build/macos-fast/official-regression.log` 和 `build/macos-fast/speed-correctness.json`，对照测量保存在同目录的 `speed-comparison.json`。
+当时使用上述四线程命令重新构建 V8 后，完整 **19 项全部通过**，墙钟耗时 **239.85 秒**，不含约 6.47 秒的构建时间。其中 `pi` 为 217.35 秒，全部 19 项的周期数均与 [V8 验收记录](experiments/v8-results.json) 一致。该次运行保留了所有断言、官方输入输出比较和 `LATENCY=10`；本地日志及逐项计时保存在 `build/macos-fast/official-regression.log` 和 `build/macos-fast/speed-correctness.json`，对照测量保存在同目录的 `speed-comparison.json`。
 
 上表的加速比来自本机 `tak` 对照，整轮回归耗时和最佳线程数还受主机负载、CPU 和 Verilator 版本影响。可用独立输出目录对照 `--threads 2` 与 `--threads 4`；不要把编译任务数 `JOBS` 当作仿真线程数。
 

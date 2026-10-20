@@ -1209,9 +1209,11 @@
       ],
       "directed_matrix": "63 cases x latencies 1,10,31; native trace checks",
       "replay_patch": {
-        "path": "docs/experiments/v7-500mhz-s1.patch",
+        "path": "docs/experiments/v8-s1.patch",
         "sha256": "771e12aabb8de9a3f7553bacb7c8b06ff03e20d78f9903a520540fd71a8b399b",
-        "replay_verified": true
+        "replay_verified": true,
+        "original_path": "docs/experiments/v7-500mhz-s1.patch",
+        "original_sha256": "771e12aabb8de9a3f7553bacb7c8b06ff03e20d78f9903a520540fd71a8b399b"
       }
     },
     "step2": {
@@ -1224,9 +1226,11 @@
         "admission alone authorizes effects"
       ],
       "replay_patch": {
-        "path": "docs/experiments/v7-500mhz-s2.patch",
+        "path": "docs/experiments/v8-s2.patch",
         "sha256": "9f935e91e735d05a963a5d5d9a9835b57c4a765d9861b27305287f3e89e6e6b3",
-        "replay_verified": true
+        "replay_verified": true,
+        "original_path": "docs/experiments/v7-500mhz-s2.patch",
+        "original_sha256": "9f935e91e735d05a963a5d5d9a9835b57c4a765d9861b27305287f3e89e6e6b3"
       }
     },
     "replay_order": "Apply S1 then S2 to base commit 690c35ba5f61a6015766e5db1c3a8893b611ebde. Each replay was checked against its measured RTL snapshot byte for byte."
@@ -1236,8 +1240,10 @@
   "completed_utc": "2026-10-19T16:32:06.475531+00:00",
   "qualification": {
     "results": {
-      "path": "docs/experiments/v7-500mhz-results.json",
-      "sha256": "73f4b7f43cf168b01f4f71a9dbde4437f0048f6f803ca748eda2f4019ac7e8a3"
+      "path": "docs/experiments/v8-results.json",
+      "sha256": "1e651742747b4ba7a0c1a3c5183282558daf18d3c13d945b3654cb868f0dde25",
+      "original_path": "docs/experiments/v7-500mhz-results.json",
+      "original_sha256": "73f4b7f43cf168b01f4f71a9dbde4437f0048f6f803ca748eda2f4019ac7e8a3"
     },
     "completion_audit": {
       "path": "build/v7-500/linux-final/qualification-completion.json",
@@ -1363,5 +1369,15 @@
       "--target",
       "v7-500"
     ]
+  },
+  "version": "V8",
+  "documentation_versioning": {
+    "release": "V8",
+    "role": "candidate_history",
+    "original_document": {
+      "path": "docs/experiments/v7-500mhz-experiments.json",
+      "sha256": "531148a93a999dc61058272b11c813d6d69144b3b9e0375f21ce18fb5c8891f3"
+    },
+    "note": "Release labels and document references were normalized. Measurements, commands, source hashes and original build artifact paths are unchanged."
   }
 }
